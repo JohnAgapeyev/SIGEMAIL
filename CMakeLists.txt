@@ -17,10 +17,10 @@ target_link_libraries(sigemail signal-protocol-c sodium)
 
 target_include_directories(sigemail PRIVATE
     .
-	libsignal-protocol-c/src/curve25519/ed25519/nacl_includes
-	libsignal-protocol-c/src/curve25519/ed25519/additions/generalized
-	libsignal-protocol-c/src/curve25519/ed25519/additions
-	libsignal-protocol-c/src/curve25519/ed25519/sha512
-	libsignal-protocol-c/src/curve25519/ed25519
-	libsignal-protocol-c/src/curve25519
+    libsignal-protocol-c/src/curve25519/ed25519/nacl_includes
+    libsignal-protocol-c/src/curve25519/ed25519/additions/generalized
+    libsignal-protocol-c/src/curve25519/ed25519/additions
+    libsignal-protocol-c/src/curve25519/ed25519/sha512
+    libsignal-protocol-c/src/curve25519/ed25519
+    libsignal-protocol-c/src/curve25519
 )
