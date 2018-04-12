@@ -14,9 +14,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 add_subdirectory(libsignal-protocol-c)
 
 set(SIGEMAIL_SOURCES
-    main.c
-    test.c
-    test.h
+    src/main.c
+    src/test.c
+    src/test.h
 )
 
 add_executable(sigemail ${SIGEMAIL_SOURCES})
@@ -24,7 +24,7 @@ add_executable(sigemail ${SIGEMAIL_SOURCES})
 target_link_libraries(sigemail signal-protocol-c sodium curl)
 
 target_include_directories(sigemail PRIVATE
-    .
+    src
     libsignal-protocol-c/src/curve25519/ed25519/nacl_includes
     libsignal-protocol-c/src/curve25519/ed25519/additions/generalized
     libsignal-protocol-c/src/curve25519/ed25519/additions
