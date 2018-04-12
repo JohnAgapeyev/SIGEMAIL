@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include <sodium.h>
 #include <string.h>
+#include <openssl/rand.h>
 #include "test.h"
 #include "gen_x.h"
 #include "crypto_hash_sha512.h"
@@ -16,7 +16,6 @@
 void testing(void) {
     printf("This is a thing that has run\n");
 
-    sodium_init();
     const unsigned char *message = (const unsigned char *) "This is a test of things and stuff";
 
     unsigned char sig[64];
@@ -24,12 +23,12 @@ void testing(void) {
     unsigned char random[32];
     unsigned char vrf[32];
 
-    randombytes_buf(random, 32);
+    RAND_bytes(random, 32);
 
-    unsigned char client_pk[crypto_kx_PUBLICKEYBYTES];
-    unsigned char client_sk[crypto_kx_SECRETKEYBYTES];
+    unsigned char client_pk[32];
+    unsigned char client_sk[32];
 
-    randombytes_buf(client_sk, 32);
+    RAND_bytes(client_sk, 32);
 
     sc_clamp(client_sk);
     curve25519_keygen(client_pk, client_sk);
@@ -60,10 +59,10 @@ void testing(void) {
     }
     printf("Passed second verify\n");
 
-    unsigned char client_pk_1[crypto_kx_PUBLICKEYBYTES];
-    unsigned char client_sk_1[crypto_kx_SECRETKEYBYTES];
+    unsigned char client_pk_1[32];
+    unsigned char client_sk_1[32];
 
-    randombytes_buf(client_sk_1, 32);
+    RAND_bytes(client_sk_1, 32);
 
     sc_clamp(client_sk_1);
     curve25519_keygen(client_pk_1, client_sk_1);

@@ -17,11 +17,15 @@ set(SIGEMAIL_SOURCES
     src/main.c
     src/test.c
     src/test.h
+    src/dh.h
+    src/dh.c
 )
 
 add_executable(sigemail ${SIGEMAIL_SOURCES})
 
-target_link_libraries(sigemail signal-protocol-c sodium curl)
+find_package(OpenSSL)
+
+target_link_libraries(sigemail signal-protocol-c OpenSSL::SSL OpenSSL::Crypto curl)
 
 target_include_directories(sigemail PRIVATE
     src
