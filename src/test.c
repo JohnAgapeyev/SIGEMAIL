@@ -11,6 +11,7 @@
 #include "ge.h"
 #include "utility.h"
 #include "gen_crypto_additions.h"
+#include "curve25519-donna.h"
 
 void testing(void) {
     printf("This is a thing that has run\n");
@@ -58,4 +59,18 @@ void testing(void) {
         printf("%d\n", x);
     }
     printf("Passed second verify\n");
+
+    unsigned char client_pk_1[crypto_kx_PUBLICKEYBYTES];
+    unsigned char client_sk_1[crypto_kx_SECRETKEYBYTES];
+
+    randombytes_buf(client_sk_1, 32);
+
+    sc_clamp(client_sk_1);
+    curve25519_keygen(client_pk_1, client_sk_1);
+
+    uint8_t shared[32];
+
+    curve25519_donna(shared, client_sk, client_pk_1);
+
+    printf("Passed Diffie Hellman verify\n");
 }
