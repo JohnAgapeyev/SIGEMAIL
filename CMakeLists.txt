@@ -19,6 +19,8 @@ set(SIGEMAIL_SOURCES
     src/test.h
     src/dh.h
     src/dh.c
+    src/kdf.h
+    src/kdf.c
 )
 
 add_executable(sigemail ${SIGEMAIL_SOURCES})
