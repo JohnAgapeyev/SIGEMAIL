@@ -21,6 +21,8 @@ set(SIGEMAIL_SOURCES
     src/dh.c
     src/kdf.h
     src/kdf.c
+    src/encrypt.h
+    src/encrypt.c
 )
 
 add_executable(sigemail ${SIGEMAIL_SOURCES})
