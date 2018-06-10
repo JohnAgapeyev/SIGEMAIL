@@ -5,13 +5,17 @@
 #include <cstddef>
 #include <array>
 
-struct dh_keypair {
+class DH_Keypair {
     std::array<std::byte, 32> private_key;
     std::array<std::byte, 32> public_key;
+public:
+    DH_Keypair();
+    DH_Keypair(const DH_Keypair&) = default;
+    DH_Keypair(DH_Keypair&&) = default;
+    DH_Keypair& operator=(const DH_Keypair&) = default;
+    DH_Keypair& operator=(DH_Keypair&&) = default;
+
+    std::array<std::byte, 32> generate_shared_secret(const std::array<std::byte, 32>& remote_public) const noexcept;
 };
-
-dh_keypair *generate_dh_keys(void);
-uint8_t *generate_shared_secret(std::array<std::byte, 32> local_private, std::array<std::byte, 32> remote_public);
-
 
 #endif

@@ -7,16 +7,15 @@
 #include "curve25519-donna.h"
 #include "keygen.h"
 
-dh_keypair *generate_dh_keys(void) {
-    dh_keypair *out = (dh_keypair *) malloc(sizeof(dh_keypair));
-    RAND_bytes(reinterpret_cast<unsigned char *>(out->private_key.data()), 32);
-    sc_clamp(reinterpret_cast<unsigned char *>(out->private_key.data()));
-    curve25519_keygen(reinterpret_cast<unsigned char *>(out->public_key.data()), reinterpret_cast<unsigned char *>(out->private_key.data()));
-    return out;
+DH_Keypair::DH_Keypair() {
+    RAND_bytes(reinterpret_cast<unsigned char *>(private_key.data()), 32);
+    sc_clamp(reinterpret_cast<unsigned char *>(private_key.data()));
+    curve25519_keygen(reinterpret_cast<unsigned char *>(public_key.data()), reinterpret_cast<unsigned char *>(private_key.data()));
 }
 
-uint8_t *generate_shared_secret(std::array<std::byte, 32> local_private, std::array<std::byte, 32> remote_public) {
-    uint8_t *shared = (uint8_t *) malloc(sizeof(uint8_t) * 32);
-    curve25519_donna(shared, reinterpret_cast<unsigned char *>(local_private.data()), reinterpret_cast<unsigned char *>(remote_public.data()));
-    return SHA256(shared, sizeof(uint8_t) * 32, shared);
+std::array<std::byte, 32> DH_Keypair::generate_shared_secret(const std::array<std::byte, 32>& remote_public) const noexcept {
+    std::array<std::byte, 32> out;
+    curve25519_donna(reinterpret_cast<unsigned char *>(out.data()), reinterpret_cast<const unsigned char *>(private_key.data()), reinterpret_cast<const unsigned char *>(remote_public.data()));
+    SHA256(reinterpret_cast<unsigned char *>(out.data()), sizeof(uint8_t) * 32, reinterpret_cast<unsigned char *>(out.data()));
+    return out;
 }
