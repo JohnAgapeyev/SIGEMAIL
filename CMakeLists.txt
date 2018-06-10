@@ -18,10 +18,9 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libsignal-protocol-c)
 set(SIGEMAIL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/dh.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/crypto.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/dh.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/kdf.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/kdf.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/encrypt.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/encrypt.cpp
 )
 
@@ -39,12 +38,5 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     libsignal-protocol-c/src/curve25519/ed25519/sha512
     libsignal-protocol-c/src/curve25519/ed25519
     libsignal-protocol-c/src/curve25519
-    #${CMAKE_CURRENT_SOURCE_DIR}/src
-    #${CMAKE_CURRENT_SOURCE_DIR}/libsignal-protocol-c/src/curve25519/ed25519/nacl_includes
-    #${CMAKE_CURRENT_SOURCE_DIR}/libsignal-protocol-c/src/curve25519/ed25519/additions/generalized
-    #${CMAKE_CURRENT_SOURCE_DIR}/libsignal-protocol-c/src/curve25519/ed25519/additions
-    #${CMAKE_CURRENT_SOURCE_DIR}/libsignal-protocol-c/src/curve25519/ed25519/sha512
-    #${CMAKE_CURRENT_SOURCE_DIR}/libsignal-protocol-c/src/curve25519/ed25519
-    #${CMAKE_CURRENT_SOURCE_DIR}/libsignal-protocol-c/src/curve25519
 )
 

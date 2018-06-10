@@ -4,8 +4,9 @@
 #include <cstdint>
 #include <cstddef>
 #include <array>
+#include "crypto.h"
 
-class DH_Keypair {
+class crypto::DH_Keypair {
     std::array<std::byte, 32> private_key;
     std::array<std::byte, 32> public_key;
 public:

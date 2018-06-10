@@ -1,10 +1,9 @@
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
+#include <cstdint>
+#include <cstdlib>
 #include <openssl/evp.h>
-#include "encrypt.h"
+#include "crypto.h"
 
-void encrypt(const uint8_t *const  message, const size_t mesg_len, const uint8_t key[], const uint8_t *const  aad, const size_t aad_len, uint8_t *const  ciphertext, uint8_t tag[]) {
+void crypto::encrypt(const uint8_t *const  message, const size_t mesg_len, const uint8_t key[], const uint8_t *const  aad, const size_t aad_len, uint8_t *const  ciphertext, uint8_t tag[]) {
     //THIS IS NOT A PROBLEM
     //Message keys are only used once in Signal, so nonce reuse is not an issue
     //See https://signal.org/docs/specifications/doubleratchet/#external-functions under the ENCRYPT function for confirmation
@@ -28,7 +27,7 @@ void encrypt(const uint8_t *const  message, const size_t mesg_len, const uint8_t
     EVP_CIPHER_CTX_free(ctx);
 }
 
-bool decrypt(const uint8_t *const  ciphertext, const size_t cipher_len, const uint8_t tag[], const uint8_t key[], const uint8_t *const  aad, const size_t aad_len, uint8_t *const  plaintext) {
+bool crypto::decrypt(const uint8_t *const  ciphertext, const size_t cipher_len, const uint8_t tag[], const uint8_t key[], const uint8_t *const  aad, const size_t aad_len, uint8_t *const  plaintext) {
     //THIS IS NOT A PROBLEM
     //Message keys are only used once in Signal, so nonce reuse is not an issue
     //See https://signal.org/docs/specifications/doubleratchet/#external-functions under the ENCRYPT function for confirmation
