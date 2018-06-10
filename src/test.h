@@ -1,2 +1,0 @@
-
-void testing(void);

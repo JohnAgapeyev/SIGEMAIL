@@ -4,7 +4,7 @@
 #include <openssl/evp.h>
 #include "encrypt.h"
 
-void encrypt(const uint8_t *const restrict message, const size_t mesg_len, const uint8_t key[static const restrict 32], const uint8_t *const restrict aad, const size_t aad_len, uint8_t *const restrict ciphertext, uint8_t tag[static const restrict 16]) {
+void encrypt(const uint8_t *const  message, const size_t mesg_len, const uint8_t key[], const uint8_t *const  aad, const size_t aad_len, uint8_t *const  ciphertext, uint8_t tag[]) {
     //THIS IS NOT A PROBLEM
     //Message keys are only used once in Signal, so nonce reuse is not an issue
     //See https://signal.org/docs/specifications/doubleratchet/#external-functions under the ENCRYPT function for confirmation
@@ -28,7 +28,7 @@ void encrypt(const uint8_t *const restrict message, const size_t mesg_len, const
     EVP_CIPHER_CTX_free(ctx);
 }
 
-bool decrypt(const uint8_t *const restrict ciphertext, const size_t cipher_len, const uint8_t tag[static const restrict 16], const uint8_t key[static const restrict 32], const uint8_t *const restrict aad, const size_t aad_len, uint8_t *const restrict plaintext) {
+bool decrypt(const uint8_t *const  ciphertext, const size_t cipher_len, const uint8_t tag[], const uint8_t key[], const uint8_t *const  aad, const size_t aad_len, uint8_t *const  plaintext) {
     //THIS IS NOT A PROBLEM
     //Message keys are only used once in Signal, so nonce reuse is not an issue
     //See https://signal.org/docs/specifications/doubleratchet/#external-functions under the ENCRYPT function for confirmation
