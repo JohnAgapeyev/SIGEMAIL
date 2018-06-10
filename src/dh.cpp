@@ -9,14 +9,14 @@
 
 dh_keypair *generate_dh_keys(void) {
     dh_keypair *out = (dh_keypair *) malloc(sizeof(dh_keypair));
-    RAND_bytes(out->private_key, 32);
-    sc_clamp(out->private_key);
-    curve25519_keygen(out->public_key, out->private_key);
+    RAND_bytes(reinterpret_cast<unsigned char *>(out->private_key.data()), 32);
+    sc_clamp(reinterpret_cast<unsigned char *>(out->private_key.data()));
+    curve25519_keygen(reinterpret_cast<unsigned char *>(out->public_key.data()), reinterpret_cast<unsigned char *>(out->private_key.data()));
     return out;
 }
 
-uint8_t *generate_shared_secret(uint8_t local_private_key[], uint8_t remote_public_key[]) {
+uint8_t *generate_shared_secret(std::array<std::byte, 32> local_private, std::array<std::byte, 32> remote_public) {
     uint8_t *shared = (uint8_t *) malloc(sizeof(uint8_t) * 32);
-    curve25519_donna(shared, local_private_key, remote_public_key);
+    curve25519_donna(shared, reinterpret_cast<unsigned char *>(local_private.data()), reinterpret_cast<unsigned char *>(remote_public.data()));
     return SHA256(shared, sizeof(uint8_t) * 32, shared);
 }
