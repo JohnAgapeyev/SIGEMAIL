@@ -17,11 +17,12 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libsignal-protocol-c)
 
 set(SIGEMAIL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/dh.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/crypto.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/dh.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/dh.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/kdf.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/encrypt.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sign.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SIGEMAIL_SOURCES})

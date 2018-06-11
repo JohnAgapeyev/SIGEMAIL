@@ -66,6 +66,12 @@ namespace crypto {
     const std::array<std::byte, 32> X3DH(const DH_Keypair& local_identity, const DH_Keypair& local_ephemeral,
             const std::array<std::byte, 32>& remote_identity, const std::array<std::byte, 32>& remote_prekey,
             const std::array<std::byte, 32>& remote_one_time_key);
+
+    const std::array<std::byte, 64> sign_key(const std::array<std::byte, 32>& private_signing_key,
+            const std::array<std::byte, 32>& key_to_sign);
+
+    bool verify_signed_key(const std::array<std::byte, 64>& signature, const std::array<std::byte, 32>& signed_key,
+            const std::array<std::byte, 32>& public_signing_key);
 }
 
 #endif
