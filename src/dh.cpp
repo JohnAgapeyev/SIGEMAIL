@@ -6,7 +6,6 @@
 #include "dh.h"
 #include "curve25519-donna.h"
 #include "keygen.h"
-#include "crypto.h"
 
 crypto::DH_Keypair::DH_Keypair() {
     RAND_bytes(reinterpret_cast<unsigned char *>(private_key.data()), 32);
