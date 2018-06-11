@@ -13,8 +13,9 @@ namespace crypto {
     void encrypt(const std::vector<std::byte>& message, const std::array<std::byte, 32>& key, const std::vector<std::byte>& aad, std::vector<std::byte>& ciphertext, std::array<std::byte, 16>& tag);
     bool decrypt(const std::vector<std::byte>& ciphertext, std::array<std::byte, 16>& tag, const std::array<std::byte, 32>& key, const std::vector<std::byte>& aad, std::vector<std::byte>& plaintext);
 
-    std::array<std::byte, 32> root_derive(std::array<std::byte, 32>& root_key, const std::array<std::byte, 32>& dh_output);
-    std::array<std::byte, 32> chain_derive(std::array<std::byte, 32>& chain_key);
+    const std::array<std::byte, 32> root_derive(std::array<std::byte, 32>& root_key, const std::array<std::byte, 32>& dh_output);
+    const std::array<std::byte, 32> chain_derive(std::array<std::byte, 32>& chain_key);
+    const std::array<std::byte, 32> x3dh_derive(const std::vector<std::byte>& key_material);
 
     //Taken and modified from https://wiki.openssl.org/index.php/EVP_Symmetric_Encryption_and_Decryption#C.2B.2B_Programs
     template <typename T>
@@ -61,6 +62,10 @@ namespace crypto {
             ptr->~U();
         }
     };
+
+    const std::array<std::byte, 32> X3DH(const DH_Keypair& local_identity, const DH_Keypair& local_ephemeral,
+            const std::array<std::byte, 32>& remote_identity, const std::array<std::byte, 32>& remote_prekey,
+            const std::array<std::byte, 32>& remote_one_time_key);
 }
 
 #endif
