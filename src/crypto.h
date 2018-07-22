@@ -99,13 +99,17 @@ namespace crypto {
         constexpr const_reference operator[](const size_type s) const {return internal_array[s];}
 
         iterator begin() noexcept {return internal_array.begin();}
+        constexpr const_iterator begin() const noexcept {return internal_array.begin();}
         constexpr const_iterator cbegin() const noexcept {return internal_array.cbegin();}
         iterator end() noexcept {return internal_array.end();}
+        constexpr const_iterator end() const noexcept {return internal_array.end();}
         constexpr const_iterator cend() const noexcept {return internal_array.cend();}
 
         reverse_iterator rbegin() noexcept {return internal_array.rbegin();}
+        constexpr const_reverse_iterator rbegin() const noexcept {return internal_array.rbegin();}
         constexpr const_reverse_iterator crbegin() const noexcept {return internal_array.crbegin();}
         reverse_iterator rend() noexcept {return internal_array.rend();}
+        constexpr const_reverse_iterator rend() const noexcept {return internal_array.rend();}
         constexpr const_reverse_iterator crend() const noexcept {return internal_array.crend();}
 
         constexpr pointer data() noexcept {return internal_array.data();}

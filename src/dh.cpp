@@ -27,10 +27,10 @@ const secure_array<std::byte, 32> crypto::X3DH(const crypto::DH_Keypair& local_i
         const secure_array<std::byte, 32>& remote_identity, const secure_array<std::byte, 32>& remote_prekey,
         const secure_array<std::byte, 32>& remote_one_time_key) {
 
-    auto dh1 = local_identity.generate_shared_secret(remote_prekey);
-    auto dh2 = local_ephemeral.generate_shared_secret(remote_identity);
-    auto dh3 = local_ephemeral.generate_shared_secret(remote_prekey);
-    auto dh4 = local_ephemeral.generate_shared_secret(remote_one_time_key);
+    const auto dh1 = local_identity.generate_shared_secret(remote_prekey);
+    const auto dh2 = local_ephemeral.generate_shared_secret(remote_identity);
+    const auto dh3 = local_ephemeral.generate_shared_secret(remote_prekey);
+    const auto dh4 = local_ephemeral.generate_shared_secret(remote_one_time_key);
 
     secure_vector<std::byte> kdf_input;
 

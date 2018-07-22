@@ -18,7 +18,7 @@ public:
 
     const secure_array<std::byte, 32> generate_shared_secret(const secure_array<std::byte, 32>& remote_public) const noexcept;
 
-    const auto& get_public() const noexcept {return public_key;}
+    constexpr auto& get_public() const noexcept {return public_key;}
 };
 
 #endif
