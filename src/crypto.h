@@ -23,7 +23,7 @@ namespace crypto {
 
     //Taken and modified from https://wiki.openssl.org/index.php/EVP_Symmetric_Encryption_and_Decryption#C.2B.2B_Programs
     template <typename T>
-    struct zallocator {
+    struct zallocator : public std::allocator_traits<zallocator<T>> {
         using value_type = T;
         using pointer = value_type *;
         using const_pointer = const value_type *;
