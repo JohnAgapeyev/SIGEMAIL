@@ -6,6 +6,7 @@
 #include <array>
 #include <cstddef>
 #include <vector>
+#include <openssl/crypto.h>
 
 namespace crypto {
     class DH_Keypair;
@@ -72,6 +73,54 @@ namespace crypto {
 
     bool verify_signed_key(const std::array<std::byte, 64>& signature, const std::array<std::byte, 32>& signed_key,
             const std::array<std::byte, 32>& public_signing_key);
+
+    template<typename T>
+    using secure_vector = std::vector<T, zallocator<T>>;
+    template<typename T>
+    using secure_string = std::basic_string<char, std::char_traits<char>, zallocator<char>>;
+
+    template <typename T, std::size_t size>
+    class secure_array {
+    public:
+        using value_type = T;
+        using size_type = std::size_t;
+        using difference_type = std::ptrdiff_t;
+        using reference = value_type&;
+        using const_reference = const value_type&;
+        using pointer = value_type*;
+        using const_pointer = const value_type*;
+        using iterator = typename std::array<T, size>::iterator;
+        using const_iterator = typename std::array<T, size>::const_iterator;
+        using reverse_iterator = typename std::array<T, size>::reverse_iterator;
+        using const_reverse_iterator = typename std::array<T, size>::const_reverse_iterator;
+
+        secure_array() = default;
+
+        template <typename... U>
+        secure_array(U&&... u) : data(std::array<T, size>{std::forward<U>(u)...}) {}
+
+        ~secure_array() = default;
+        secure_array(const secure_array&) = default;
+        secure_array(secure_array&&) = default;
+        secure_array& operator=(secure_array&&) = default;
+        secure_array& operator=(const secure_array&) = default;
+
+        reference operator[](size_type s) {return data[s];}
+        const_reference operator[](const size_type s) const {return data[s];}
+
+        constexpr iterator begin() const {return data.begin();}
+        constexpr const_iterator cbegin() const {return data.cbegin();}
+        constexpr iterator end() const {return data.end();}
+        constexpr const_iterator cend() const {return data.cend();}
+
+        constexpr reverse_iterator rbegin() const {return data.rbegin();}
+        constexpr const_reverse_iterator crbegin() const {return data.crbegin();}
+        constexpr reverse_iterator rend() const {return data.rend();}
+        constexpr const_reverse_iterator crend() const {return data.crend();}
+
+    private:
+        std::array<T, size> data;
+    };
 }
 
 #endif
