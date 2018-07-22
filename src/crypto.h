@@ -6,6 +6,9 @@
 #include <array>
 #include <cstddef>
 #include <vector>
+#include <map>
+#include <unordered_map>
+#include <functional>
 #include <openssl/crypto.h>
 
 namespace crypto {
@@ -78,6 +81,10 @@ namespace crypto {
     using secure_vector = std::vector<T, zallocator<T>>;
     template<typename T>
     using secure_string = std::basic_string<char, std::char_traits<char>, zallocator<char>>;
+    template<typename Key, typename T>
+    using secure_map = std::map<Key, T, std::less<Key>, zallocator<std::pair<const Key, T>>>;
+    template<typename Key, typename T>
+    using secure_unordered_map = std::unordered_map<Key, T, std::hash<Key>, std::equal_to<Key>, zallocator<std::pair<const Key, T>>>;
 
     template <typename T, std::size_t arr_size>
     class secure_array {
@@ -99,7 +106,7 @@ namespace crypto {
         template <typename... U>
         secure_array(U&&... u) : internal_array(std::array<T, arr_size>{std::forward<U>(u)...}) {}
 
-        ~secure_array() = default;
+        ~secure_array() {OPENSSL_cleanse(internal_array.data(), internal_array.size() * sizeof(value_type));}
         secure_array(const secure_array&) = default;
         secure_array(secure_array&&) = default;
         secure_array& operator=(secure_array&&) = default;
