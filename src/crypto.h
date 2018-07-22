@@ -151,4 +151,25 @@ namespace crypto {
     const secure_array<std::byte, 32> x3dh_derive(const secure_vector<std::byte>& key_material);
 }
 
+namespace std {
+    template<typename T, std::size_t arr_size>
+    class hash<crypto::secure_array<T, arr_size>> {
+    public:
+        std::size_t operator() (const crypto::secure_array<T, arr_size>& arr) const {
+            std::size_t running_hash = 0;
+            for (const auto& elem : arr) {
+                running_hash ^= std::hash<T>{}(elem);
+            }
+            return running_hash;
+        }
+    };
+    template<typename T, typename U>
+    class hash<std::pair<T, U>> {
+    public:
+        std::size_t operator() (const std::pair<T, U>& p) const {
+            return std::hash<T>{}(p.first) ^ std::hash<U>{}(p.second);
+        }
+    };
+}
+
 #endif
