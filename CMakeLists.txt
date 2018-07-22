@@ -5,11 +5,18 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(CMAKE_CXX_FLAGS "-std=c++17 -Wall -Wextra -Wpedantic -pipe -march=native")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -Og")
-set(CMAKE_CXX_FLAGS_RELEASE "-s -O3 -DNDEBUG -flto")
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O3 -DNDEBUG -flto")
-set(CMAKE_CXX_FLAGS_MINSIZEREL "-s -Os -DNDEBUG -flto")
+set(CMAKE_CXX_FLAGS_DEBUG "")
+set(CMAKE_CXX_FLAGS_RELEASE "")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "")
+set(CMAKE_CXX_FLAGS_MINSIZEREL "")
+
+set(BASE_COMPILE_OPTIONS -Wall -Wextra -pedantic -pipe -march=native)
+set(DEBUG_OPTIONS ${BASE_COMPILE_OPTIONS} -g -O0)
+set(RELEASE_OPTIONS ${BASE_COMPILE_OPTIONS} -s -O3 -flto)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
@@ -25,9 +32,13 @@ set(SIGEMAIL_SOURCES
 
 add_executable(${PROJECT_NAME} ${SIGEMAIL_SOURCES})
 
+target_compile_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>")
+target_compile_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
+target_compile_definitions(${PROJECT_NAME} PRIVATE "$<$<CONFIG:RELEASE>:NDEBUG>")
+
 find_package(OpenSSL)
 
-target_link_libraries(${PROJECT_NAME} signal-protocol-c OpenSSL::SSL OpenSSL::Crypto curl)
+target_link_libraries(${PROJECT_NAME} PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto curl -flto)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     src
