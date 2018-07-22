@@ -79,7 +79,7 @@ namespace crypto {
     template<typename T>
     using secure_string = std::basic_string<char, std::char_traits<char>, zallocator<char>>;
 
-    template <typename T, std::size_t size>
+    template <typename T, std::size_t arr_size>
     class secure_array {
     public:
         using value_type = T;
@@ -89,15 +89,15 @@ namespace crypto {
         using const_reference = const value_type&;
         using pointer = value_type*;
         using const_pointer = const value_type*;
-        using iterator = typename std::array<T, size>::iterator;
-        using const_iterator = typename std::array<T, size>::const_iterator;
-        using reverse_iterator = typename std::array<T, size>::reverse_iterator;
-        using const_reverse_iterator = typename std::array<T, size>::const_reverse_iterator;
+        using iterator = typename std::array<T, arr_size>::iterator;
+        using const_iterator = typename std::array<T, arr_size>::const_iterator;
+        using reverse_iterator = typename std::array<T, arr_size>::reverse_iterator;
+        using const_reverse_iterator = typename std::array<T, arr_size>::const_reverse_iterator;
 
         secure_array() = default;
 
         template <typename... U>
-        secure_array(U&&... u) : data(std::array<T, size>{std::forward<U>(u)...}) {}
+        secure_array(U&&... u) : internal_array(std::array<T, arr_size>{std::forward<U>(u)...}) {}
 
         ~secure_array() = default;
         secure_array(const secure_array&) = default;
@@ -105,21 +105,38 @@ namespace crypto {
         secure_array& operator=(secure_array&&) = default;
         secure_array& operator=(const secure_array&) = default;
 
-        reference operator[](size_type s) {return data[s];}
-        const_reference operator[](const size_type s) const {return data[s];}
+        constexpr reference operator[](size_type s) {return internal_array[s];}
+        constexpr const_reference operator[](const size_type s) const {return internal_array[s];}
 
-        constexpr iterator begin() const {return data.begin();}
-        constexpr const_iterator cbegin() const {return data.cbegin();}
-        constexpr iterator end() const {return data.end();}
-        constexpr const_iterator cend() const {return data.cend();}
+        iterator begin() noexcept {return internal_array.begin();}
+        constexpr const_iterator cbegin() const noexcept {return internal_array.cbegin();}
+        iterator end() noexcept {return internal_array.end();}
+        constexpr const_iterator cend() const noexcept {return internal_array.cend();}
 
-        constexpr reverse_iterator rbegin() const {return data.rbegin();}
-        constexpr const_reverse_iterator crbegin() const {return data.crbegin();}
-        constexpr reverse_iterator rend() const {return data.rend();}
-        constexpr const_reverse_iterator crend() const {return data.crend();}
+        reverse_iterator rbegin() noexcept {return internal_array.rbegin();}
+        constexpr const_reverse_iterator crbegin() const noexcept {return internal_array.crbegin();}
+        reverse_iterator rend() noexcept {return internal_array.rend();}
+        constexpr const_reverse_iterator crend() const noexcept {return internal_array.crend();}
+
+        constexpr pointer data() noexcept {return internal_array.data();}
+        constexpr const_pointer data() const noexcept {return internal_array.data();}
+
+        constexpr reference front() {return internal_array.front();}
+        constexpr const_reference front() const {return internal_array.front();}
+
+        constexpr reference back() {return internal_array.back();}
+        constexpr const_reference back() const {return internal_array.back();}
+
+        constexpr bool empty() const noexcept {return internal_array.empty();}
+
+        constexpr size_type size() const noexcept {return internal_array.size();}
+        constexpr size_type max_size() noexcept {return internal_array.max_size();}
+        constexpr size_type max_size() const noexcept {return internal_array.max_size();}
+
+        void fill(const_reference value) {internal_array.fill(value);}
 
     private:
-        std::array<T, size> data;
+        std::array<T, arr_size> internal_array;
     };
 }
 
