@@ -17,6 +17,8 @@ public:
     DH_Keypair& operator=(DH_Keypair&&) = default;
 
     const secure_array<std::byte, 32> generate_shared_secret(const secure_array<std::byte, 32>& remote_public) const noexcept;
+
+    const auto& get_public() const noexcept {return public_key;}
 };
 
 #endif

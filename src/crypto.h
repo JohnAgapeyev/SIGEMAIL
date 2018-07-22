@@ -28,7 +28,7 @@ namespace crypto {
         pointer address(reference v) const {return &v;}
         const_pointer address (const_reference v) const {return &v;}
 
-        pointer allocate(size_type n, const void* hint = 0) {
+        pointer allocate(size_type n, [[maybe_unused]] const void* hint = 0) {
             if (n > std::numeric_limits<size_type>::max() / sizeof(T)) {
                 throw std::bad_alloc();
             }
@@ -139,8 +139,8 @@ namespace crypto {
     bool verify_signed_key(const secure_array<std::byte, 64>& signature, const secure_array<std::byte, 32>& signed_key,
             const secure_array<std::byte, 32>& public_signing_key);
 
-    void encrypt(const secure_vector<std::byte>& message, const secure_array<std::byte, 32>& key, const secure_vector<std::byte>& aad, secure_vector<std::byte>& ciphertext, secure_array<std::byte, 16>& tag);
-    bool decrypt(const secure_vector<std::byte>& ciphertext, secure_array<std::byte, 16>& tag, const secure_array<std::byte, 32>& key, const secure_vector<std::byte>& aad, secure_vector<std::byte>& plaintext);
+    void encrypt(const secure_vector<std::byte>& message, const secure_array<std::byte, 32>& key, const secure_vector<std::byte>& aad, secure_vector<std::byte>& ciphertext);
+    bool decrypt(secure_vector<std::byte>& ciphertext, const secure_array<std::byte, 32>& key, const secure_vector<std::byte>& aad, secure_vector<std::byte>& plaintext);
 
     const secure_array<std::byte, 32> root_derive(secure_array<std::byte, 32>& root_key, const secure_array<std::byte, 32>& dh_output);
     const secure_array<std::byte, 32> chain_derive(secure_array<std::byte, 32>& chain_key);
