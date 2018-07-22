@@ -4,7 +4,7 @@
 #include <openssl/evp.h>
 #include "crypto.h"
 
-void crypto::encrypt(const std::vector<std::byte>& message, const std::array<std::byte, 32>& key, const std::vector<std::byte>& aad, std::vector<std::byte>& ciphertext, std::array<std::byte, 16>& tag) {
+void crypto::encrypt(const secure_vector<std::byte>& message, const secure_array<std::byte, 32>& key, const secure_vector<std::byte>& aad, secure_vector<std::byte>& ciphertext, secure_array<std::byte, 16>& tag) {
     //THIS IS NOT A PROBLEM
     //Message keys are only used once in Signal, so nonce reuse is not an issue
     //See https://signal.org/docs/specifications/doubleratchet/#external-functions under the ENCRYPT function for confirmation
@@ -28,7 +28,7 @@ void crypto::encrypt(const std::vector<std::byte>& message, const std::array<std
     EVP_CIPHER_CTX_free(ctx);
 }
 
-bool crypto::decrypt(const std::vector<std::byte>& ciphertext, std::array<std::byte, 16>& tag, const std::array<std::byte, 32>& key, const std::vector<std::byte>& aad, std::vector<std::byte>& plaintext) {
+bool crypto::decrypt(const secure_vector<std::byte>& ciphertext, secure_array<std::byte, 16>& tag, const secure_array<std::byte, 32>& key, const secure_vector<std::byte>& aad, secure_vector<std::byte>& plaintext) {
     //THIS IS NOT A PROBLEM
     //Message keys are only used once in Signal, so nonce reuse is not an issue
     //See https://signal.org/docs/specifications/doubleratchet/#external-functions under the ENCRYPT function for confirmation

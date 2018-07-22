@@ -14,16 +14,9 @@
 namespace crypto {
     class DH_Keypair;
 
-    void encrypt(const std::vector<std::byte>& message, const std::array<std::byte, 32>& key, const std::vector<std::byte>& aad, std::vector<std::byte>& ciphertext, std::array<std::byte, 16>& tag);
-    bool decrypt(const std::vector<std::byte>& ciphertext, std::array<std::byte, 16>& tag, const std::array<std::byte, 32>& key, const std::vector<std::byte>& aad, std::vector<std::byte>& plaintext);
-
-    const std::array<std::byte, 32> root_derive(std::array<std::byte, 32>& root_key, const std::array<std::byte, 32>& dh_output);
-    const std::array<std::byte, 32> chain_derive(std::array<std::byte, 32>& chain_key);
-    const std::array<std::byte, 32> x3dh_derive(const std::vector<std::byte>& key_material);
-
     //Taken and modified from https://wiki.openssl.org/index.php/EVP_Symmetric_Encryption_and_Decryption#C.2B.2B_Programs
     template <typename T>
-    struct zallocator : public std::allocator_traits<zallocator<T>> {
+    struct zallocator {
         using value_type = T;
         using pointer = value_type *;
         using const_pointer = const value_type *;
@@ -66,16 +59,6 @@ namespace crypto {
             ptr->~U();
         }
     };
-
-    const std::array<std::byte, 32> X3DH(const DH_Keypair& local_identity, const DH_Keypair& local_ephemeral,
-            const std::array<std::byte, 32>& remote_identity, const std::array<std::byte, 32>& remote_prekey,
-            const std::array<std::byte, 32>& remote_one_time_key);
-
-    const std::array<std::byte, 64> sign_key(const std::array<std::byte, 32>& private_signing_key,
-            const std::array<std::byte, 32>& key_to_sign);
-
-    bool verify_signed_key(const std::array<std::byte, 64>& signature, const std::array<std::byte, 32>& signed_key,
-            const std::array<std::byte, 32>& public_signing_key);
 
     template<typename T>
     using secure_vector = std::vector<T, zallocator<T>>;
@@ -145,6 +128,23 @@ namespace crypto {
     private:
         std::array<T, arr_size> internal_array;
     };
+
+    const secure_array<std::byte, 32> X3DH(const DH_Keypair& local_identity, const DH_Keypair& local_ephemeral,
+            const secure_array<std::byte, 32>& remote_identity, const secure_array<std::byte, 32>& remote_prekey,
+            const secure_array<std::byte, 32>& remote_one_time_key);
+
+    const secure_array<std::byte, 64> sign_key(const secure_array<std::byte, 32>& private_signing_key,
+            const secure_array<std::byte, 32>& key_to_sign);
+
+    bool verify_signed_key(const secure_array<std::byte, 64>& signature, const secure_array<std::byte, 32>& signed_key,
+            const secure_array<std::byte, 32>& public_signing_key);
+
+    void encrypt(const secure_vector<std::byte>& message, const secure_array<std::byte, 32>& key, const secure_vector<std::byte>& aad, secure_vector<std::byte>& ciphertext, secure_array<std::byte, 16>& tag);
+    bool decrypt(const secure_vector<std::byte>& ciphertext, secure_array<std::byte, 16>& tag, const secure_array<std::byte, 32>& key, const secure_vector<std::byte>& aad, secure_vector<std::byte>& plaintext);
+
+    const secure_array<std::byte, 32> root_derive(secure_array<std::byte, 32>& root_key, const secure_array<std::byte, 32>& dh_output);
+    const secure_array<std::byte, 32> chain_derive(secure_array<std::byte, 32>& chain_key);
+    const secure_array<std::byte, 32> x3dh_derive(const secure_vector<std::byte>& key_material);
 }
 
 #endif

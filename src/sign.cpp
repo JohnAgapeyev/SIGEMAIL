@@ -4,13 +4,15 @@
 #include "crypto.h"
 #include "xeddsa.h"
 
-const std::array<std::byte, 64> crypto::sign_key(const std::array<std::byte, 32>& private_signing_key,
-        const std::array<std::byte, 32>& key_to_sign) {
+using namespace crypto;
 
-    std::array<std::byte, 64> random_input;
+const secure_array<std::byte, 64> crypto::sign_key(const secure_array<std::byte, 32>& private_signing_key,
+        const secure_array<std::byte, 32>& key_to_sign) {
+
+    secure_array<std::byte, 64> random_input;
     RAND_bytes(reinterpret_cast<unsigned char *>(random_input.data()), 64);
 
-    std::array<std::byte, 64> output_signature;
+    secure_array<std::byte, 64> output_signature;
 
     if (xed25519_sign(reinterpret_cast<unsigned char *>(output_signature.data()),
                 reinterpret_cast<const unsigned char *>(private_signing_key.data()),
@@ -23,8 +25,8 @@ const std::array<std::byte, 64> crypto::sign_key(const std::array<std::byte, 32>
     return output_signature;
 }
 
-bool crypto::verify_signed_key(const std::array<std::byte, 64>& signature, const std::array<std::byte, 32>& signed_key,
-        const std::array<std::byte, 32>& public_signing_key) {
+bool crypto::verify_signed_key(const secure_array<std::byte, 64>& signature, const secure_array<std::byte, 32>& signed_key,
+        const secure_array<std::byte, 32>& public_signing_key) {
 
     return !xed25519_verify(reinterpret_cast<const unsigned char *>(signature.data()),
             reinterpret_cast<const unsigned char *>(public_signing_key.data()),
