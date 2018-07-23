@@ -69,6 +69,35 @@ namespace crypto {
         void destroy(U* ptr) {
             ptr->~U();
         }
+
+        template <typename OtherAlloc>
+        constexpr bool operator==(const OtherAlloc&) const {
+            return false;
+        }
+        template <typename OtherAlloc>
+        bool operator==(OtherAlloc&) {
+            return false;
+        }
+        constexpr bool operator==(const zallocator<T>&) const {
+            return true;
+        }
+        bool operator==(zallocator<T>&) {
+            return true;
+        }
+        template <typename OtherAlloc>
+        constexpr bool operator!=(const OtherAlloc& al) const {
+            return !(*this == al);
+        }
+        template <typename OtherAlloc>
+        bool operator!=(OtherAlloc& al) {
+            return !(*this == al);
+        }
+        constexpr bool operator!=(const zallocator<T>& z) const {
+            return !(*this == z);
+        }
+        bool operator!=(zallocator<T>& z) {
+            return !(*this == z);
+        }
     };
 
     template<typename T>
@@ -112,9 +141,9 @@ namespace crypto {
         secure_array& operator=(secure_array<T, arr_size>&&) = default;
         secure_array& operator=(const secure_array<T, arr_size>&) = default;
         constexpr bool operator==(const secure_array<T, arr_size>& other) const noexcept {return *this == other;}
-        constexpr bool operator==(secure_array<T, arr_size>& other) noexcept {return *this == other;}
+        bool operator==(secure_array<T, arr_size>& other) noexcept {return *this == other;}
         constexpr bool operator!=(const secure_array<T, arr_size>& other) const noexcept {return *this != other;}
-        constexpr bool operator!=(secure_array<T, arr_size>& other) noexcept {return *this != other;}
+        bool operator!=(secure_array<T, arr_size>& other) noexcept {return *this != other;}
 
         constexpr reference operator[](size_type s) {return internal_array[s];}
         constexpr const_reference operator[](const size_type s) const {return internal_array[s];}
