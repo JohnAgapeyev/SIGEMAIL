@@ -42,7 +42,7 @@ const secure_array<std::byte, 32> crypto::x3dh_derive(const secure_vector<std::b
     kdf_input.insert(kdf_input.end(), key_material.begin(), key_material.end());
 
     //Fill with a sha512 worth of zeroes
-    secure_array<std::byte, 64> kdf_salt{std::byte{0}};
+    secure_array<std::byte, 64> kdf_salt({std::byte{0}});
 
     secure_array<std::byte, 32> kdf_output;
 

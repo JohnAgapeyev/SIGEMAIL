@@ -13,7 +13,7 @@ public:
     session_state& operator=(session_state&&) = default;
     session_state& operator=(const session_state&) = default;
 
-private:
+//private:
     crypto::DH_Keypair self_keypair;
     crypto::secure_array<std::byte, 32> remote_public_key;
     crypto::secure_array<std::byte, 32> root_key;

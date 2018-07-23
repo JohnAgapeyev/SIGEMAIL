@@ -28,6 +28,7 @@ set(SIGEMAIL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/kdf.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/encrypt.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/sign.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/protocol.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SIGEMAIL_SOURCES})

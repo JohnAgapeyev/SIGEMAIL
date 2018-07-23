@@ -16,6 +16,7 @@ namespace crypto {
 
     //Taken and modified from https://wiki.openssl.org/index.php/EVP_Symmetric_Encryption_and_Decryption#C.2B.2B_Programs
     template <typename T>
+    //struct zallocator : public std::allocator_traits<zallocator<T>>{
     struct zallocator {
         using value_type = T;
         using pointer = value_type *;
@@ -24,6 +25,16 @@ namespace crypto {
         using const_reference = const value_type&;
         using size_type = std::size_t;
         using difference_type = std::ptrdiff_t;
+
+        zallocator() = default;
+        ~zallocator() = default;
+        zallocator(const zallocator&) = default;
+        zallocator(zallocator&&) = default;
+        zallocator& operator=(const zallocator&) = default;
+        zallocator& operator=(zallocator&&) = default;
+
+        template<typename U>
+        zallocator(const zallocator<U>&) {}
 
         pointer address(reference v) const {return &v;}
         const_pointer address (const_reference v) const {return &v;}
@@ -86,14 +97,24 @@ namespace crypto {
 
         secure_array() = default;
 
-        template <typename... U>
-        secure_array(U&&... u) : internal_array(std::array<T, arr_size>{std::forward<U>(u)...}) {}
+        //template <typename... U>
+        //secure_array(U&&... u) : internal_array(std::array<T, arr_size>{std::forward<U>(u)...}) {}
+
+        //template <typename U>
+        //secure_array(U&& u) : internal_array(u) {}
+
+        secure_array(const std::array<T, arr_size>& data) : internal_array(data) {}
+        secure_array(std::array<T, arr_size>&& data) : internal_array(data) {}
 
         ~secure_array() {OPENSSL_cleanse(internal_array.data(), internal_array.size() * sizeof(value_type));}
-        secure_array(const secure_array&) = default;
-        secure_array(secure_array&&) = default;
-        secure_array& operator=(secure_array&&) = default;
-        secure_array& operator=(const secure_array&) = default;
+        secure_array(const secure_array<T, arr_size>&) = default;
+        secure_array(secure_array<T, arr_size>&&) = default;
+        secure_array& operator=(secure_array<T, arr_size>&&) = default;
+        secure_array& operator=(const secure_array<T, arr_size>&) = default;
+        constexpr bool operator==(const secure_array<T, arr_size>& other) const noexcept {return *this == other;}
+        constexpr bool operator==(secure_array<T, arr_size>& other) noexcept {return *this == other;}
+        constexpr bool operator!=(const secure_array<T, arr_size>& other) const noexcept {return *this != other;}
+        constexpr bool operator!=(secure_array<T, arr_size>& other) noexcept {return *this != other;}
 
         constexpr reference operator[](size_type s) {return internal_array[s];}
         constexpr const_reference operator[](const size_type s) const {return internal_array[s];}
