@@ -42,7 +42,9 @@ const crypto::secure_vector<std::byte> ratchet_decrypt(session_state& state, con
 
         auto message_copy = message.message;
         crypto::secure_vector<std::byte> plaintext;
-        crypto::decrypt(message_copy, message_key, message.aad, plaintext);
+        if (!crypto::decrypt(message_copy, message_key, message.aad, plaintext)) {
+            throw std::runtime_error("Message failed to decrypt");
+        }
 
         return plaintext;
     } catch(std::runtime_error&) {
@@ -60,7 +62,9 @@ const std::optional<crypto::secure_vector<std::byte>> try_skipped_message_keys(s
         //I don't like having to copy the message here, but the GCM set tag call in OpenSSL takes a non-const pointer to the tag
         auto message_copy = message.message;
         crypto::secure_vector<std::byte> plaintext;
-        crypto::decrypt(message_copy, message_key, message.aad, plaintext);
+        if (!crypto::decrypt(message_copy, message_key, message.aad, plaintext)) {
+            throw std::runtime_error("Message failed to decrypt");
+        }
         return plaintext;
     } else {
         return {};
