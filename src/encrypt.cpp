@@ -24,6 +24,9 @@ void crypto::encrypt(const secure_vector<std::byte>& message, const secure_array
     EVP_EncryptFinal_ex(ctx, reinterpret_cast<unsigned char *>(ciphertext.data()) + len, &len);
 
     secure_vector<std::byte> tag;
+    for (int i = 0; i < 16; ++i) {
+        tag.emplace_back(std::byte{0x00});
+    }
 
     EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, 16, reinterpret_cast<unsigned char *>(tag.data()));
 

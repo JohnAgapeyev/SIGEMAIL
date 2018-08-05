@@ -1,10 +1,12 @@
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
+extern "C" {
 #include "curve25519-donna.h"
 #include "keygen.h"
+}
 #include "dh.h"
 #include "crypto.h"
 

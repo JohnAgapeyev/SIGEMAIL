@@ -2,7 +2,9 @@
 #include <utility>
 #include <openssl/rand.h>
 #include "crypto.h"
+extern "C" {
 #include "xeddsa.h"
+}
 
 using namespace crypto;
 

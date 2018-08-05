@@ -22,6 +22,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libsignal-protocol-c)
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
 set(SIGEMAIL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/dh.cpp
@@ -47,12 +49,49 @@ target_compile_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_OPTION
 target_compile_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
 target_compile_definitions(${PROJECT_NAME} PRIVATE "$<$<CONFIG:RELEASE>:NDEBUG>")
 
-find_package(OpenSSL)
+find_package(OpenSSL 1.1.0 REQUIRED)
+find_package(Boost 1.67 REQUIRED COMPONENTS unit_test_framework)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto curl)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     src
+    libsignal-protocol-c/src/curve25519/ed25519/nacl_includes
+    libsignal-protocol-c/src/curve25519/ed25519/additions/generalized
+    libsignal-protocol-c/src/curve25519/ed25519/additions
+    libsignal-protocol-c/src/curve25519/ed25519/sha512
+    libsignal-protocol-c/src/curve25519/ed25519
+    libsignal-protocol-c/src/curve25519
+)
+
+set(TEST_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/test/test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/dh.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/kdf.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/encrypt.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sign.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/protocol.cpp
+)
+
+enable_testing()
+
+add_executable(test_binary ${TEST_SOURCES} ${Boost_INCLUDE_DIRS})
+add_test(NAME test_binary COMMAND test_binary)
+
+add_custom_command(TARGET test_binary
+                   POST_BUILD
+                   COMMAND ctest -C $<CONFIGURATION> --output-on-failure)
+
+target_compile_options(test_binary PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>")
+target_compile_options(test_binary PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
+target_compile_definitions(test_binary PRIVATE "$<$<CONFIG:RELEASE>:NDEBUG>")
+
+target_compile_definitions(test_binary PRIVATE "BOOST_TEST_DYN_LINK=1")
+target_link_libraries(test_binary PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto curl ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+
+target_include_directories(test_binary PRIVATE
+    src
+    src/test
     libsignal-protocol-c/src/curve25519/ed25519/nacl_includes
     libsignal-protocol-c/src/curve25519/ed25519/additions/generalized
     libsignal-protocol-c/src/curve25519/ed25519/additions
