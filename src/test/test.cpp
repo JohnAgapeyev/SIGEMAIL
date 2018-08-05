@@ -1,5 +1,5 @@
 #define BOOST_TEST_MODULE SIGEMAIL
-#define BOOST_TEST_DYN_LINK 1
+#define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
 #include "crypto.h"
