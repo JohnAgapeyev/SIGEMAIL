@@ -187,7 +187,7 @@ namespace crypto {
             const secure_array<std::byte, 32>& remote_one_time_key);
 
     const secure_array<std::byte, 64> sign_key(
-            const secure_array<std::byte, 32>& private_signing_key,
+            const DH_Keypair& signing_keypair,
             const secure_array<std::byte, 32>& key_to_sign);
 
     bool verify_signed_key(const secure_array<std::byte, 64>& signature,
