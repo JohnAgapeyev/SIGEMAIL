@@ -39,6 +39,7 @@ set(SIGEMAIL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/encrypt.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/sign.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/protocol.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/key_pack.cpp
 )
 
 set(TEST_SOURCES
