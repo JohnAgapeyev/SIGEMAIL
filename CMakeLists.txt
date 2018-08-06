@@ -86,7 +86,6 @@ target_compile_options(test_binary PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>"
 target_compile_options(test_binary PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
 target_compile_definitions(test_binary PRIVATE "$<$<CONFIG:RELEASE>:NDEBUG>")
 
-target_compile_definitions(test_binary PRIVATE "BOOST_TEST_DYN_LINK")
 target_link_libraries(test_binary PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto curl ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
 target_include_directories(test_binary PRIVATE

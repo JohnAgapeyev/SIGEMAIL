@@ -8,7 +8,7 @@ BOOST_AUTO_TEST_CASE(basic_encryption) {
     const crypto::secure_vector<std::byte> message = []() {
         const std::string m = "This is my test message";
         crypto::secure_vector<std::byte> out;
-        for (const auto c : m) {
+        for (const unsigned char c : m) {
             out.emplace_back(std::byte{c});
         }
         return out;
@@ -37,7 +37,7 @@ BOOST_AUTO_TEST_CASE(aad_encryption) {
     const crypto::secure_vector<std::byte> message = []() {
         const std::string m = "This is my test message";
         crypto::secure_vector<std::byte> out;
-        for (const auto c : m) {
+        for (const unsigned char c : m) {
             out.emplace_back(std::byte{c});
         }
         return out;
@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(corrupted_message) {
     const crypto::secure_vector<std::byte> message = []() {
         const std::string m = "This is my test message";
         crypto::secure_vector<std::byte> out;
-        for (const auto c : m) {
+        for (const unsigned char c : m) {
             out.emplace_back(std::byte{c});
         }
         return out;
