@@ -97,7 +97,7 @@ namespace crypto {
     using secure_map = std::map<Key, T, std::less<Key>, zallocator<std::pair<const Key, T>>>;
     template<typename Key, typename T>
     using secure_unordered_map = std::unordered_map<Key, T, std::hash<Key>, std::equal_to<Key>,
-        zallocator<std::pair<const Key, T>>>;
+            zallocator<std::pair<const Key, T>>>;
 
     template<typename T, std::size_t arr_size>
     class secure_array {
@@ -182,25 +182,25 @@ namespace crypto {
     };
 
     const secure_array<std::byte, 32> X3DH(const DH_Keypair& local_identity,
-        const DH_Keypair& local_ephemeral, const secure_array<std::byte, 32>& remote_identity,
-        const secure_array<std::byte, 32>& remote_prekey,
-        const secure_array<std::byte, 32>& remote_one_time_key);
+            const DH_Keypair& local_ephemeral, const secure_array<std::byte, 32>& remote_identity,
+            const secure_array<std::byte, 32>& remote_prekey,
+            const secure_array<std::byte, 32>& remote_one_time_key);
 
     const secure_array<std::byte, 64> sign_key(
-        const secure_array<std::byte, 32>& private_signing_key,
-        const secure_array<std::byte, 32>& key_to_sign);
+            const secure_array<std::byte, 32>& private_signing_key,
+            const secure_array<std::byte, 32>& key_to_sign);
 
     bool verify_signed_key(const secure_array<std::byte, 64>& signature,
-        const secure_array<std::byte, 32>& signed_key,
-        const secure_array<std::byte, 32>& public_signing_key);
+            const secure_array<std::byte, 32>& signed_key,
+            const secure_array<std::byte, 32>& public_signing_key);
 
-    void encrypt(const secure_vector<std::byte>& message, const secure_array<std::byte, 32>& key,
-        const secure_vector<std::byte>& aad, secure_vector<std::byte>& ciphertext);
-    bool decrypt(secure_vector<std::byte>& ciphertext, const secure_array<std::byte, 32>& key,
-        const secure_vector<std::byte>& aad, secure_vector<std::byte>& plaintext);
+    const secure_vector<std::byte> encrypt(const secure_vector<std::byte>& message,
+            const secure_array<std::byte, 32>& key, const secure_vector<std::byte>& aad);
+    const secure_vector<std::byte> decrypt(secure_vector<std::byte>& ciphertext,
+            const secure_array<std::byte, 32>& key, const secure_vector<std::byte>& aad);
 
     const secure_array<std::byte, 32> root_derive(
-        secure_array<std::byte, 32>& root_key, const secure_array<std::byte, 32>& dh_output);
+            secure_array<std::byte, 32>& root_key, const secure_array<std::byte, 32>& dh_output);
     const secure_array<std::byte, 32> chain_derive(secure_array<std::byte, 32>& chain_key);
     const secure_array<std::byte, 32> x3dh_derive(const secure_vector<std::byte>& key_material);
 } // namespace crypto

@@ -2,6 +2,7 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
+#include <iostream>
 #include "crypto.h"
 
 BOOST_AUTO_TEST_CASE(basic_encryption) {
@@ -21,15 +22,10 @@ BOOST_AUTO_TEST_CASE(basic_encryption) {
         aad.emplace_back(std::byte{0x43});
     }
 
-    crypto::secure_vector<std::byte> ciphertext{
-            message.size(), std::byte{0}, crypto::zallocator<std::byte>{}};
+    const auto ciphertext = crypto::encrypt(message, key, aad);
+    auto ciphertext_copy = ciphertext;
+    const auto plaintext = crypto::decrypt(ciphertext_copy, key, aad);
 
-    crypto::encrypt(message, key, aad, ciphertext);
-
-    crypto::secure_vector<std::byte> plaintext{
-            message.size(), std::byte{0}, crypto::zallocator<std::byte>{}};
-
-    BOOST_TEST(crypto::decrypt(ciphertext, key, aad, plaintext));
     BOOST_TEST(message == plaintext);
 }
 
@@ -50,15 +46,10 @@ BOOST_AUTO_TEST_CASE(aad_encryption) {
         aad.emplace_back(std::byte{0x43});
     }
 
-    crypto::secure_vector<std::byte> ciphertext{
-            message.size(), std::byte{0}, crypto::zallocator<std::byte>{}};
+    const auto ciphertext = crypto::encrypt(message, key, aad);
+    auto ciphertext_copy = ciphertext;
+    const auto plaintext = crypto::decrypt(ciphertext_copy, key, aad);
 
-    crypto::encrypt(message, key, aad, ciphertext);
-
-    crypto::secure_vector<std::byte> plaintext{
-            message.size(), std::byte{0}, crypto::zallocator<std::byte>{}};
-
-    BOOST_TEST(crypto::decrypt(ciphertext, key, aad, plaintext));
     BOOST_TEST(message == plaintext);
 }
 
@@ -79,16 +70,41 @@ BOOST_AUTO_TEST_CASE(corrupted_message) {
         aad.emplace_back(std::byte{0x43});
     }
 
-    crypto::secure_vector<std::byte> ciphertext{
-            message.size(), std::byte{0}, crypto::zallocator<std::byte>{}};
+    const auto ciphertext = crypto::encrypt(message, key, aad);
 
-    crypto::encrypt(message, key, aad, ciphertext);
+    auto ciphertext_copy = ciphertext;
+    ciphertext_copy[3] = std::byte{0};
+    ciphertext_copy[4] = ciphertext_copy[1];
 
-    ciphertext[3] = std::byte{0};
-    ciphertext[4] = ciphertext[1];
+    crypto::secure_vector<std::byte> plaintext;
+    BOOST_REQUIRE_THROW(plaintext = crypto::decrypt(ciphertext_copy, key, aad), std::runtime_error);
+}
 
-    crypto::secure_vector<std::byte> plaintext{
-            message.size(), std::byte{0}, crypto::zallocator<std::byte>{}};
+BOOST_AUTO_TEST_CASE(corrupted_aad) {
+    const crypto::secure_vector<std::byte> message = []() {
+        const std::string m = "This is my test message";
+        crypto::secure_vector<std::byte> out;
+        for (const unsigned char c : m) {
+            out.emplace_back(std::byte{c});
+        }
+        return out;
+    }();
+    crypto::secure_array<std::byte, 32> key;
+    key.fill(std::byte{0xab});
 
-    BOOST_TEST(crypto::decrypt(ciphertext, key, aad, plaintext) == false);
+    crypto::secure_vector<std::byte> aad;
+    for (int i = 0; i < 20; ++i) {
+        aad.emplace_back(std::byte{0x43});
+    }
+
+    const auto ciphertext = crypto::encrypt(message, key, aad);
+
+    auto ciphertext_copy = ciphertext;
+
+    aad[2] = std::byte{0x00};
+    aad[8] = std::byte{0xFF};
+    aad[12] = std::byte{0xCA};
+
+    crypto::secure_vector<std::byte> plaintext;
+    BOOST_REQUIRE_THROW(plaintext = crypto::decrypt(ciphertext_copy, key, aad), std::runtime_error);
 }

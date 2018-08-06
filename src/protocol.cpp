@@ -18,7 +18,7 @@ const signal_message ratchet_encrypt(session_state& state,
         result.header.dh_public_key = state.self_keypair.get_public();
         result.header.prev_chain_len = state.previous_send_chain_size;
         result.header.message_num = state.send_message_num;
-        crypto::encrypt(plaintext, message_key, aad, result.message);
+        result.message = crypto::encrypt(plaintext, message_key, aad);
         result.aad = crypto::secure_vector<std::byte>{aad};
         return result;
     }();
@@ -45,12 +45,7 @@ const crypto::secure_vector<std::byte> ratchet_decrypt(
         ++state.receive_message_num;
 
         auto message_copy = message.message;
-        crypto::secure_vector<std::byte> plaintext;
-        if (!crypto::decrypt(message_copy, message_key, message.aad, plaintext)) {
-            throw std::runtime_error("Message failed to decrypt");
-        }
-
-        return plaintext;
+        return crypto::decrypt(message_copy, message_key, message.aad);
     } catch (std::runtime_error&) {
         state = state_copy;
         throw;
@@ -66,11 +61,7 @@ const std::optional<crypto::secure_vector<std::byte>> try_skipped_message_keys(
 
         //I don't like having to copy the message here, but the GCM set tag call in OpenSSL takes a non-const pointer to the tag
         auto message_copy = message.message;
-        crypto::secure_vector<std::byte> plaintext;
-        if (!crypto::decrypt(message_copy, message_key, message.aad, plaintext)) {
-            throw std::runtime_error("Message failed to decrypt");
-        }
-        return plaintext;
+        return crypto::decrypt(message_copy, message_key, message.aad);
     } else {
         return {};
     }
