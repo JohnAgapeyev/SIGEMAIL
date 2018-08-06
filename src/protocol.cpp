@@ -3,61 +3,85 @@
 
 #include "crypto.h"
 #include "message.h"
-#include "protocol.h"
 #include "protocol_state.h"
 
 const uint64_t MAX_SKIP = 100;
 
-const signal_message ratchet_encrypt(session_state& state,
+session_state::session_state(crypto::secure_array<std::byte, 32>& shared_secret,
+        crypto::secure_array<std::byte, 32>& dest_public_key) :
+        remote_public_key(dest_public_key) {
+    self_keypair = crypto::DH_Keypair();
+
+    //Initialize here for use in the root key derivation call
+    root_key = shared_secret;
+
+    send_chain_key
+            = crypto::root_derive(root_key, self_keypair.generate_shared_secret(remote_public_key));
+
+    receive_chain_key = {};
+}
+
+session_state::session_state(
+        crypto::secure_array<std::byte, 32>& shared_secret, crypto::DH_Keypair& self_kp) :
+        self_keypair(self_kp),
+        root_key(shared_secret) {
+    remote_public_key = {};
+    send_chain_key = {};
+    receive_chain_key = {};
+}
+
+const signal_message session_state::ratchet_encrypt(
         const crypto::secure_vector<std::byte>& plaintext,
         const crypto::secure_vector<std::byte>& aad) {
-    const auto message_key = crypto::chain_derive(state.send_chain_key);
+    const auto message_key = crypto::chain_derive(send_chain_key);
 
     const signal_message m = [&]() {
         signal_message result;
-        result.header.dh_public_key = state.self_keypair.get_public();
-        result.header.prev_chain_len = state.previous_send_chain_size;
-        result.header.message_num = state.send_message_num;
+        result.header.dh_public_key = self_keypair.get_public();
+        result.header.prev_chain_len = previous_send_chain_size;
+        result.header.message_num = send_message_num;
         result.message = crypto::encrypt(plaintext, message_key, aad);
         result.aad = crypto::secure_vector<std::byte>{aad};
         return result;
     }();
 
-    ++state.send_message_num;
+    ++send_message_num;
 
     return m;
 }
 
-const crypto::secure_vector<std::byte> ratchet_decrypt(
-        session_state& state, const signal_message& message) {
-    const auto state_copy = state;
+const crypto::secure_vector<std::byte> session_state::ratchet_decrypt(
+        const signal_message& message) {
+    //Save state
+    const auto state_copy = *this;
     try {
-        const auto skipped_result = try_skipped_message_keys(state, message);
+        const auto skipped_result = try_skipped_message_keys(message);
         if (skipped_result.has_value()) {
             return *skipped_result;
         }
-        if (message.header.dh_public_key != state.remote_public_key) {
-            skip_message_keys(state, message.header.prev_chain_len);
-            DH_ratchet(state, message.header.dh_public_key);
+        if (message.header.dh_public_key != remote_public_key) {
+            skip_message_keys(message.header.prev_chain_len);
+            DH_ratchet(message.header.dh_public_key);
         }
-        skip_message_keys(state, message.header.message_num);
-        const auto message_key = crypto::chain_derive(state.receive_chain_key);
-        ++state.receive_message_num;
+        skip_message_keys(message.header.message_num);
+        const auto message_key = crypto::chain_derive(receive_chain_key);
+        ++receive_message_num;
 
         auto message_copy = message.message;
         return crypto::decrypt(message_copy, message_key, message.aad);
     } catch (std::runtime_error&) {
-        state = state_copy;
+        //Restore state
+        *this = state_copy;
         throw;
     }
 }
 
-const std::optional<crypto::secure_vector<std::byte>> try_skipped_message_keys(
-        session_state& state, const signal_message& message) {
+const std::optional<crypto::secure_vector<std::byte>> session_state::try_skipped_message_keys(
+        const signal_message& message) {
     const auto dict_key = std::make_pair(message.header.dh_public_key, message.header.message_num);
-    if (state.skipped_keys.find(dict_key) != state.skipped_keys.end()) {
-        const auto message_key = state.skipped_keys[dict_key];
-        state.skipped_keys.erase(dict_key);
+    if (skipped_keys.find(dict_key) != skipped_keys.end()) {
+        const auto message_key = skipped_keys[dict_key];
+        skipped_keys.erase(dict_key);
 
         //I don't like having to copy the message here, but the GCM set tag call in OpenSSL takes a non-const pointer to the tag
         auto message_copy = message.message;
@@ -67,71 +91,29 @@ const std::optional<crypto::secure_vector<std::byte>> try_skipped_message_keys(
     }
 }
 
-void skip_message_keys(session_state& state, uint64_t until) {
-    if (state.receive_message_num + MAX_SKIP < until) {
+void session_state::skip_message_keys(uint64_t until) {
+    if (receive_message_num + MAX_SKIP < until) {
         throw std::runtime_error(
                 "Tried to generate more skipped keys than the previous chain contained");
     }
-    if (state.receive_chain_key.empty()) {
+    if (receive_chain_key.empty()) {
         return;
     }
-    while (state.receive_message_num < until) {
-        const auto message_key = crypto::chain_derive(state.receive_chain_key);
-        state.skipped_keys.emplace(
-                std::make_pair(state.remote_public_key, state.receive_message_num), message_key);
-        ++state.receive_message_num;
+    while (receive_message_num < until) {
+        const auto message_key = crypto::chain_derive(receive_chain_key);
+        skipped_keys.emplace(std::make_pair(remote_public_key, receive_message_num), message_key);
+        ++receive_message_num;
     }
 }
 
-void DH_ratchet(
-        session_state& state, const crypto::secure_array<std::byte, 32>& remote_public_key) {
-    state.previous_send_chain_size = state.send_message_num;
-    state.send_message_num = 0;
-    state.receive_message_num = 0;
-    state.remote_public_key = remote_public_key;
-    state.receive_chain_key = crypto::root_derive(
-            state.root_key, state.self_keypair.generate_shared_secret(state.remote_public_key));
-    state.self_keypair = crypto::DH_Keypair();
-    state.send_chain_key = crypto::root_derive(
-            state.root_key, state.self_keypair.generate_shared_secret(state.remote_public_key));
-}
-
-void ratchet_init_sender(session_state& state,
-        const crypto::secure_array<std::byte, 32>& shared_secret,
-        const crypto::secure_array<std::byte, 32>& dest_pulic_key) {
-    state.self_keypair = crypto::DH_Keypair();
-    state.remote_public_key = dest_pulic_key;
-
-    //Initialize here for use in the root key derivation call
-    state.root_key = shared_secret;
-
-    state.send_chain_key = crypto::root_derive(
-            state.root_key, state.self_keypair.generate_shared_secret(state.remote_public_key));
-
-    state.receive_chain_key = {};
-
-    state.send_message_num = 0;
-    state.receive_message_num = 0;
-    state.previous_send_chain_size = 0;
-
-    state.skipped_keys = {};
-}
-
-void ratchet_init_receiver(session_state& state,
-        const crypto::secure_array<std::byte, 32>& shared_secret,
-        const crypto::DH_Keypair& self_keypair) {
-    state.self_keypair = self_keypair;
-    state.remote_public_key = {};
-
-    //Initialize here for use in the root key derivation call
-    state.root_key = shared_secret;
-
-    state.send_chain_key = {};
-    state.receive_chain_key = {};
-
-    state.send_message_num = 0;
-    state.receive_message_num = 0;
-    state.previous_send_chain_size = 0;
-
-    state.skipped_keys = {};
+void session_state::DH_ratchet(const crypto::secure_array<std::byte, 32>& remote_pub_key) {
+    previous_send_chain_size = send_message_num;
+    send_message_num = 0;
+    receive_message_num = 0;
+    this->remote_public_key = remote_pub_key;
+    receive_chain_key
+            = crypto::root_derive(root_key, self_keypair.generate_shared_secret(remote_public_key));
+    self_keypair = crypto::DH_Keypair();
+    send_chain_key
+            = crypto::root_derive(root_key, self_keypair.generate_shared_secret(remote_public_key));
 }
