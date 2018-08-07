@@ -45,6 +45,7 @@ set(SIGEMAIL_SOURCES
 set(TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/encrypt_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/sign_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/test/protocol_test.cpp
 )
 
 set(SOURCE_LIBRARY sig_lib)
@@ -73,7 +74,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE ${SOURCE_LIBRARY})
 enable_testing()
 
 add_executable(test_binary ${TEST_SOURCES} ${Boost_INCLUDE_DIRS})
-add_test(NAME test_binary COMMAND test_binary -p)
+add_test(NAME test_binary COMMAND test_binary)
 
 add_custom_command(TARGET test_binary
                    POST_BUILD

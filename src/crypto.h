@@ -133,13 +133,25 @@ namespace crypto {
         secure_array& operator=(secure_array<T, arr_size>&&) = default;
         secure_array& operator=(const secure_array<T, arr_size>&) = default;
         constexpr bool operator==(const secure_array<T, arr_size>& other) const noexcept {
-            return *this == other;
+            for (size_type i = 0; i < arr_size; ++i) {
+                if (internal_array[i] != other[i]) {
+                    return false;
+                }
+            }
+            return true;
         }
-        bool operator==(secure_array<T, arr_size>& other) noexcept { return *this == other; }
+        bool operator==(secure_array<T, arr_size>& other) noexcept {
+            for (size_type i = 0; i < arr_size; ++i) {
+                if (internal_array[i] != other[i]) {
+                    return false;
+                }
+            }
+            return true;
+        }
         constexpr bool operator!=(const secure_array<T, arr_size>& other) const noexcept {
-            return *this != other;
+            return !(*this == other);
         }
-        bool operator!=(secure_array<T, arr_size>& other) noexcept { return *this != other; }
+        bool operator!=(secure_array<T, arr_size>& other) noexcept { return !(*this == other); }
 
         constexpr reference operator[](size_type s) { return internal_array[s]; }
         constexpr const_reference operator[](const size_type s) const { return internal_array[s]; }
@@ -181,14 +193,18 @@ namespace crypto {
         std::array<T, arr_size> internal_array;
     };
 
-    const secure_array<std::byte, 32> X3DH(const DH_Keypair& local_identity,
+    const secure_array<std::byte, 32> X3DH_sender(const DH_Keypair& local_identity,
             const DH_Keypair& local_ephemeral, const secure_array<std::byte, 32>& remote_identity,
             const secure_array<std::byte, 32>& remote_prekey,
             const secure_array<std::byte, 32>& remote_one_time_key);
 
+    const secure_array<std::byte, 32> X3DH_receiver(const DH_Keypair& local_identity,
+            const DH_Keypair& local_pre_key, const DH_Keypair& local_one_time_key,
+            const secure_array<std::byte, 32>& remote_identity,
+            const secure_array<std::byte, 32>& remote_ephemeral);
+
     const secure_array<std::byte, 64> sign_key(
-            const DH_Keypair& signing_keypair,
-            const secure_array<std::byte, 32>& key_to_sign);
+            const DH_Keypair& signing_keypair, const secure_array<std::byte, 32>& key_to_sign);
 
     bool verify_signed_key(const secure_array<std::byte, 64>& signature,
             const secure_array<std::byte, 32>& signed_key,
