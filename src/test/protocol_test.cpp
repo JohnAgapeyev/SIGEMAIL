@@ -5,7 +5,7 @@
 #include "dh.h"
 #include "key_pack.h"
 #include "message.h"
-#include "protocol_state.h"
+#include "session.h"
 
 BOOST_AUTO_TEST_CASE(x3dh) {
     //Alice

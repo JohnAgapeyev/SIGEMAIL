@@ -6,37 +6,37 @@
 
 #include "crypto.h"
 #include "dh.h"
+#include "key_pack.h"
 #include "message.h"
-#include "protocol_state.h"
 
 extern const uint64_t MAX_SKIP;
 
-class session_state {
+class session {
 public:
     //Sender initialization
-    session_state(crypto::secure_array<std::byte, 32>& shared_secret,
+    session(crypto::secure_array<std::byte, 32>& shared_secret,
             crypto::secure_array<std::byte, 32>& dest_public_key);
     //Receiver initialization
-    session_state(
-            crypto::secure_array<std::byte, 32>& shared_secret, crypto::DH_Keypair& self_kp);
-    ~session_state() = default;
-    session_state(const session_state&) = default;
-    session_state(session_state&&) = default;
-    session_state& operator=(session_state&&) = default;
-    session_state& operator=(const session_state&) = default;
+    session(crypto::secure_array<std::byte, 32>& shared_secret, crypto::DH_Keypair& self_kp);
+    ~session() = default;
+    session(const session&) = default;
+    session(session&&) = default;
+    session& operator=(session&&) = default;
+    session& operator=(const session&) = default;
 
     const signal_message ratchet_encrypt(const crypto::secure_vector<std::byte>& plaintext,
             const crypto::secure_vector<std::byte>& aad);
 
     const crypto::secure_vector<std::byte> ratchet_decrypt(const signal_message& message);
 
+private:
+    void skip_message_keys(uint64_t until);
+
     const std::optional<crypto::secure_vector<std::byte>> try_skipped_message_keys(
             const signal_message& message);
 
-    void skip_message_keys(uint64_t until);
     void DH_ratchet(const crypto::secure_array<std::byte, 32>& remote_pub_key);
 
-private:
     crypto::DH_Keypair self_keypair;
     crypto::secure_array<std::byte, 32> remote_public_key;
     crypto::secure_array<std::byte, 32> root_key;
@@ -50,5 +50,7 @@ private:
             crypto::secure_array<std::byte, 32>>
             skipped_keys{};
 };
+
+std::pair<session, crypto::secure_vector<std::byte>> process_initial_message(const initial_signal_message& init_mesg);
 
 #endif /* end of include guard: PROTOCOL_STATE_H */

@@ -4,7 +4,7 @@
 #include <iostream>
 #include <algorithm>
 #include "crypto.h"
-#include "protocol_state.h"
+#include "session.h"
 
 void test() {
     crypto::secure_array<int, 32> good({1, 4, 3, 5, 7, 8, 9, 2});

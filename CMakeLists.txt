@@ -27,7 +27,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libsignal-protocol-c)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 find_package(OpenSSL 1.1.0 REQUIRED)
-find_package(Boost 1.67 REQUIRED COMPONENTS unit_test_framework)
+find_package(Boost 1.67 REQUIRED COMPONENTS unit_test_framework serialization)
 
 set(MAIN_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
@@ -38,7 +38,7 @@ set(SIGEMAIL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/kdf.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/encrypt.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/sign.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/protocol.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/session.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/key_pack.cpp
 )
 
@@ -56,7 +56,7 @@ target_compile_options(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIO
 target_compile_options(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
 target_compile_definitions(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
 
-target_link_libraries(${SOURCE_LIBRARY} PUBLIC signal-protocol-c OpenSSL::SSL OpenSSL::Crypto curl)
+target_link_libraries(${SOURCE_LIBRARY} PUBLIC signal-protocol-c OpenSSL::SSL OpenSSL::Crypto curl ${Boost_SERIALIZATION_LIBRARY})
 
 target_include_directories(${SOURCE_LIBRARY} PUBLIC
     src

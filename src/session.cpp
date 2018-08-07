@@ -3,11 +3,11 @@
 
 #include "crypto.h"
 #include "message.h"
-#include "protocol_state.h"
+#include "session.h"
 
 const uint64_t MAX_SKIP = 100;
 
-session_state::session_state(crypto::secure_array<std::byte, 32>& shared_secret,
+session::session(crypto::secure_array<std::byte, 32>& shared_secret,
         crypto::secure_array<std::byte, 32>& dest_public_key) :
         remote_public_key(dest_public_key) {
     self_keypair = crypto::DH_Keypair();
@@ -21,7 +21,7 @@ session_state::session_state(crypto::secure_array<std::byte, 32>& shared_secret,
     receive_chain_key = {};
 }
 
-session_state::session_state(
+session::session(
         crypto::secure_array<std::byte, 32>& shared_secret, crypto::DH_Keypair& self_kp) :
         self_keypair(self_kp),
         root_key(shared_secret) {
@@ -30,7 +30,7 @@ session_state::session_state(
     receive_chain_key = {};
 }
 
-const signal_message session_state::ratchet_encrypt(
+const signal_message session::ratchet_encrypt(
         const crypto::secure_vector<std::byte>& plaintext,
         const crypto::secure_vector<std::byte>& aad) {
     const auto message_key = crypto::chain_derive(send_chain_key);
@@ -50,13 +50,12 @@ const signal_message session_state::ratchet_encrypt(
     return m;
 }
 
-const crypto::secure_vector<std::byte> session_state::ratchet_decrypt(
+const crypto::secure_vector<std::byte> session::ratchet_decrypt(
         const signal_message& message) {
     //Save state
     const auto state_copy = *this;
     try {
-        const auto skipped_result = try_skipped_message_keys(message);
-        if (skipped_result.has_value()) {
+        if (const auto skipped_result = try_skipped_message_keys(message); skipped_result.has_value()) {
             return *skipped_result;
         }
         if (message.header.dh_public_key != remote_public_key) {
@@ -76,7 +75,7 @@ const crypto::secure_vector<std::byte> session_state::ratchet_decrypt(
     }
 }
 
-const std::optional<crypto::secure_vector<std::byte>> session_state::try_skipped_message_keys(
+const std::optional<crypto::secure_vector<std::byte>> session::try_skipped_message_keys(
         const signal_message& message) {
     const auto dict_key = std::make_pair(message.header.dh_public_key, message.header.message_num);
     if (skipped_keys.find(dict_key) != skipped_keys.end()) {
@@ -91,7 +90,7 @@ const std::optional<crypto::secure_vector<std::byte>> session_state::try_skipped
     }
 }
 
-void session_state::skip_message_keys(uint64_t until) {
+void session::skip_message_keys(uint64_t until) {
     if (receive_message_num + MAX_SKIP < until) {
         throw std::runtime_error(
                 "Tried to generate more skipped keys than the previous chain contained");
@@ -106,14 +105,25 @@ void session_state::skip_message_keys(uint64_t until) {
     }
 }
 
-void session_state::DH_ratchet(const crypto::secure_array<std::byte, 32>& remote_pub_key) {
+void session::DH_ratchet(const crypto::secure_array<std::byte, 32>& remote_pub_key) {
     previous_send_chain_size = send_message_num;
     send_message_num = 0;
     receive_message_num = 0;
-    this->remote_public_key = remote_pub_key;
+    remote_public_key = remote_pub_key;
     receive_chain_key
             = crypto::root_derive(root_key, self_keypair.generate_shared_secret(remote_public_key));
     self_keypair = crypto::DH_Keypair();
     send_chain_key
             = crypto::root_derive(root_key, self_keypair.generate_shared_secret(remote_public_key));
 }
+
+#if 0
+//This is a good function to write, but I need general device state implemented first
+std::pair<session, crypto::secure_vector<std::byte>> process_initial_message(
+        const initial_signal_message& init_mesg) {
+
+    const auto shared_secret = crypto::X3DH_receiver();
+
+    return {};
+}
+#endif
