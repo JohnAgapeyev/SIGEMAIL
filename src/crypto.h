@@ -198,9 +198,19 @@ namespace crypto {
             const secure_array<std::byte, 32>& remote_prekey,
             const secure_array<std::byte, 32>& remote_one_time_key);
 
+    //Overload that doesn't use a one-time key
+    const secure_array<std::byte, 32> X3DH_sender(const DH_Keypair& local_identity,
+            const DH_Keypair& local_ephemeral, const secure_array<std::byte, 32>& remote_identity,
+            const secure_array<std::byte, 32>& remote_prekey);
+
     const secure_array<std::byte, 32> X3DH_receiver(const DH_Keypair& local_identity,
             const DH_Keypair& local_pre_key, const DH_Keypair& local_one_time_key,
             const secure_array<std::byte, 32>& remote_identity,
+            const secure_array<std::byte, 32>& remote_ephemeral);
+
+    //Overload that doesn't use a one-time key
+    const secure_array<std::byte, 32> X3DH_receiver(const DH_Keypair& local_identity,
+            const DH_Keypair& local_pre_key, const secure_array<std::byte, 32>& remote_identity,
             const secure_array<std::byte, 32>& remote_ephemeral);
 
     const secure_array<std::byte, 64> sign_key(

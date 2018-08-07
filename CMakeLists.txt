@@ -76,10 +76,6 @@ enable_testing()
 add_executable(test_binary ${TEST_SOURCES} ${Boost_INCLUDE_DIRS})
 add_test(NAME test_binary COMMAND test_binary)
 
-add_custom_command(TARGET test_binary
-                   POST_BUILD
-                   COMMAND ctest -C $<CONFIGURATION> --output-on-failure)
-
 target_link_libraries(test_binary PRIVATE ${SOURCE_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
 target_include_directories(test_binary PRIVATE

@@ -55,7 +55,6 @@ const secure_array<std::byte, 32> crypto::X3DH_receiver(const DH_Keypair& local_
         const DH_Keypair& local_pre_key, const DH_Keypair& local_one_time_key,
         const secure_array<std::byte, 32>& remote_identity,
         const secure_array<std::byte, 32>& remote_ephemeral) {
-
     const auto dh1 = local_pre_key.generate_shared_secret(remote_identity);
     const auto dh2 = local_identity.generate_shared_secret(remote_ephemeral);
     const auto dh3 = local_pre_key.generate_shared_secret(remote_ephemeral);
@@ -68,6 +67,41 @@ const secure_array<std::byte, 32> crypto::X3DH_receiver(const DH_Keypair& local_
     kdf_input.insert(kdf_input.end(), dh2.begin(), dh2.end());
     kdf_input.insert(kdf_input.end(), dh3.begin(), dh3.end());
     kdf_input.insert(kdf_input.end(), dh4.begin(), dh4.end());
+
+    return x3dh_derive(kdf_input);
+}
+
+const secure_array<std::byte, 32> crypto::X3DH_sender(const crypto::DH_Keypair& local_identity,
+        const crypto::DH_Keypair& local_ephemeral,
+        const secure_array<std::byte, 32>& remote_identity,
+        const secure_array<std::byte, 32>& remote_prekey) {
+    const auto dh1 = local_identity.generate_shared_secret(remote_prekey);
+    const auto dh2 = local_ephemeral.generate_shared_secret(remote_identity);
+    const auto dh3 = local_ephemeral.generate_shared_secret(remote_prekey);
+
+    secure_vector<std::byte> kdf_input;
+
+    //Fill the kdf input
+    kdf_input.insert(kdf_input.end(), dh1.begin(), dh1.end());
+    kdf_input.insert(kdf_input.end(), dh2.begin(), dh2.end());
+    kdf_input.insert(kdf_input.end(), dh3.begin(), dh3.end());
+
+    return x3dh_derive(kdf_input);
+}
+
+const secure_array<std::byte, 32> crypto::X3DH_receiver(const DH_Keypair& local_identity,
+        const DH_Keypair& local_pre_key, const secure_array<std::byte, 32>& remote_identity,
+        const secure_array<std::byte, 32>& remote_ephemeral) {
+    const auto dh1 = local_pre_key.generate_shared_secret(remote_identity);
+    const auto dh2 = local_identity.generate_shared_secret(remote_ephemeral);
+    const auto dh3 = local_pre_key.generate_shared_secret(remote_ephemeral);
+
+    secure_vector<std::byte> kdf_input;
+
+    //Fill the kdf input
+    kdf_input.insert(kdf_input.end(), dh1.begin(), dh1.end());
+    kdf_input.insert(kdf_input.end(), dh2.begin(), dh2.end());
+    kdf_input.insert(kdf_input.end(), dh3.begin(), dh3.end());
 
     return x3dh_derive(kdf_input);
 }
