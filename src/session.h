@@ -51,6 +51,4 @@ private:
             skipped_keys{};
 };
 
-std::pair<session, crypto::secure_vector<std::byte>> process_initial_message(const initial_signal_message& init_mesg);
-
 #endif /* end of include guard: PROTOCOL_STATE_H */

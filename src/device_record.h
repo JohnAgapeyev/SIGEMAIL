@@ -15,11 +15,15 @@ public:
     device_record& operator=(device_record&&) = default;
     device_record& operator=(const device_record&) = default;
 
+    void set_remote_identity(const crypto::secure_array<std::byte, 32>& identity_key) {
+        remote_identity_public_key = identity_key;
+    }
+
 private:
     std::deque<session>::iterator active_session;
     std::deque<session> session_list;
 
-    crypto::secure_array<std::byte, 32> identity_public_key;
+    crypto::secure_array<std::byte, 32> remote_identity_public_key;
 
     bool is_stale;
 };

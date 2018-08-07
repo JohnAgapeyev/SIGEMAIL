@@ -117,13 +117,3 @@ void session::DH_ratchet(const crypto::secure_array<std::byte, 32>& remote_pub_k
             = crypto::root_derive(root_key, self_keypair.generate_shared_secret(remote_public_key));
 }
 
-#if 0
-//This is a good function to write, but I need general device state implemented first
-std::pair<session, crypto::secure_vector<std::byte>> process_initial_message(
-        const initial_signal_message& init_mesg) {
-
-    const auto shared_secret = crypto::X3DH_receiver();
-
-    return {};
-}
-#endif
