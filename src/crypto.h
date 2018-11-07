@@ -31,37 +31,38 @@ namespace crypto {
     using secure_unordered_map = std::unordered_map<Key, T, std::hash<Key>, std::equal_to<Key>,
             zallocator<std::pair<const Key, T>>>;
 
-    const secure_array<std::byte, 32> X3DH_sender(const DH_Keypair& local_identity,
-            const DH_Keypair& local_ephemeral, const secure_array<std::byte, 32>& remote_identity,
-            const secure_array<std::byte, 32>& remote_prekey,
-            const secure_array<std::byte, 32>& remote_one_time_key);
+    using shared_key = secure_array<std::byte, 32>;
+    using public_key = secure_array<std::byte, 32>;
+    using private_key = secure_array<std::byte, 32>;
+    using signature = secure_array<std::byte, 64>;
+
+    const shared_key X3DH_sender(const DH_Keypair& local_identity,
+            const DH_Keypair& local_ephemeral, const public_key& remote_identity,
+            const public_key& remote_prekey, const public_key& remote_one_time_key);
 
     //Overload that doesn't use a one-time key
-    const secure_array<std::byte, 32> X3DH_sender(const DH_Keypair& local_identity,
-            const DH_Keypair& local_ephemeral, const secure_array<std::byte, 32>& remote_identity,
-            const secure_array<std::byte, 32>& remote_prekey);
+    const shared_key X3DH_sender(const DH_Keypair& local_identity,
+            const DH_Keypair& local_ephemeral, const public_key& remote_identity,
+            const public_key& remote_prekey);
 
-    const secure_array<std::byte, 32> X3DH_receiver(const DH_Keypair& local_identity,
+    const shared_key X3DH_receiver(const DH_Keypair& local_identity,
             const DH_Keypair& local_pre_key, const DH_Keypair& local_one_time_key,
-            const secure_array<std::byte, 32>& remote_identity,
-            const secure_array<std::byte, 32>& remote_ephemeral);
+            const public_key& remote_identity, const public_key& remote_ephemeral);
 
     //Overload that doesn't use a one-time key
-    const secure_array<std::byte, 32> X3DH_receiver(const DH_Keypair& local_identity,
-            const DH_Keypair& local_pre_key, const secure_array<std::byte, 32>& remote_identity,
-            const secure_array<std::byte, 32>& remote_ephemeral);
+    const shared_key X3DH_receiver(const DH_Keypair& local_identity,
+            const DH_Keypair& local_pre_key, const public_key& remote_identity,
+            const public_key& remote_ephemeral);
 
-    const secure_array<std::byte, 64> sign_key(
-            const DH_Keypair& signing_keypair, const secure_array<std::byte, 32>& key_to_sign);
+    const signature sign_key(const DH_Keypair& signing_keypair, const public_key& key_to_sign);
 
-    bool verify_signed_key(const secure_array<std::byte, 64>& signature,
-            const secure_array<std::byte, 32>& signed_key,
-            const secure_array<std::byte, 32>& public_signing_key);
+    bool verify_signed_key(const signature& signature, const public_key& signed_key,
+            const public_key& public_signing_key);
 
     const secure_vector<std::byte> encrypt(const secure_vector<std::byte>& message,
-            const secure_array<std::byte, 32>& key, const secure_vector<std::byte>& aad);
+            const shared_key& key, const secure_vector<std::byte>& aad);
     const secure_vector<std::byte> decrypt(secure_vector<std::byte>& ciphertext,
-            const secure_array<std::byte, 32>& key, const secure_vector<std::byte>& aad);
+            const shared_key& key, const secure_vector<std::byte>& aad);
 
     const secure_array<std::byte, 32> root_derive(
             secure_array<std::byte, 32>& root_key, const secure_array<std::byte, 32>& dh_output);
