@@ -14,9 +14,9 @@
 namespace crypto {
     class DH_Keypair;
 
-    //Taken and modified from https://wiki.openssl.org/index.php/EVP_Symmetric_Encryption_and_Decryption#C.2B.2B_Programs
     template<typename T>
     struct zallocator {
+        using allocator_type = zallocator<T>;
         using value_type = T;
         using pointer = value_type*;
         using const_pointer = const value_type*;
@@ -52,11 +52,6 @@ namespace crypto {
 
         size_type max_size() const { return std::numeric_limits<size_type>::max() / sizeof(T); }
 
-        template<typename U>
-        struct rebind {
-            typedef zallocator<U> other;
-        };
-
         template<typename U, typename... Args>
         void construct(U* ptr, Args&&... args) {
             ::new (static_cast<void*>(ptr)) U(std::forward<Args>(args)...);
@@ -72,21 +67,11 @@ namespace crypto {
             return false;
         }
         template<typename OtherAlloc>
-        bool operator==(OtherAlloc&) {
-            return false;
+        constexpr bool operator!=(const OtherAlloc&) const {
+            return true;
         }
         constexpr bool operator==(const zallocator<T>&) const { return true; }
-        bool operator==(zallocator<T>&) { return true; }
-        template<typename OtherAlloc>
-        constexpr bool operator!=(const OtherAlloc& al) const {
-            return !(*this == al);
-        }
-        template<typename OtherAlloc>
-        bool operator!=(OtherAlloc& al) {
-            return !(*this == al);
-        }
-        constexpr bool operator!=(const zallocator<T>& z) const { return !(*this == z); }
-        bool operator!=(zallocator<T>& z) { return !(*this == z); }
+        constexpr bool operator!=(const zallocator<T>&) const { return false; }
     };
 
     template<typename T>
@@ -140,35 +125,22 @@ namespace crypto {
             }
             return true;
         }
-        bool operator==(secure_array<T, arr_size>& other) noexcept {
-            for (size_type i = 0; i < arr_size; ++i) {
-                if (internal_array[i] != other[i]) {
-                    return false;
-                }
-            }
-            return true;
-        }
         constexpr bool operator!=(const secure_array<T, arr_size>& other) const noexcept {
             return !(*this == other);
         }
-        bool operator!=(secure_array<T, arr_size>& other) noexcept { return !(*this == other); }
 
         constexpr reference operator[](size_type s) { return internal_array[s]; }
         constexpr const_reference operator[](const size_type s) const { return internal_array[s]; }
 
-        iterator begin() noexcept { return internal_array.begin(); }
         constexpr const_iterator begin() const noexcept { return internal_array.begin(); }
         constexpr const_iterator cbegin() const noexcept { return internal_array.cbegin(); }
-        iterator end() noexcept { return internal_array.end(); }
         constexpr const_iterator end() const noexcept { return internal_array.end(); }
         constexpr const_iterator cend() const noexcept { return internal_array.cend(); }
 
-        reverse_iterator rbegin() noexcept { return internal_array.rbegin(); }
         constexpr const_reverse_iterator rbegin() const noexcept { return internal_array.rbegin(); }
         constexpr const_reverse_iterator crbegin() const noexcept {
             return internal_array.crbegin();
         }
-        reverse_iterator rend() noexcept { return internal_array.rend(); }
         constexpr const_reverse_iterator rend() const noexcept { return internal_array.rend(); }
         constexpr const_reverse_iterator crend() const noexcept { return internal_array.crend(); }
 
