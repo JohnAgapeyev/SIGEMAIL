@@ -12,10 +12,15 @@
 #include <vector>
 
 #include "zallocator.h"
-#include "secure_array.h"
 
 namespace crypto {
     class DH_Keypair;
+
+    template<typename T, std::size_t N>
+    class secure_array : public std::array<T, N> {
+    public:
+        ~secure_array() { OPENSSL_cleanse(this->data(), this->size() * sizeof(T)); }
+    };
 
     template<typename T>
     using secure_vector = std::vector<T, zallocator<T>>;
