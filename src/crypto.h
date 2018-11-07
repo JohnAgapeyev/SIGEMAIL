@@ -76,8 +76,9 @@ namespace std {
     public:
         std::size_t operator()(const crypto::secure_array<T, N>& arr) const {
             std::size_t running_hash = 0;
+            const auto hsh = std::hash<T>{};
             for (const auto& elem : arr) {
-                running_hash ^= std::hash<T>{}(elem);
+                running_hash ^= hsh(elem);
             }
             return running_hash;
         }
