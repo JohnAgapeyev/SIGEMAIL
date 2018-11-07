@@ -17,8 +17,7 @@ namespace crypto {
     class DH_Keypair;
 
     template<typename T, std::size_t N>
-    class secure_array : public std::array<T, N> {
-    public:
+    struct secure_array : public std::array<T, N> {
         ~secure_array() { OPENSSL_cleanse(this->data(), this->size() * sizeof(T)); }
     };
 
