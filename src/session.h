@@ -14,10 +14,9 @@ extern const uint64_t MAX_SKIP;
 class session {
 public:
     //Sender initialization
-    session(crypto::secure_array<std::byte, 32>& shared_secret,
-            crypto::secure_array<std::byte, 32>& dest_public_key);
+    session(crypto::shared_key& shared_secret, crypto::public_key& dest_public_key);
     //Receiver initialization
-    session(crypto::secure_array<std::byte, 32>& shared_secret, crypto::DH_Keypair& self_kp);
+    session(crypto::shared_key& shared_secret, crypto::DH_Keypair& self_kp);
     ~session() = default;
     session(const session&) = default;
     session(session&&) = default;
@@ -35,10 +34,10 @@ private:
     const std::optional<crypto::secure_vector<std::byte>> try_skipped_message_keys(
             const signal_message& message);
 
-    void DH_ratchet(const crypto::secure_array<std::byte, 32>& remote_pub_key);
+    void DH_ratchet(const crypto::public_key& remote_pub_key);
 
     crypto::DH_Keypair self_keypair;
-    crypto::secure_array<std::byte, 32> remote_public_key;
+    crypto::public_key remote_public_key;
     crypto::secure_array<std::byte, 32> root_key;
     crypto::secure_array<std::byte, 32> send_chain_key;
     crypto::secure_array<std::byte, 32> receive_chain_key;
@@ -46,8 +45,7 @@ private:
     uint64_t receive_message_num = 0;
     uint64_t previous_send_chain_size = 0;
 
-    crypto::secure_unordered_map<std::pair<crypto::secure_array<std::byte, 32>, uint64_t>,
-            crypto::secure_array<std::byte, 32>>
+    crypto::secure_unordered_map<std::pair<crypto::public_key, uint64_t>, crypto::shared_key>
             skipped_keys{};
 };
 

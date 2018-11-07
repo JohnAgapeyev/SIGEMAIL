@@ -22,7 +22,7 @@ private:
 
     crypto::DH_Keypair identity_keypair;
     crypto::DH_Keypair signed_pre_key;
-    crypto::secure_array<std::byte, 64> pre_key_signature;
+    crypto::signature pre_key_signature;
     crypto::secure_vector<crypto::DH_Keypair> one_time_keys;
 };
 

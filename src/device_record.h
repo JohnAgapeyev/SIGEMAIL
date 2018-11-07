@@ -23,7 +23,7 @@ private:
     std::deque<session>::iterator active_session;
     std::deque<session> session_list;
 
-    crypto::secure_array<std::byte, 32> remote_identity_public_key;
+    crypto::public_key remote_identity_public_key;
 
     bool is_stale;
 };
