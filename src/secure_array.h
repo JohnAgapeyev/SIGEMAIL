@@ -26,12 +26,6 @@ namespace crypto {
 
         secure_array() = default;
 
-        //template <typename... U>
-        //secure_array(U&&... u) : internal_array(std::array<T, arr_size>{std::forward<U>(u)...}) {}
-
-        //template <typename U>
-        //secure_array(U&& u) : internal_array(u) {}
-
         secure_array(const std::array<T, arr_size>& data) : internal_array(data) {}
         secure_array(std::array<T, arr_size>&& data) : internal_array(data) {}
 
