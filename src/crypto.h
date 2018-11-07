@@ -70,10 +70,10 @@ namespace crypto {
 } // namespace crypto
 
 namespace std {
-    template<typename T, std::size_t arr_size>
-    class hash<crypto::secure_array<T, arr_size>> {
+    template<typename T, std::size_t N>
+    class hash<crypto::secure_array<T, N>> {
     public:
-        std::size_t operator()(const crypto::secure_array<T, arr_size>& arr) const {
+        std::size_t operator()(const crypto::secure_array<T, N>& arr) const {
             std::size_t running_hash = 0;
             for (const auto& elem : arr) {
                 running_hash ^= std::hash<T>{}(elem);
