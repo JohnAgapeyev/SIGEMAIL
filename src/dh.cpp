@@ -19,8 +19,8 @@ crypto::DH_Keypair::DH_Keypair() {
             reinterpret_cast<unsigned char*>(private_key.data()));
 }
 
-const secure_array<std::byte, 32> crypto::DH_Keypair::generate_shared_secret(
-        const secure_array<std::byte, 32>& remote_public) const noexcept {
+const crypto::shared_key crypto::DH_Keypair::generate_shared_secret(
+        const crypto::public_key& remote_public) const noexcept {
     secure_array<std::byte, 32> out;
     curve25519_donna(reinterpret_cast<unsigned char*>(out.data()),
             reinterpret_cast<const unsigned char*>(private_key.data()),
@@ -30,11 +30,11 @@ const secure_array<std::byte, 32> crypto::DH_Keypair::generate_shared_secret(
     return out;
 }
 
-const secure_array<std::byte, 32> crypto::X3DH_sender(const crypto::DH_Keypair& local_identity,
+const crypto::shared_key crypto::X3DH_sender(const crypto::DH_Keypair& local_identity,
         const crypto::DH_Keypair& local_ephemeral,
-        const secure_array<std::byte, 32>& remote_identity,
-        const secure_array<std::byte, 32>& remote_prekey,
-        const secure_array<std::byte, 32>& remote_one_time_key) {
+        const crypto::public_key& remote_identity,
+        const crypto::public_key& remote_prekey,
+        const crypto::public_key& remote_one_time_key) {
     const auto dh1 = local_identity.generate_shared_secret(remote_prekey);
     const auto dh2 = local_ephemeral.generate_shared_secret(remote_identity);
     const auto dh3 = local_ephemeral.generate_shared_secret(remote_prekey);
@@ -51,10 +51,10 @@ const secure_array<std::byte, 32> crypto::X3DH_sender(const crypto::DH_Keypair& 
     return x3dh_derive(kdf_input);
 }
 
-const secure_array<std::byte, 32> crypto::X3DH_receiver(const DH_Keypair& local_identity,
+const crypto::shared_key crypto::X3DH_receiver(const DH_Keypair& local_identity,
         const DH_Keypair& local_pre_key, const DH_Keypair& local_one_time_key,
-        const secure_array<std::byte, 32>& remote_identity,
-        const secure_array<std::byte, 32>& remote_ephemeral) {
+        const crypto::public_key& remote_identity,
+        const crypto::public_key& remote_ephemeral) {
     const auto dh1 = local_pre_key.generate_shared_secret(remote_identity);
     const auto dh2 = local_identity.generate_shared_secret(remote_ephemeral);
     const auto dh3 = local_pre_key.generate_shared_secret(remote_ephemeral);
@@ -71,10 +71,10 @@ const secure_array<std::byte, 32> crypto::X3DH_receiver(const DH_Keypair& local_
     return x3dh_derive(kdf_input);
 }
 
-const secure_array<std::byte, 32> crypto::X3DH_sender(const crypto::DH_Keypair& local_identity,
+const crypto::shared_key crypto::X3DH_sender(const crypto::DH_Keypair& local_identity,
         const crypto::DH_Keypair& local_ephemeral,
-        const secure_array<std::byte, 32>& remote_identity,
-        const secure_array<std::byte, 32>& remote_prekey) {
+        const crypto::public_key& remote_identity,
+        const crypto::public_key& remote_prekey) {
     const auto dh1 = local_identity.generate_shared_secret(remote_prekey);
     const auto dh2 = local_ephemeral.generate_shared_secret(remote_identity);
     const auto dh3 = local_ephemeral.generate_shared_secret(remote_prekey);
@@ -89,9 +89,9 @@ const secure_array<std::byte, 32> crypto::X3DH_sender(const crypto::DH_Keypair& 
     return x3dh_derive(kdf_input);
 }
 
-const secure_array<std::byte, 32> crypto::X3DH_receiver(const DH_Keypair& local_identity,
-        const DH_Keypair& local_pre_key, const secure_array<std::byte, 32>& remote_identity,
-        const secure_array<std::byte, 32>& remote_ephemeral) {
+const crypto::shared_key crypto::X3DH_receiver(const DH_Keypair& local_identity,
+        const DH_Keypair& local_pre_key, const crypto::public_key& remote_identity,
+        const crypto::public_key& remote_ephemeral) {
     const auto dh1 = local_pre_key.generate_shared_secret(remote_identity);
     const auto dh2 = local_identity.generate_shared_secret(remote_ephemeral);
     const auto dh3 = local_pre_key.generate_shared_secret(remote_ephemeral);

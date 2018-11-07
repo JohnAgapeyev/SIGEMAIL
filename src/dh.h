@@ -18,13 +18,13 @@ public:
     DH_Keypair& operator=(const DH_Keypair&) = default;
     DH_Keypair& operator=(DH_Keypair&&) = default;
 
-    const secure_array<std::byte, 32> generate_shared_secret(
-            const secure_array<std::byte, 32>& remote_public) const noexcept;
+    const crypto::shared_key generate_shared_secret(const crypto::public_key& remote_public) const
+            noexcept;
 
     constexpr auto& get_public() const noexcept { return public_key; }
 
-    friend const secure_array<std::byte, 64> crypto::sign_key(
-            const DH_Keypair& signing_keypair, const secure_array<std::byte, 32>& key_to_sign);
+    friend const crypto::signature crypto::sign_key(
+            const DH_Keypair& signing_keypair, const crypto::public_key& key_to_sign);
 };
 
 #endif
