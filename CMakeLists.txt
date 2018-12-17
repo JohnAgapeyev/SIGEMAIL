@@ -48,7 +48,7 @@ set(TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/protocol_test.cpp
 )
 
-set(SOURCE_LIBRARY sig_lib)
+set(SOURCE_LIBRARY _${PROJECT_NAME})
 
 add_library(${SOURCE_LIBRARY} ${SIGEMAIL_SOURCES})
 
