@@ -2,6 +2,7 @@
 #define DEVICE_H
 
 #include <unordered_map>
+#include <cstdint>
 
 #include "crypto.h"
 #include "dh.h"
@@ -15,6 +16,8 @@ public:
     device(device&&) = default;
     device& operator=(device&&) = default;
     device& operator=(const device&) = default;
+
+    void delete_user_record(uint64_t user_index);
 
 private:
     std::unordered_map<uint64_t, user_record> correspondents;

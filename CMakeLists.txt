@@ -40,6 +40,9 @@ set(SIGEMAIL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/sign.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/session.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/key_pack.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/user_record.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/device_record.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/device.cpp
 )
 
 set(TEST_SOURCES

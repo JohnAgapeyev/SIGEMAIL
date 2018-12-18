@@ -23,6 +23,9 @@ public:
     session& operator=(session&&) = default;
     session& operator=(const session&) = default;
 
+    bool operator==(const session& other) const;
+    bool operator!=(const session& other) const { return !(*this == other); }
+
     const signal_message ratchet_encrypt(const crypto::secure_vector<std::byte>& plaintext,
             const crypto::secure_vector<std::byte>& aad);
 

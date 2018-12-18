@@ -117,3 +117,33 @@ void session::DH_ratchet(const crypto::secure_array<std::byte, 32>& remote_pub_k
             = crypto::root_derive(root_key, self_keypair.generate_shared_secret(remote_public_key));
 }
 
+bool session::operator==(const session& other) const {
+    if (self_keypair != other.self_keypair) {
+        return false;
+    }
+    if (remote_public_key != other.remote_public_key) {
+        return false;
+    }
+    if (root_key != other.root_key) {
+        return false;
+    }
+    if (send_chain_key != other.send_chain_key) {
+        return false;
+    }
+    if (receive_chain_key != other.receive_chain_key) {
+        return false;
+    }
+    if (send_message_num != other.send_message_num) {
+        return false;
+    }
+    if (receive_message_num != other.receive_message_num) {
+        return false;
+    }
+    if (previous_send_chain_size != other.previous_send_chain_size) {
+        return false;
+    }
+    if (skipped_keys != other.skipped_keys) {
+        return false;
+    }
+    return true;
+}

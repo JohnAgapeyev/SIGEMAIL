@@ -18,6 +18,13 @@ public:
     DH_Keypair& operator=(const DH_Keypair&) = default;
     DH_Keypair& operator=(DH_Keypair&&) = default;
 
+    bool operator==(const DH_Keypair& other) const {
+        return private_key == other.private_key && public_key == other.public_key;
+    }
+    bool operator!=(const DH_Keypair& other) const {
+        return !(*this == other);
+    }
+
     const crypto::shared_key generate_shared_secret(const crypto::public_key& remote_public) const
             noexcept;
 
