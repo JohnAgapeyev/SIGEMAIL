@@ -25,3 +25,7 @@ void device::delete_session(user_record& ur, device_record& dr, const session& s
         delete_device_record(ur, dr);
     }
 }
+
+void device::insert_session(device_record& dr, const session& s) {
+    dr.insert_session(s);
+}

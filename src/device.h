@@ -24,6 +24,8 @@ public:
     void delete_device_record(user_record& ur, const device_record& dr);
     void delete_session(user_record& ur, device_record& dr, const session& s);
 
+    void insert_session(device_record& dr, const session& s);
+
 private:
     std::unordered_map<uint64_t, user_record> correspondents;
     user_record self;

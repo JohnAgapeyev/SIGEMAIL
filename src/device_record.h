@@ -2,6 +2,7 @@
 #define DEVICE_RECORD_H
 
 #include <list>
+#include <memory>
 
 #include "crypto.h"
 #include "session.h"
@@ -19,12 +20,14 @@ public:
     bool operator==(const device_record& other) const;
     bool operator!=(const device_record& other) const { return !(*this == other); }
 
+    void insert_session(session s);
+
     [[nodiscard]] bool delete_session(const session& s);
 
     void activate_session(const session& s);
 
 private:
-    std::list<session>::iterator active_session;
+    std::unique_ptr<session> active_session;
     std::list<session> session_list;
 
     crypto::public_key remote_identity_public_key;

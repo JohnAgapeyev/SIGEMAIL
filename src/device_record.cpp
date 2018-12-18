@@ -5,9 +5,8 @@
 
 [[nodiscard]] bool device_record::delete_session(const session& s) {
     if (s == *active_session) {
-        session_list.erase(active_session);
-        //Set active session to known invalid location
-        active_session = session_list.end();
+        //Delete session object and null out the pointer
+        active_session.reset(nullptr);
     } else {
         auto it = std::find(session_list.begin(), session_list.end(), s);
         if (it == session_list.end()) {
@@ -26,14 +25,11 @@ void device_record::activate_session(const session& s) {
         throw std::runtime_error("Tried to active session that did not exist");
     }
 
-    if (active_session != session_list.end()) {
-        //Move current session to the front of the inactive list
-        auto active_tmp = *active_session;
-        session_list.erase(active_session);
-        session_list.push_front(std::move(active_tmp));
-    }
-    //Set given session as the active one
-    active_session = it;
+    //Move the active session out of the unique ptr and to the front of the inactive list
+    session_list.emplace_front(std::move(*active_session.release()));
+
+    session_list.erase(it);
+    active_session = std::make_unique<session>(s);
 }
 
 bool device_record::operator==(const device_record& other) const {
@@ -50,4 +46,9 @@ bool device_record::operator==(const device_record& other) const {
         return false;
     }
     return true;
+}
+
+void device_record::insert_session(session s) {
+    session_list.emplace_front(std::move(*active_session.release()));
+    active_session = std::make_unique<session>(std::move(s));
 }
