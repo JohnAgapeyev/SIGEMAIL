@@ -15,8 +15,12 @@ public:
     user_record& operator=(user_record&&) = default;
     user_record& operator=(const user_record&) = default;
 
+    bool operator==(const user_record& other) const;
+    bool operator!=(const user_record& other) const { return !(*this == other); }
+
     void add_device(device_record dr);
     [[nodiscard]] bool remove_device(uint64_t device_index);
+    [[nodiscard]] bool remove_device(const device_record& dr);
 
 private:
     std::unordered_map<uint64_t, device_record> user_devices;

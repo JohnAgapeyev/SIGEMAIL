@@ -35,3 +35,19 @@ void device_record::activate_session(const session& s) {
     //Set given session as the active one
     active_session = it;
 }
+
+bool device_record::operator==(const device_record& other) const {
+    if (is_stale != other.is_stale) {
+        return false;
+    }
+    if (*active_session != *(other.active_session)) {
+        return false;
+    }
+    if (remote_identity_public_key != other.remote_identity_public_key) {
+        return false;
+    }
+    if (session_list != other.session_list) {
+        return false;
+    }
+    return true;
+}

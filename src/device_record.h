@@ -16,6 +16,9 @@ public:
     device_record& operator=(device_record&&) = default;
     device_record& operator=(const device_record&) = default;
 
+    bool operator==(const device_record& other) const;
+    bool operator!=(const device_record& other) const { return !(*this == other); }
+
     [[nodiscard]] bool delete_session(const session& s);
 
     void activate_session(const session& s);

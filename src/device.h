@@ -7,6 +7,7 @@
 #include "crypto.h"
 #include "dh.h"
 #include "user_record.h"
+#include "device_record.h"
 
 class device {
 public:
@@ -18,6 +19,10 @@ public:
     device& operator=(const device&) = default;
 
     void delete_user_record(uint64_t user_index);
+    void delete_user_record(const user_record& ur);
+
+    void delete_device_record(user_record& ur, const device_record& dr);
+    void delete_session(user_record& ur, device_record& dr, const session& s);
 
 private:
     std::unordered_map<uint64_t, user_record> correspondents;
