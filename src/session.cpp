@@ -86,7 +86,7 @@ const std::optional<crypto::secure_vector<std::byte>> session::try_skipped_messa
         auto message_copy = message.message;
         return crypto::decrypt(message_copy, message_key, message.aad);
     } else {
-        return {};
+        return std::nullopt;
     }
 }
 
