@@ -8,6 +8,8 @@
 #include "message.h"
 #include "session.h"
 
+BOOST_AUTO_TEST_SUITE(protocol_tests)
+
 BOOST_AUTO_TEST_CASE(x3dh) {
     //Alice
     crypto::DH_Keypair alice_identity;
@@ -94,3 +96,5 @@ BOOST_AUTO_TEST_CASE(x3dh_no_one_time_key) {
 
     BOOST_TEST(alice_shared_secret == bob_shared_secret);
 }
+
+BOOST_AUTO_TEST_SUITE_END()

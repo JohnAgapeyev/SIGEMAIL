@@ -5,6 +5,8 @@
 #include "session.h"
 #include "test.h"
 
+BOOST_AUTO_TEST_SUITE(session_tests)
+
 BOOST_AUTO_TEST_CASE(session_one_shot) {
     const auto key = get_key();
     const auto message = get_message();
@@ -210,3 +212,5 @@ BOOST_AUTO_TEST_CASE(signal_out_of_order_example) {
     //B2 out of order
     BOOST_TEST(send_s.ratchet_decrypt(m_1) == message);
 }
+
+BOOST_AUTO_TEST_SUITE_END()

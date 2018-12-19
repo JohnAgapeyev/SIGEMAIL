@@ -5,6 +5,8 @@
 #include "crypto.h"
 #include "dh.h"
 
+BOOST_AUTO_TEST_SUITE(sign_tests)
+
 BOOST_AUTO_TEST_CASE(key_sign) {
     const auto key = get_key();
 
@@ -39,3 +41,5 @@ BOOST_AUTO_TEST_CASE(verify_wrong_key) {
 
     BOOST_TEST(verify_signed_key(signature, diff_key, signing_pair.get_public()) == false);
 }
+
+BOOST_AUTO_TEST_SUITE_END()

@@ -79,7 +79,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE ${SOURCE_LIBRARY})
 enable_testing()
 
 add_executable(test_binary ${TEST_SOURCES} ${Boost_INCLUDE_DIRS})
-add_test(NAME test_binary COMMAND test_binary)
+add_test(NAME encryption_tests COMMAND test_binary -p -t encryption_tests)
+add_test(NAME signing_tests COMMAND test_binary -p -t sign_tests)
+add_test(NAME protocol_tests COMMAND test_binary -p -t protocol_tests)
+add_test(NAME session_tests COMMAND test_binary -p -t session_tests)
 
 target_link_libraries(test_binary PRIVATE ${SOURCE_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 

@@ -6,6 +6,8 @@
 #include "crypto.h"
 #include "dh.h"
 
+BOOST_AUTO_TEST_SUITE(encryption_tests)
+
 BOOST_AUTO_TEST_CASE(basic_encryption) {
     const auto message = get_message();
     const auto key = get_key();
@@ -62,3 +64,4 @@ BOOST_AUTO_TEST_CASE(corrupted_aad) {
     BOOST_REQUIRE_THROW(plaintext = crypto::decrypt(ciphertext_copy, key, aad), std::runtime_error);
 }
 
+BOOST_AUTO_TEST_SUITE_END()
