@@ -1,6 +1,7 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
+#include "test.h"
 #include "crypto.h"
 #include "dh.h"
 #include "key_pack.h"

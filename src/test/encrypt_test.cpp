@@ -2,23 +2,14 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
+#include "test.h"
 #include "crypto.h"
 #include "dh.h"
 
 BOOST_AUTO_TEST_CASE(basic_encryption) {
-    const crypto::secure_vector<std::byte> message = []() {
-        const std::string m = "This is my test message";
-        crypto::secure_vector<std::byte> out;
-        for (const unsigned char c : m) {
-            out.emplace_back(std::byte{c});
-        }
-        return out;
-    }();
-    crypto::secure_array<std::byte, 32> key;
-    key.fill(std::byte{0xab});
-
-    crypto::secure_vector<std::byte> aad;
-    aad.reserve(20);
+    const auto message = get_message();
+    const auto key = get_key();
+    const auto aad = get_message();
 
     const auto ciphertext = crypto::encrypt(message, key, aad);
     auto ciphertext_copy = ciphertext;
@@ -28,21 +19,9 @@ BOOST_AUTO_TEST_CASE(basic_encryption) {
 }
 
 BOOST_AUTO_TEST_CASE(aad_encryption) {
-    const crypto::secure_vector<std::byte> message = []() {
-        const std::string m = "This is my test message";
-        crypto::secure_vector<std::byte> out;
-        for (const unsigned char c : m) {
-            out.emplace_back(std::byte{c});
-        }
-        return out;
-    }();
-    crypto::secure_array<std::byte, 32> key;
-    key.fill(std::byte{0xab});
-
-    crypto::secure_vector<std::byte> aad;
-    for (int i = 0; i < 20; ++i) {
-        aad.emplace_back(std::byte{0x43});
-    }
+    const auto message = get_message();
+    const auto key = get_key();
+    const auto aad = get_message();
 
     const auto ciphertext = crypto::encrypt(message, key, aad);
     auto ciphertext_copy = ciphertext;
@@ -52,21 +31,9 @@ BOOST_AUTO_TEST_CASE(aad_encryption) {
 }
 
 BOOST_AUTO_TEST_CASE(corrupted_message) {
-    const crypto::secure_vector<std::byte> message = []() {
-        const std::string m = "This is my test message";
-        crypto::secure_vector<std::byte> out;
-        for (const unsigned char c : m) {
-            out.emplace_back(std::byte{c});
-        }
-        return out;
-    }();
-    crypto::secure_array<std::byte, 32> key;
-    key.fill(std::byte{0xab});
-
-    crypto::secure_vector<std::byte> aad;
-    for (int i = 0; i < 20; ++i) {
-        aad.emplace_back(std::byte{0x43});
-    }
+    const auto message = get_message();
+    const auto key = get_key();
+    const auto aad = get_message();
 
     const auto ciphertext = crypto::encrypt(message, key, aad);
 
@@ -79,21 +46,9 @@ BOOST_AUTO_TEST_CASE(corrupted_message) {
 }
 
 BOOST_AUTO_TEST_CASE(corrupted_aad) {
-    const crypto::secure_vector<std::byte> message = []() {
-        const std::string m = "This is my test message";
-        crypto::secure_vector<std::byte> out;
-        for (const unsigned char c : m) {
-            out.emplace_back(std::byte{c});
-        }
-        return out;
-    }();
-    crypto::secure_array<std::byte, 32> key;
-    key.fill(std::byte{0xab});
-
-    crypto::secure_vector<std::byte> aad;
-    for (int i = 0; i < 20; ++i) {
-        aad.emplace_back(std::byte{0x43});
-    }
+    const auto message = get_message();
+    const auto key = get_key();
+    auto aad = get_message();
 
     const auto ciphertext = crypto::encrypt(message, key, aad);
 
