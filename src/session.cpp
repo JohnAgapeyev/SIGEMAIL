@@ -7,31 +7,16 @@
 
 const uint64_t MAX_SKIP = 100;
 
-session::session(crypto::secure_array<std::byte, 32>& shared_secret,
-        crypto::secure_array<std::byte, 32>& dest_public_key) :
-        remote_public_key(dest_public_key) {
-    self_keypair = crypto::DH_Keypair();
+session::session(crypto::shared_key shared_secret, crypto::public_key dest_public_key) :
+        self_keypair(), remote_public_key(std::move(dest_public_key)),
+        root_key(std::move(shared_secret)),
+        send_chain_key(crypto::root_derive(
+                root_key, self_keypair.generate_shared_secret(remote_public_key))) {}
 
-    //Initialize here for use in the root key derivation call
-    root_key = shared_secret;
+session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_kp) :
+        self_keypair(std::move(self_kp)), root_key(std::move(shared_secret)) {}
 
-    send_chain_key
-            = crypto::root_derive(root_key, self_keypair.generate_shared_secret(remote_public_key));
-
-    receive_chain_key = {};
-}
-
-session::session(
-        crypto::secure_array<std::byte, 32>& shared_secret, crypto::DH_Keypair& self_kp) :
-        self_keypair(self_kp),
-        root_key(shared_secret) {
-    remote_public_key = {};
-    send_chain_key = {};
-    receive_chain_key = {};
-}
-
-const signal_message session::ratchet_encrypt(
-        const crypto::secure_vector<std::byte>& plaintext,
+const signal_message session::ratchet_encrypt(const crypto::secure_vector<std::byte>& plaintext,
         const crypto::secure_vector<std::byte>& aad) {
     const auto message_key = crypto::chain_derive(send_chain_key);
 
@@ -50,12 +35,12 @@ const signal_message session::ratchet_encrypt(
     return m;
 }
 
-const crypto::secure_vector<std::byte> session::ratchet_decrypt(
-        const signal_message& message) {
+const crypto::secure_vector<std::byte> session::ratchet_decrypt(const signal_message& message) {
     //Save state
     const auto state_copy = *this;
     try {
-        if (const auto skipped_result = try_skipped_message_keys(message); skipped_result.has_value()) {
+        if (const auto skipped_result = try_skipped_message_keys(message);
+                skipped_result.has_value()) {
             return *skipped_result;
         }
         if (message.header.dh_public_key != remote_public_key) {

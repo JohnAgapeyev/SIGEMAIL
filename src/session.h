@@ -14,9 +14,9 @@ extern const uint64_t MAX_SKIP;
 class session {
 public:
     //Sender initialization
-    session(crypto::shared_key& shared_secret, crypto::public_key& dest_public_key);
+    session(crypto::shared_key shared_secret, crypto::public_key dest_public_key);
     //Receiver initialization
-    session(crypto::shared_key& shared_secret, crypto::DH_Keypair& self_kp);
+    session(crypto::shared_key shared_secret, crypto::DH_Keypair self_kp);
     ~session() = default;
     session(const session&) = default;
     session(session&&) = default;
@@ -49,7 +49,7 @@ private:
     uint64_t previous_send_chain_size = 0;
 
     crypto::secure_unordered_map<std::pair<crypto::public_key, uint64_t>, crypto::shared_key>
-            skipped_keys{};
+            skipped_keys;
 };
 
 #endif /* end of include guard: PROTOCOL_STATE_H */
