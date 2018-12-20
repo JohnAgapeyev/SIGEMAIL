@@ -3,8 +3,30 @@
 
 #include "device_record.h"
 
+device_record::device_record(const device_record& other) :
+        session_list(other.session_list),
+        remote_identity_public_key(other.remote_identity_public_key), is_stale(other.is_stale) {
+    if (other.active_session) {
+        active_session = std::make_unique<session>(*other.active_session);
+    } else {
+        active_session = nullptr;
+    }
+}
+
+device_record& device_record::operator=(const device_record& other) {
+    session_list = other.session_list;
+    remote_identity_public_key = other.remote_identity_public_key;
+    is_stale = other.is_stale;
+    if (other.active_session) {
+        active_session = std::make_unique<session>(*other.active_session);
+    } else {
+        active_session = nullptr;
+    }
+    return *this;
+}
+
 [[nodiscard]] bool device_record::delete_session(const session& s) {
-    if (s == *active_session) {
+    if (active_session && s == *active_session) {
         //Delete session object and null out the pointer
         active_session.reset(nullptr);
     } else {
