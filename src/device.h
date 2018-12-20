@@ -19,12 +19,19 @@ public:
     device& operator=(const device&) = default;
 
     void delete_user_record(uint64_t user_index);
-
     void delete_device_record(uint64_t user_index, uint64_t device_index);
-
     void delete_session(uint64_t user_index, uint64_t device_index, const session& s);
 
     void insert_session(uint64_t user_index, uint64_t device_index, const session& s);
+
+    void activate_session(uint64_t user_index, uint64_t device_index, const session& s);
+
+    void mark_user_stale(uint64_t user_index);
+    void mark_device_stale(uint64_t user_index, uint64_t device_index);
+
+    void conditionally_update(uint64_t user_index, uint64_t device_index, const crypto::public_key& pub_key);
+
+    void prep_for_encryption(uint64_t user_index, uint64_t device_index, const crypto::public_key& pub_key);
 
 private:
     std::unordered_map<uint64_t, user_record> correspondents;
