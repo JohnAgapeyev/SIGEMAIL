@@ -58,30 +58,37 @@ const crypto::secure_vector<std::byte> crypto::decrypt(secure_vector<std::byte>&
 
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
 
-    EVP_DecryptInit_ex(ctx, EVP_chacha20_poly1305(), NULL,
-            reinterpret_cast<const unsigned char*>(key.data()),
-            reinterpret_cast<const unsigned char*>(nonce.data()));
+    try {
+        EVP_DecryptInit_ex(ctx, EVP_chacha20_poly1305(), NULL,
+                reinterpret_cast<const unsigned char*>(key.data()),
+                reinterpret_cast<const unsigned char*>(nonce.data()));
 
-    int len;
-    EVP_DecryptUpdate(
-            ctx, NULL, &len, reinterpret_cast<const unsigned char*>(aad.data()), aad.size());
+        int len;
+        EVP_DecryptUpdate(
+                ctx, NULL, &len, reinterpret_cast<const unsigned char*>(aad.data()), aad.size());
 
-    secure_vector<std::byte> plaintext;
-    plaintext.resize(ciphertext.size() - 28);
+        secure_vector<std::byte> plaintext;
+        plaintext.resize(ciphertext.size() - 28);
 
-    EVP_DecryptUpdate(ctx, reinterpret_cast<unsigned char*>(plaintext.data()), &len,
-            reinterpret_cast<const unsigned char*>(ciphertext.data() + 12), ciphertext.size() - 28);
+        EVP_DecryptUpdate(ctx, reinterpret_cast<unsigned char*>(plaintext.data()), &len,
+                reinterpret_cast<const unsigned char*>(ciphertext.data() + 12),
+                ciphertext.size() - 28);
 
-    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16,
-                reinterpret_cast<unsigned char*>(ciphertext.data() + ciphertext.size() - 16))) {
-        throw std::runtime_error("Message tag failed to enter correctly");
+        if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16,
+                    reinterpret_cast<unsigned char*>(ciphertext.data() + ciphertext.size() - 16))) {
+            throw std::runtime_error("Message tag failed to enter correctly");
+        }
+
+        if (!EVP_DecryptFinal_ex(
+                    ctx, reinterpret_cast<unsigned char*>(plaintext.data()) + len, &len)) {
+            throw std::runtime_error("Message failed to decrypt");
+        }
+
+        EVP_CIPHER_CTX_free(ctx);
+
+        return plaintext;
+    } catch (...) {
+        EVP_CIPHER_CTX_free(ctx);
+        throw;
     }
-
-    if (!EVP_DecryptFinal_ex(ctx, reinterpret_cast<unsigned char*>(plaintext.data()) + len, &len)) {
-        throw std::runtime_error("Message failed to decrypt");
-    }
-
-    EVP_CIPHER_CTX_free(ctx);
-
-    return plaintext;
 }
