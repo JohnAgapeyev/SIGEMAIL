@@ -11,9 +11,12 @@ using namespace crypto;
 const secure_array<std::byte, 32> crypto::root_derive(
         secure_array<std::byte, 32>& root_key, const secure_array<std::byte, 32>& dh_output) {
     secure_array<std::byte, 64> temp;
-    PKCS5_PBKDF2_HMAC(reinterpret_cast<const char*>(dh_output.data()), sizeof(std::byte) * 32,
-            reinterpret_cast<unsigned char*>(root_key.data()), sizeof(std::byte) * 32, KDF_COUNT,
-            EVP_sha512(), sizeof(std::byte) * 64, reinterpret_cast<unsigned char*>(temp.data()));
+    if (!PKCS5_PBKDF2_HMAC(reinterpret_cast<const char*>(dh_output.data()), sizeof(std::byte) * 32,
+                reinterpret_cast<unsigned char*>(root_key.data()), sizeof(std::byte) * 32,
+                KDF_COUNT, EVP_sha512(), sizeof(std::byte) * 64,
+                reinterpret_cast<unsigned char*>(temp.data()))) {
+        throw std::domain_error("PKCS5_PBKDF2_HMAC");
+    }
 
     secure_array<std::byte, 32> chain_key;
 
@@ -27,14 +30,18 @@ const secure_array<std::byte, 32> crypto::root_derive(
 const secure_array<std::byte, 32> crypto::chain_derive(secure_array<std::byte, 32>& chain_key) {
     const unsigned char in_1 = 0x01;
     const unsigned char in_2 = 0x01;
-    PKCS5_PBKDF2_HMAC(reinterpret_cast<const char*>(chain_key.data()), sizeof(std::byte) * 32,
-            &in_1, 1, KDF_COUNT, EVP_sha512(), sizeof(std::byte) * 32,
-            reinterpret_cast<unsigned char*>(chain_key.data()));
+    if (!PKCS5_PBKDF2_HMAC(reinterpret_cast<const char*>(chain_key.data()), sizeof(std::byte) * 32,
+                &in_1, 1, KDF_COUNT, EVP_sha512(), sizeof(std::byte) * 32,
+                reinterpret_cast<unsigned char*>(chain_key.data()))) {
+        throw std::domain_error("PKCS5_PBKDF2_HMAC");
+    }
 
     secure_array<std::byte, 32> message_key;
-    PKCS5_PBKDF2_HMAC(reinterpret_cast<const char*>(chain_key.data()), sizeof(std::byte) * 32,
-            &in_2, 1, KDF_COUNT, EVP_sha512(), sizeof(std::byte) * 32,
-            reinterpret_cast<unsigned char*>(message_key.data()));
+    if (!PKCS5_PBKDF2_HMAC(reinterpret_cast<const char*>(chain_key.data()), sizeof(std::byte) * 32,
+                &in_2, 1, KDF_COUNT, EVP_sha512(), sizeof(std::byte) * 32,
+                reinterpret_cast<unsigned char*>(message_key.data()))) {
+        throw std::domain_error("PKCS5_PBKDF2_HMAC");
+    }
 
     return message_key;
 }
@@ -52,10 +59,12 @@ const secure_array<std::byte, 32> crypto::x3dh_derive(
 
     secure_array<std::byte, 32> kdf_output;
 
-    PKCS5_PBKDF2_HMAC(reinterpret_cast<const char*>(kdf_input.data()), kdf_input.size(),
-            reinterpret_cast<const unsigned char*>(kdf_salt.data()), kdf_salt.size(), KDF_COUNT,
-            EVP_sha512(), sizeof(std::byte) * 32,
-            reinterpret_cast<unsigned char*>(kdf_output.data()));
+    if (!PKCS5_PBKDF2_HMAC(reinterpret_cast<const char*>(kdf_input.data()), kdf_input.size(),
+                reinterpret_cast<const unsigned char*>(kdf_salt.data()), kdf_salt.size(), KDF_COUNT,
+                EVP_sha512(), sizeof(std::byte) * 32,
+                reinterpret_cast<unsigned char*>(kdf_output.data()))) {
+        throw std::domain_error("PKCS5_PBKDF2_HMAC");
+    }
 
     return kdf_output;
 }
