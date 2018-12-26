@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9.4)
+cmake_minimum_required(VERSION 3.13.0)
 project(sigemail)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -61,6 +61,8 @@ target_compile_options(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIO
 target_compile_options(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
 target_compile_definitions(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
 
+target_link_options(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:-s>")
+
 target_link_libraries(${SOURCE_LIBRARY} PUBLIC signal-protocol-c OpenSSL::SSL OpenSSL::Crypto curl ${Boost_SERIALIZATION_LIBRARY})
 
 target_include_directories(${SOURCE_LIBRARY} PUBLIC
@@ -75,6 +77,7 @@ target_include_directories(${SOURCE_LIBRARY} PUBLIC
 
 add_executable(${PROJECT_NAME} ${MAIN_SOURCE})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${SOURCE_LIBRARY})
+target_link_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:RELEASE>:-s>")
 
 enable_testing()
 
