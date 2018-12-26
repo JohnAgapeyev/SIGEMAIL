@@ -41,9 +41,9 @@ private:
 
     crypto::DH_Keypair self_keypair;
     crypto::public_key remote_public_key;
-    crypto::secure_array<std::byte, 32> root_key;
-    crypto::secure_array<std::byte, 32> send_chain_key;
-    crypto::secure_array<std::byte, 32> receive_chain_key;
+    crypto::shared_key root_key;
+    crypto::shared_key send_chain_key;
+    crypto::shared_key receive_chain_key;
     uint64_t send_message_num = 0;
     uint64_t receive_message_num = 0;
     uint64_t previous_send_chain_size = 0;

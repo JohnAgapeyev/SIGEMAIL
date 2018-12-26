@@ -6,10 +6,8 @@
 
 #define KDF_COUNT 10000
 
-using namespace crypto;
-
-const secure_array<std::byte, 32> crypto::root_derive(
-        secure_array<std::byte, 32>& root_key, const secure_array<std::byte, 32>& dh_output) {
+const crypto::shared_key crypto::root_derive(
+        crypto::shared_key& root_key, const crypto::shared_key& dh_output) {
     secure_array<std::byte, 64> temp;
     if (!PKCS5_PBKDF2_HMAC(reinterpret_cast<const char*>(dh_output.data()), sizeof(std::byte) * 32,
                 reinterpret_cast<unsigned char*>(root_key.data()), sizeof(std::byte) * 32,
@@ -18,7 +16,7 @@ const secure_array<std::byte, 32> crypto::root_derive(
         throw std::domain_error("PKCS5_PBKDF2_HMAC");
     }
 
-    secure_array<std::byte, 32> chain_key;
+    crypto::shared_key chain_key;
 
     //Write key halves into out parameters
     memcpy(root_key.data(), temp.data(), 32);
@@ -27,7 +25,7 @@ const secure_array<std::byte, 32> crypto::root_derive(
     return chain_key;
 }
 
-const secure_array<std::byte, 32> crypto::chain_derive(secure_array<std::byte, 32>& chain_key) {
+const crypto::shared_key crypto::chain_derive(crypto::shared_key& chain_key) {
     const unsigned char in_1 = 0x01;
     const unsigned char in_2 = 0x01;
     if (!PKCS5_PBKDF2_HMAC(reinterpret_cast<const char*>(chain_key.data()), sizeof(std::byte) * 32,
@@ -36,7 +34,7 @@ const secure_array<std::byte, 32> crypto::chain_derive(secure_array<std::byte, 3
         throw std::domain_error("PKCS5_PBKDF2_HMAC");
     }
 
-    secure_array<std::byte, 32> message_key;
+    crypto::shared_key message_key;
     if (!PKCS5_PBKDF2_HMAC(reinterpret_cast<const char*>(chain_key.data()), sizeof(std::byte) * 32,
                 &in_2, 1, KDF_COUNT, EVP_sha512(), sizeof(std::byte) * 32,
                 reinterpret_cast<unsigned char*>(message_key.data()))) {
@@ -46,7 +44,7 @@ const secure_array<std::byte, 32> crypto::chain_derive(secure_array<std::byte, 3
     return message_key;
 }
 
-const secure_array<std::byte, 32> crypto::x3dh_derive(
+const crypto::shared_key crypto::x3dh_derive(
         const secure_vector<std::byte>& key_material) {
     //Pad with 32 bytes of 0xFF
     secure_vector<std::byte> kdf_input{32, std::byte{0xFF}};
@@ -57,7 +55,7 @@ const secure_array<std::byte, 32> crypto::x3dh_derive(
     //Fill with a sha512 worth of zeroes
     secure_array<std::byte, 64> kdf_salt{std::byte{0}};
 
-    secure_array<std::byte, 32> kdf_output;
+    crypto::shared_key kdf_output;
 
     if (!PKCS5_PBKDF2_HMAC(reinterpret_cast<const char*>(kdf_input.data()), kdf_input.size(),
                 reinterpret_cast<const unsigned char*>(kdf_salt.data()), kdf_salt.size(), KDF_COUNT,

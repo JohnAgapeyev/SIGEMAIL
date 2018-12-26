@@ -90,7 +90,7 @@ void session::skip_message_keys(uint64_t until) {
     }
 }
 
-void session::DH_ratchet(const crypto::secure_array<std::byte, 32>& remote_pub_key) {
+void session::DH_ratchet(const crypto::public_key& remote_pub_key) {
     previous_send_chain_size = send_message_num;
     send_message_num = 0;
     receive_message_num = 0;

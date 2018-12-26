@@ -28,7 +28,7 @@ const secure_array<std::byte, 64> crypto::sign_key(
     return output_signature;
 }
 
-bool crypto::verify_signed_key(const secure_array<std::byte, 64> &signature,
+[[nodiscard]] bool crypto::verify_signed_key(const secure_array<std::byte, 64> &signature,
         const secure_array<std::byte, 32> &signed_key,
         const secure_array<std::byte, 32> &public_signing_key) {
     return !xed25519_verify(reinterpret_cast<const unsigned char *>(signature.data()),
