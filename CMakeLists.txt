@@ -28,6 +28,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 find_package(OpenSSL 1.1.1 REQUIRED)
 find_package(Boost 1.67 REQUIRED COMPONENTS unit_test_framework serialization)
+find_package(CURL REQUIRED)
 
 set(MAIN_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
@@ -63,7 +64,7 @@ target_compile_definitions(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>
 
 target_link_options(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:-s>")
 
-target_link_libraries(${SOURCE_LIBRARY} PUBLIC signal-protocol-c OpenSSL::SSL OpenSSL::Crypto curl ${Boost_SERIALIZATION_LIBRARY})
+target_link_libraries(${SOURCE_LIBRARY} PUBLIC signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl ${Boost_LIBRARIES})
 
 target_include_directories(${SOURCE_LIBRARY} PUBLIC
     src
@@ -87,7 +88,7 @@ add_test(NAME signing_tests COMMAND test_binary -p -t sign_tests)
 add_test(NAME protocol_tests COMMAND test_binary -p -t protocol_tests)
 add_test(NAME session_tests COMMAND test_binary -p -t session_tests)
 
-target_link_libraries(test_binary PRIVATE ${SOURCE_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+target_link_libraries(test_binary PRIVATE ${SOURCE_LIBRARY} Boost::unit_test_framework)
 
 target_include_directories(test_binary PRIVATE
     src/test
@@ -98,10 +99,10 @@ check_ipo_supported(RESULT ipo_supported OUTPUT error)
 
 if(ipo_supported)
     message(STATUS "IPO / LTO enabled")
-    set_target_properties(${SOURCE_LIBRARY} ${PROJECT_NAME} test_binary PROPERTIES 
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE 
+    set_target_properties(${SOURCE_LIBRARY} ${PROJECT_NAME} test_binary PROPERTIES
+        INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE
         POSITION_INDEPENDENT_CODE TRUE
-    )
+)
 else()
     message(STATUS "IPO / LTO not supported: <${error}>")
 endif()

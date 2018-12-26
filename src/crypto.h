@@ -10,6 +10,7 @@
 #include <openssl/crypto.h>
 #include <unordered_map>
 #include <vector>
+#include <boost/container_hash/hash.hpp>
 
 #include "zallocator.h"
 
@@ -28,7 +29,7 @@ namespace crypto {
     template<typename Key, typename T>
     using secure_map = std::map<Key, T, std::less<Key>, zallocator<std::pair<const Key, T>>>;
     template<typename Key, typename T>
-    using secure_unordered_map = std::unordered_map<Key, T, std::hash<Key>, std::equal_to<Key>,
+    using secure_unordered_map = std::unordered_map<Key, T, boost::hash<Key>, std::equal_to<Key>,
             zallocator<std::pair<const Key, T>>>;
 
     using shared_key = secure_array<std::byte, 32>;
@@ -68,28 +69,11 @@ namespace crypto {
             secure_array<std::byte, 32>& root_key, const secure_array<std::byte, 32>& dh_output);
     const secure_array<std::byte, 32> chain_derive(secure_array<std::byte, 32>& chain_key);
     const secure_array<std::byte, 32> x3dh_derive(const secure_vector<std::byte>& key_material);
-} // namespace crypto
 
-namespace std {
     template<typename T, std::size_t N>
-    class hash<crypto::secure_array<T, N>> {
-    public:
-        std::size_t operator()(const crypto::secure_array<T, N>& arr) const {
-            std::size_t running_hash = 0;
-            const auto hsh = std::hash<T>{};
-            for (const auto& elem : arr) {
-                running_hash ^= hsh(elem);
-            }
-            return running_hash;
-        }
-    };
-    template<typename T, typename U>
-    class hash<std::pair<T, U>> {
-    public:
-        std::size_t operator()(const std::pair<T, U>& p) const {
-            return std::hash<T>{}(p.first) ^ std::hash<U>{}(p.second);
-        }
-    };
-} // namespace std
+    std::size_t hash_value(const crypto::secure_array<T, N>& arr) noexcept {
+        return boost::hash_range(arr.cbegin(), arr.cend());
+    }
+} // namespace crypto
 
 #endif
