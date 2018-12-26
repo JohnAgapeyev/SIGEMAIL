@@ -26,7 +26,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libsignal-protocol-c)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-find_package(OpenSSL 1.1.0 REQUIRED)
+find_package(OpenSSL 1.1.1 REQUIRED)
 find_package(Boost 1.67 REQUIRED COMPONENTS unit_test_framework serialization)
 
 set(MAIN_SOURCE
@@ -96,7 +96,7 @@ check_ipo_supported(RESULT ipo_supported OUTPUT error)
 if(ipo_supported)
     message(STATUS "IPO / LTO enabled")
     set_target_properties(${SOURCE_LIBRARY} ${PROJECT_NAME} test_binary PROPERTIES 
-        INTERPROCEDURAL_OPTIMIZATION TRUE 
+        INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE 
         POSITION_INDEPENDENT_CODE TRUE
     )
 else()
