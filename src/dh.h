@@ -8,8 +8,8 @@
 #include "crypto.h"
 
 class crypto::DH_Keypair {
-    secure_array<std::byte, 32> private_key;
-    secure_array<std::byte, 32> public_key;
+    crypto::private_key private_key;
+    crypto::public_key public_key;
 
 public:
     DH_Keypair();
