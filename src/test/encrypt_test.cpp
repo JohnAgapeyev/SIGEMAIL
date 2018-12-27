@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(corrupted_message) {
     ciphertext_copy[4] = ciphertext_copy[1];
 
     crypto::secure_vector<std::byte> plaintext;
-    BOOST_REQUIRE_THROW(plaintext = crypto::decrypt(ciphertext_copy, key, aad), std::runtime_error);
+    BOOST_REQUIRE_THROW(plaintext = crypto::decrypt(ciphertext_copy, key, aad), crypto::expected_error);
 }
 
 BOOST_AUTO_TEST_CASE(corrupted_aad) {
@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(corrupted_aad) {
     aad[12] = std::byte{0xCA};
 
     crypto::secure_vector<std::byte> plaintext;
-    BOOST_REQUIRE_THROW(plaintext = crypto::decrypt(ciphertext_copy, key, aad), std::runtime_error);
+    BOOST_REQUIRE_THROW(plaintext = crypto::decrypt(ciphertext_copy, key, aad), crypto::expected_error);
 }
 
 BOOST_AUTO_TEST_CASE(too_short_decrypt) {
@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(bad_key) {
     key[2] ^= std::byte{0xcd};
 
     crypto::secure_vector<std::byte> plaintext;
-    BOOST_REQUIRE_THROW(plaintext = crypto::decrypt(ciphertext_copy, key, aad), std::runtime_error);
+    BOOST_REQUIRE_THROW(plaintext = crypto::decrypt(ciphertext_copy, key, aad), crypto::expected_error);
 }
 
 BOOST_AUTO_TEST_CASE(bad_nonce) {
@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(bad_nonce) {
     ciphertext_copy[1] <<= 2;
 
     crypto::secure_vector<std::byte> plaintext;
-    BOOST_REQUIRE_THROW(plaintext = crypto::decrypt(ciphertext_copy, key, aad), std::runtime_error);
+    BOOST_REQUIRE_THROW(plaintext = crypto::decrypt(ciphertext_copy, key, aad), crypto::expected_error);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

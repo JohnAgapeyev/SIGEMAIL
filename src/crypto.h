@@ -2,20 +2,52 @@
 #define CRYPTO_H
 
 #include <array>
+#include <boost/container_hash/hash.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <exception>
 #include <functional>
 #include <map>
 #include <openssl/crypto.h>
+#include <openssl/err.h>
 #include <unordered_map>
 #include <vector>
-#include <boost/container_hash/hash.hpp>
 
 #include "zallocator.h"
 
 namespace crypto {
     class DH_Keypair;
+
+    class openssl_error : public std::exception {
+    public:
+        openssl_error(unsigned long e) : err_code(e) {}
+        ~openssl_error() = default;
+        openssl_error(const openssl_error&) = default;
+        openssl_error(openssl_error&&) = default;
+        openssl_error& operator=(openssl_error&&) = default;
+        openssl_error& operator=(const openssl_error&) = default;
+
+        const char* what() const noexcept { return ERR_error_string(err_code, nullptr); }
+
+    private:
+        unsigned long err_code;
+    };
+
+    class expected_error : public std::exception {
+    public:
+        expected_error(const char* what) : mesg(what) {}
+        ~expected_error() = default;
+        expected_error(const expected_error&) = default;
+        expected_error(expected_error&&) = default;
+        expected_error& operator=(expected_error&&) = default;
+        expected_error& operator=(const expected_error&) = default;
+
+        const char* what() const noexcept { return mesg; }
+
+    private:
+        const char* mesg;
+    };
 
     template<typename T, std::size_t N>
     struct secure_array : public std::array<T, N> {
@@ -65,8 +97,7 @@ namespace crypto {
     const secure_vector<std::byte> decrypt(secure_vector<std::byte>& ciphertext,
             const shared_key& key, const secure_vector<std::byte>& aad);
 
-    const shared_key root_derive(
-            shared_key& root_key, const shared_key& dh_output);
+    const shared_key root_derive(shared_key& root_key, const shared_key& dh_output);
     const shared_key chain_derive(shared_key& chain_key);
     const shared_key x3dh_derive(const secure_vector<std::byte>& key_material);
 

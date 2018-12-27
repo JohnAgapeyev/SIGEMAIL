@@ -21,13 +21,13 @@ const crypto::secure_vector<std::byte> crypto::encrypt(const secure_vector<std::
     if (!EVP_EncryptInit_ex(ctx.get(), EVP_chacha20_poly1305(), NULL,
                 reinterpret_cast<const unsigned char*>(key.data()),
                 reinterpret_cast<const unsigned char*>(nonce.data()))) {
-        throw std::runtime_error("EVP_EncryptInit_ex");
+        throw crypto::openssl_error(ERR_get_error());
     }
 
     int len;
     if (!EVP_EncryptUpdate(ctx.get(), NULL, &len,
                 reinterpret_cast<const unsigned char*>(aad.data()), aad.size())) {
-        throw std::domain_error("EVP_EncryptUpdate");
+        throw crypto::openssl_error(ERR_get_error());
     }
 
     secure_vector<std::byte> ciphertext;
@@ -35,12 +35,12 @@ const crypto::secure_vector<std::byte> crypto::encrypt(const secure_vector<std::
 
     if (!EVP_EncryptUpdate(ctx.get(), reinterpret_cast<unsigned char*>(ciphertext.data()), &len,
                 reinterpret_cast<const unsigned char*>(message.data()), message.size())) {
-        throw std::domain_error("EVP_EncryptUpdate");
+        throw crypto::openssl_error(ERR_get_error());
     }
 
     if (!EVP_EncryptFinal_ex(
                 ctx.get(), reinterpret_cast<unsigned char*>(ciphertext.data()) + len, &len)) {
-        throw std::domain_error("EVP_EncryptFinal_ex");
+        throw crypto::openssl_error(ERR_get_error());
     }
 
     secure_vector<std::byte> tag;
@@ -78,13 +78,13 @@ const crypto::secure_vector<std::byte> crypto::decrypt(secure_vector<std::byte>&
     if (!EVP_DecryptInit_ex(ctx.get(), EVP_chacha20_poly1305(), NULL,
                 reinterpret_cast<const unsigned char*>(key.data()),
                 reinterpret_cast<const unsigned char*>(nonce.data()))) {
-        throw std::domain_error("EVP_DecryptInit_ex");
+        throw crypto::openssl_error(ERR_get_error());
     }
 
     int len;
     if (!EVP_DecryptUpdate(ctx.get(), NULL, &len,
                 reinterpret_cast<const unsigned char*>(aad.data()), aad.size())) {
-        throw std::domain_error("EVP_DecryptUpdate");
+        throw crypto::openssl_error(ERR_get_error());
     }
 
     secure_vector<std::byte> plaintext;
@@ -93,17 +93,17 @@ const crypto::secure_vector<std::byte> crypto::decrypt(secure_vector<std::byte>&
     if (!EVP_DecryptUpdate(ctx.get(), reinterpret_cast<unsigned char*>(plaintext.data()), &len,
                 reinterpret_cast<const unsigned char*>(ciphertext.data() + 12),
                 ciphertext.size() - 28)) {
-        throw std::domain_error("EVP_DecryptUpdate");
+        throw crypto::openssl_error(ERR_get_error());
     }
 
     if (!EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_SET_TAG, 16,
                 reinterpret_cast<unsigned char*>(ciphertext.data() + ciphertext.size() - 16))) {
-        throw std::invalid_argument("Message tag failed to enter correctly");
+        throw crypto::openssl_error(ERR_get_error());
     }
 
     if (!EVP_DecryptFinal_ex(
                 ctx.get(), reinterpret_cast<unsigned char*>(plaintext.data()) + len, &len)) {
-        throw std::runtime_error("Message failed to decrypt");
+        throw crypto::expected_error("Message failed to decrypt");
     }
 
     return plaintext;

@@ -13,7 +13,7 @@ const crypto::shared_key crypto::root_derive(
                 reinterpret_cast<unsigned char*>(root_key.data()), sizeof(std::byte) * 32,
                 KDF_COUNT, EVP_sha512(), sizeof(std::byte) * 64,
                 reinterpret_cast<unsigned char*>(temp.data()))) {
-        throw std::domain_error("PKCS5_PBKDF2_HMAC");
+        throw crypto::openssl_error(ERR_get_error());
     }
 
     crypto::shared_key chain_key;
@@ -31,14 +31,14 @@ const crypto::shared_key crypto::chain_derive(crypto::shared_key& chain_key) {
     if (!PKCS5_PBKDF2_HMAC(reinterpret_cast<const char*>(chain_key.data()), sizeof(std::byte) * 32,
                 &in_1, 1, KDF_COUNT, EVP_sha512(), sizeof(std::byte) * 32,
                 reinterpret_cast<unsigned char*>(chain_key.data()))) {
-        throw std::domain_error("PKCS5_PBKDF2_HMAC");
+        throw crypto::openssl_error(ERR_get_error());
     }
 
     crypto::shared_key message_key;
     if (!PKCS5_PBKDF2_HMAC(reinterpret_cast<const char*>(chain_key.data()), sizeof(std::byte) * 32,
                 &in_2, 1, KDF_COUNT, EVP_sha512(), sizeof(std::byte) * 32,
                 reinterpret_cast<unsigned char*>(message_key.data()))) {
-        throw std::domain_error("PKCS5_PBKDF2_HMAC");
+        throw crypto::openssl_error(ERR_get_error());
     }
 
     return message_key;
@@ -61,7 +61,7 @@ const crypto::shared_key crypto::x3dh_derive(
                 reinterpret_cast<const unsigned char*>(kdf_salt.data()), kdf_salt.size(), KDF_COUNT,
                 EVP_sha512(), sizeof(std::byte) * 32,
                 reinterpret_cast<unsigned char*>(kdf_output.data()))) {
-        throw std::domain_error("PKCS5_PBKDF2_HMAC");
+        throw crypto::openssl_error(ERR_get_error());
     }
 
     return kdf_output;

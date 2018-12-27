@@ -53,7 +53,8 @@ const crypto::secure_vector<std::byte> session::ratchet_decrypt(const signal_mes
 
         auto message_copy = message.message;
         return crypto::decrypt(message_copy, message_key, message.aad);
-    } catch (std::runtime_error&) {
+    } catch (...) {
+        //I don't care whether this exception is intended or not, so catch all exceptions instead of just expected ones
         //Restore state
         *this = state_copy;
         throw;
