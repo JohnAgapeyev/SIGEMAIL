@@ -30,8 +30,12 @@ find_package(OpenSSL 1.1.1 REQUIRED)
 find_package(Boost 1.67 REQUIRED COMPONENTS unit_test_framework serialization)
 find_package(CURL REQUIRED)
 
-set(MAIN_SOURCE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
+set(CLIENT_MAIN_SOURCE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/client/main.cpp
+)
+
+set(SERVER_MAIN_SOURCE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/server/main.cpp
 )
 
 set(SIGEMAIL_SOURCES
@@ -46,6 +50,14 @@ set(SIGEMAIL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/device.cpp
 )
 
+set(CLIENT_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/client/client.cpp
+)
+
+set(SERVER_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/server/server.cpp
+)
+
 set(TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/encrypt_test.cpp
@@ -54,20 +66,10 @@ set(TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/session_test.cpp
 )
 
-set(SOURCE_LIBRARY _${PROJECT_NAME})
-
-add_library(${SOURCE_LIBRARY} ${SIGEMAIL_SOURCES})
-
-target_compile_options(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>")
-target_compile_options(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
-target_compile_definitions(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
-
-target_link_options(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:-s>")
-
-target_link_libraries(${SOURCE_LIBRARY} PUBLIC signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl ${Boost_LIBRARIES})
-
-target_include_directories(${SOURCE_LIBRARY} PUBLIC
-    src
+set(INCLUDE_DIRS
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/server
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/client
     libsignal-protocol-c/src/curve25519/ed25519/nacl_includes
     libsignal-protocol-c/src/curve25519/ed25519/additions/generalized
     libsignal-protocol-c/src/curve25519/ed25519/additions
@@ -76,9 +78,43 @@ target_include_directories(${SOURCE_LIBRARY} PUBLIC
     libsignal-protocol-c/src/curve25519
 )
 
-add_executable(${PROJECT_NAME} ${MAIN_SOURCE})
-target_link_libraries(${PROJECT_NAME} PRIVATE ${SOURCE_LIBRARY})
+set(SOURCE_LIBRARY _${PROJECT_NAME})
+set(CLIENT_LIBRARY _${PROJECT_NAME}_client)
+set(SERVER_LIBRARY _${PROJECT_NAME}_server)
+
+add_library(${SOURCE_LIBRARY} ${SIGEMAIL_SOURCES})
+add_library(${CLIENT_LIBRARY} ${CLIENT_SOURCES})
+add_library(${SERVER_LIBRARY} ${SERVER_SOURCES})
+
+target_compile_options(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>")
+target_compile_options(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
+target_compile_definitions(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
+target_link_options(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:-s>")
+target_link_libraries(${SOURCE_LIBRARY} PUBLIC signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl ${Boost_LIBRARIES})
+target_include_directories(${SOURCE_LIBRARY} PUBLIC ${INCLUDE_DIRS})
+
+target_compile_options(${CLIENT_LIBRARY} PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>")
+target_compile_options(${CLIENT_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
+target_compile_definitions(${CLIENT_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
+target_link_options(${CLIENT_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:-s>")
+target_link_libraries(${CLIENT_LIBRARY} PUBLIC signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl ${Boost_LIBRARIES})
+target_include_directories(${CLIENT_LIBRARY} PUBLIC ${INCLUDE_DIRS})
+
+target_compile_options(${SERVER_LIBRARY} PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>")
+target_compile_options(${SERVER_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
+target_compile_definitions(${SERVER_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
+target_link_options(${SERVER_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:-s>")
+target_link_libraries(${SERVER_LIBRARY} PUBLIC signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl ${Boost_LIBRARIES})
+target_include_directories(${SERVER_LIBRARY} PUBLIC ${INCLUDE_DIRS})
+
+add_executable(${PROJECT_NAME} ${CLIENT_MAIN_SOURCE})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${SOURCE_LIBRARY} ${CLIENT_LIBRARY})
 target_link_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:RELEASE>:-s>")
+
+set(SERVER ${PROJECT_NAME}_server)
+add_executable(${SERVER} ${SERVER_MAIN_SOURCE})
+target_link_libraries(${SERVER} PRIVATE ${SOURCE_LIBRARY} ${SERVER_LIBRARY})
+target_link_options(${SERVER} PUBLIC "$<$<CONFIG:RELEASE>:-s>")
 
 enable_testing()
 
@@ -88,7 +124,7 @@ add_test(NAME signing_tests COMMAND test_binary -p -t sign_tests)
 add_test(NAME protocol_tests COMMAND test_binary -p -t protocol_tests)
 add_test(NAME session_tests COMMAND test_binary -p -t session_tests)
 
-target_link_libraries(test_binary PRIVATE ${SOURCE_LIBRARY} Boost::unit_test_framework)
+target_link_libraries(test_binary PRIVATE ${SOURCE_LIBRARY} ${CLIENT_LIBRARY} ${SERVER_LIBRARY} Boost::unit_test_framework)
 
 target_include_directories(test_binary PRIVATE
     src/test
@@ -99,7 +135,7 @@ check_ipo_supported(RESULT ipo_supported OUTPUT error)
 
 if(ipo_supported)
     message(STATUS "IPO / LTO enabled")
-    set_target_properties(${SOURCE_LIBRARY} ${PROJECT_NAME} test_binary PROPERTIES
+    set_target_properties(${SOURCE_LIBRARY} ${CLIENT_LIBRARY} ${SERVER_LIBRARY} ${PROJECT_NAME} ${SERVER} test_binary PROPERTIES
         INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE
         POSITION_INDEPENDENT_CODE TRUE
 )
