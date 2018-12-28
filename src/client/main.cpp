@@ -1,19 +1,44 @@
+#include <algorithm>
+#include <boost/asio/ssl.hpp>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <algorithm>
+#include <string>
+
+#include "client_network.h"
 #include "crypto.h"
 #include "session.h"
 
-void test() {
-    crypto::secure_array<int, 32> good({1, 4, 3, 5, 7, 8, 9, 2});
-    std::cout << good[3] << "\n";
-    good.fill(99);
-    std::cout << good[3] << "\n";
-}
+using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
+namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
+namespace websocket = boost::beast::websocket; // from <boost/beast/websocket.hpp>
 
-int main(void) {
-    test();
+int main(int argc, char** argv) {
+    // Check command line arguments.
+    if (argc != 4) {
+        std::cerr << "Usage: websocket-client-async-ssl <host> <port> <text>\n"
+                  << "Example:\n"
+                  << "    websocket-client-async-ssl echo.websocket.org 443 \"Hello, world!\"\n";
+        return EXIT_FAILURE;
+    }
+    auto const host = argv[1];
+    auto const port = argv[2];
+    auto const text = argv[3];
+
+    // The io_context is required for all I/O
+    boost::asio::io_context ioc;
+
+    // The SSL context is required, and holds certificates
+    ssl::context ctx{ssl::context::sslv23_client};
+    ctx.set_default_verify_paths();
+
+    // Launch the asynchronous operation
+    std::make_shared<client_network_session>(ioc, ctx)->run(host, port, text);
+
+    // Run the I/O service. The call will return when
+    // the socket is closed.
+    ioc.run();
+
     return EXIT_SUCCESS;
 }

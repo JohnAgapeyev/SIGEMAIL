@@ -27,8 +27,9 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libsignal-protocol-c)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 find_package(OpenSSL 1.1.1 REQUIRED)
-find_package(Boost 1.67 REQUIRED COMPONENTS unit_test_framework serialization)
+find_package(Boost 1.67 REQUIRED COMPONENTS system unit_test_framework)
 find_package(CURL REQUIRED)
+find_package(Threads REQUIRED)
 
 set(CLIENT_MAIN_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/client/main.cpp
@@ -51,11 +52,11 @@ set(SIGEMAIL_SOURCES
 )
 
 set(CLIENT_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/client/client.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/client/client_network.cpp
 )
 
 set(SERVER_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/server/server.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/server/network.cpp
 )
 
 set(TEST_SOURCES
@@ -90,21 +91,21 @@ target_compile_options(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIO
 target_compile_options(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
 target_compile_definitions(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
 target_link_options(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:-s>")
-target_link_libraries(${SOURCE_LIBRARY} PUBLIC signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl ${Boost_LIBRARIES})
+target_link_libraries(${SOURCE_LIBRARY} PUBLIC signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES})
 target_include_directories(${SOURCE_LIBRARY} PUBLIC ${INCLUDE_DIRS})
 
 target_compile_options(${CLIENT_LIBRARY} PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>")
 target_compile_options(${CLIENT_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
 target_compile_definitions(${CLIENT_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
 target_link_options(${CLIENT_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:-s>")
-target_link_libraries(${CLIENT_LIBRARY} PUBLIC signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl ${Boost_LIBRARIES})
+target_link_libraries(${CLIENT_LIBRARY} PUBLIC signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES})
 target_include_directories(${CLIENT_LIBRARY} PUBLIC ${INCLUDE_DIRS})
 
 target_compile_options(${SERVER_LIBRARY} PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>")
 target_compile_options(${SERVER_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
 target_compile_definitions(${SERVER_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
 target_link_options(${SERVER_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:-s>")
-target_link_libraries(${SERVER_LIBRARY} PUBLIC signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl ${Boost_LIBRARIES})
+target_link_libraries(${SERVER_LIBRARY} PUBLIC signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES})
 target_include_directories(${SERVER_LIBRARY} PUBLIC ${INCLUDE_DIRS})
 
 add_executable(${PROJECT_NAME} ${CLIENT_MAIN_SOURCE})
