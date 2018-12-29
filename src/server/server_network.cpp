@@ -63,8 +63,9 @@ void server_network_session::on_read(boost::system::error_code ec, std::size_t b
     boost::ignore_unused(bytes_transferred);
 
     // This indicates that the server_network_session was closed
-    if (ec == websocket::error::closed)
+    if (ec == websocket::error::closed) {
         return;
+    }
 
     if (ec) {
         //Read failed
