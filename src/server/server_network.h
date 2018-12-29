@@ -25,8 +25,8 @@ namespace websocket = boost::beast::websocket; // from <boost/beast/websocket.hp
 class server_network_session : public std::enable_shared_from_this<server_network_session> {
 public:
     // Take ownership of the socket
-    server_network_session(tcp::socket socket, ssl::context& ctx) :
-            socket_(std::move(socket)), ws_(socket_, ctx), strand_(ws_.get_executor()) {}
+    server_network_session(tcp::socket tcp_socket, ssl::context& ctx) :
+            socket(std::move(tcp_socket)), ws(socket, ctx), strand(ws.get_executor()) {}
 
     // Start the asynchronous operation
     void run();
@@ -37,10 +37,10 @@ public:
     void on_write(boost::system::error_code ec, std::size_t bytes_transferred);
 
 private:
-    tcp::socket socket_;
-    websocket::stream<ssl::stream<tcp::socket&>> ws_;
-    boost::asio::strand<boost::asio::io_context::executor_type> strand_;
-    boost::beast::multi_buffer buffer_;
+    tcp::socket socket;
+    websocket::stream<ssl::stream<tcp::socket&>> ws;
+    boost::asio::strand<boost::asio::io_context::executor_type> strand;
+    boost::beast::multi_buffer buffer;
 };
 
 //------------------------------------------------------------------------------
@@ -48,7 +48,7 @@ private:
 // Accepts incoming connections and launches the server_network_sessions
 class listener : public std::enable_shared_from_this<listener> {
 public:
-    listener(boost::asio::io_context& ioc, ssl::context& ctx, tcp::endpoint endpoint);
+    listener(boost::asio::io_context& ioc, ssl::context& ssl_ctx, tcp::endpoint endpoint);
 
     // Start accepting incoming connections
     void run();
@@ -56,9 +56,9 @@ public:
     void on_accept(boost::system::error_code ec);
 
 private:
-    ssl::context& ctx_;
-    tcp::acceptor acceptor_;
-    tcp::socket socket_;
+    ssl::context& ctx;
+    tcp::acceptor acceptor;
+    tcp::socket socket;
 };
 
 #endif /* end of include guard: SERVER_NETWORK_H */

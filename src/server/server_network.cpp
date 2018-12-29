@@ -23,8 +23,8 @@ namespace websocket = boost::beast::websocket; // from <boost/beast/websocket.hp
 // Start the asynchronous operation
 void server_network_session::run() {
     // Perform the SSL handshake
-    ws_.next_layer().async_handshake(ssl::stream_base::server,
-            boost::asio::bind_executor(strand_,
+    ws.next_layer().async_handshake(ssl::stream_base::server,
+            boost::asio::bind_executor(strand,
                     std::bind(&server_network_session::on_handshake, shared_from_this(),
                             std::placeholders::_1)));
 }
@@ -36,7 +36,7 @@ void server_network_session::on_handshake(boost::system::error_code ec) {
     }
 
     // Accept the websocket handshake
-    ws_.async_accept(boost::asio::bind_executor(strand_,
+    ws.async_accept(boost::asio::bind_executor(strand,
             std::bind(&server_network_session::on_accept, shared_from_this(),
                     std::placeholders::_1)));
 }
@@ -53,8 +53,8 @@ void server_network_session::on_accept(boost::system::error_code ec) {
 
 void server_network_session::do_read() {
     // Read a message into our buffer
-    ws_.async_read(buffer_,
-            boost::asio::bind_executor(strand_,
+    ws.async_read(buffer,
+            boost::asio::bind_executor(strand,
                     std::bind(&server_network_session::on_read, shared_from_this(),
                             std::placeholders::_1, std::placeholders::_2)));
 }
@@ -71,9 +71,9 @@ void server_network_session::on_read(boost::system::error_code ec, std::size_t b
     }
 
     // Echo the message
-    ws_.text(ws_.got_text());
-    ws_.async_write(buffer_.data(),
-            boost::asio::bind_executor(strand_,
+    ws.text(ws.got_text());
+    ws.async_write(buffer.data(),
+            boost::asio::bind_executor(strand,
                     std::bind(&server_network_session::on_write, shared_from_this(),
                             std::placeholders::_1, std::placeholders::_2)));
 }
@@ -87,38 +87,38 @@ void server_network_session::on_write(boost::system::error_code ec, std::size_t 
     }
 
     // Clear the buffer
-    buffer_.consume(buffer_.size());
+    buffer.consume(buffer.size());
 
     // Do another read
     do_read();
 }
 
-listener::listener(boost::asio::io_context& ioc, ssl::context& ctx, tcp::endpoint endpoint) :
-        ctx_(ctx), acceptor_(ioc), socket_(ioc) {
+listener::listener(boost::asio::io_context& ioc, ssl::context& ssl_ctx, tcp::endpoint endpoint) :
+        ctx(ssl_ctx), acceptor(ioc), socket(ioc) {
     boost::system::error_code ec;
 
     // Open the acceptor
-    acceptor_.open(endpoint.protocol(), ec);
+    acceptor.open(endpoint.protocol(), ec);
     if (ec) {
         //Open failed
         return;
     }
 
     // Allow address reuse
-    acceptor_.set_option(boost::asio::socket_base::reuse_address(true), ec);
+    acceptor.set_option(boost::asio::socket_base::reuse_address(true), ec);
     if (ec) {
         return;
     }
 
     // Bind to the server address
-    acceptor_.bind(endpoint, ec);
+    acceptor.bind(endpoint, ec);
     if (ec) {
         //Bind failed
         return;
     }
 
     // Start listening for connections
-    acceptor_.listen(boost::asio::socket_base::max_listen_connections, ec);
+    acceptor.listen(boost::asio::socket_base::max_listen_connections, ec);
     if (ec) {
         //Listen failed
         return;
@@ -127,15 +127,15 @@ listener::listener(boost::asio::io_context& ioc, ssl::context& ctx, tcp::endpoin
 
 // Start accepting incoming connections
 void listener::run() {
-    if (!acceptor_.is_open()) {
+    if (!acceptor.is_open()) {
         return;
     }
     do_accept();
 }
 
 void listener::do_accept() {
-    acceptor_.async_accept(
-            socket_, std::bind(&listener::on_accept, shared_from_this(), std::placeholders::_1));
+    acceptor.async_accept(
+            socket, std::bind(&listener::on_accept, shared_from_this(), std::placeholders::_1));
 }
 
 void listener::on_accept(boost::system::error_code ec) {
@@ -143,7 +143,7 @@ void listener::on_accept(boost::system::error_code ec) {
         //Accept failed
     } else {
         // Create the server_network_session and run it
-        std::make_shared<server_network_session>(std::move(socket_), ctx_)->run();
+        std::make_shared<server_network_session>(std::move(socket), ctx)->run();
     }
 
     // Accept another connection

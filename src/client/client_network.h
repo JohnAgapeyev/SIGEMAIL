@@ -22,9 +22,9 @@ class client_network_session : public std::enable_shared_from_this<client_networ
 public:
     // Resolver and socket require an io_context
     explicit client_network_session(boost::asio::io_context& ioc, ssl::context& ctx) :
-            resolver_(ioc), ws_(ioc, ctx) {}
+            resolver(ioc), ws(ioc, ctx) {}
 
-    void run(char const* host, char const* port, char const* text);
+    void run(const char* dest_host, const char* dest_port, const char* mesg_text);
     void on_resolve(boost::system::error_code ec, tcp::resolver::results_type results);
     void on_connect(boost::system::error_code ec);
     void on_ssl_handshake(boost::system::error_code ec);
@@ -34,11 +34,11 @@ public:
     void on_close(boost::system::error_code ec);
 
 private:
-    tcp::resolver resolver_;
-    websocket::stream<ssl::stream<tcp::socket>> ws_;
-    boost::beast::multi_buffer buffer_;
-    std::string host_;
-    std::string text_;
+    tcp::resolver resolver;
+    websocket::stream<ssl::stream<tcp::socket>> ws;
+    boost::beast::multi_buffer buffer;
+    std::string host;
+    std::string text;
 };
 
 #endif /* end of include guard: CLIENT_NETWORK_H */

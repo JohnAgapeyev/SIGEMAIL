@@ -13,13 +13,13 @@
 #include "client_network.h"
 
 // Start the asynchronous operation
-void client_network_session::run(char const* host, char const* port, char const* text) {
+void client_network_session::run(const char* dest_host, const char* dest_port, const char* mesg_text) {
     // Save these for later
-    host_ = host;
-    text_ = text;
+    host = dest_host;
+    text = mesg_text;
 
     // Look up the domain name
-    resolver_.async_resolve(host, port,
+    resolver.async_resolve(dest_host, dest_port,
             std::bind(&client_network_session::on_resolve, shared_from_this(), std::placeholders::_1,
                     std::placeholders::_2));
 }
@@ -31,7 +31,7 @@ void client_network_session::on_resolve(boost::system::error_code ec, tcp::resol
     }
 
     // Make the connection on the IP address we get from a lookup
-    boost::asio::async_connect(ws_.next_layer().next_layer(), results.begin(), results.end(),
+    boost::asio::async_connect(ws.next_layer().next_layer(), results.begin(), results.end(),
             std::bind(&client_network_session::on_connect, shared_from_this(), std::placeholders::_1));
 }
 
@@ -42,7 +42,7 @@ void client_network_session::on_connect(boost::system::error_code ec) {
     }
 
     // Perform the SSL handshake
-    ws_.next_layer().async_handshake(ssl::stream_base::client,
+    ws.next_layer().async_handshake(ssl::stream_base::client,
             std::bind(&client_network_session::on_ssl_handshake, shared_from_this(), std::placeholders::_1));
 }
 
@@ -53,7 +53,7 @@ void client_network_session::on_ssl_handshake(boost::system::error_code ec) {
     }
 
     // Perform the websocket handshake
-    ws_.async_handshake(host_, "/",
+    ws.async_handshake(host, "/",
             std::bind(&client_network_session::on_handshake, shared_from_this(), std::placeholders::_1));
 }
 
@@ -64,7 +64,7 @@ void client_network_session::on_handshake(boost::system::error_code ec) {
     }
 
     // Send the message
-    ws_.async_write(boost::asio::buffer(text_),
+    ws.async_write(boost::asio::buffer(text),
             std::bind(&client_network_session::on_write, shared_from_this(), std::placeholders::_1,
                     std::placeholders::_2));
 }
@@ -78,7 +78,7 @@ void client_network_session::on_write(boost::system::error_code ec, std::size_t 
     }
 
     // Read a message into our buffer
-    ws_.async_read(buffer_,
+    ws.async_read(buffer,
             std::bind(&client_network_session::on_read, shared_from_this(), std::placeholders::_1,
                     std::placeholders::_2));
 }
@@ -92,7 +92,7 @@ void client_network_session::on_read(boost::system::error_code ec, std::size_t b
     }
 
     // Close the WebSocket connection
-    ws_.async_close(websocket::close_code::normal,
+    ws.async_close(websocket::close_code::normal,
             std::bind(&client_network_session::on_close, shared_from_this(), std::placeholders::_1));
 }
 
@@ -105,5 +105,5 @@ void client_network_session::on_close(boost::system::error_code ec) {
     // If we get here then the connection is closed gracefully
 
     // The buffers() function helps print a ConstBufferSequence
-    std::cout << boost::beast::buffers(buffer_.data()) << std::endl;
+    std::cout << boost::beast::buffers(buffer.data()) << std::endl;
 }
