@@ -22,22 +22,22 @@ public:
     device& operator=(device&&) = default;
     device& operator=(const device&) = default;
 
-    void delete_user_record(user_index u_index);
-    void delete_device_record(user_index u_index, uint64_t device_index);
-    void delete_session(user_index u_index, uint64_t device_index, const session& s);
+    void delete_user_record(const user_index& u_index);
+    void delete_device_record(const user_index& u_index, uint64_t device_index);
+    void delete_session(const user_index& u_index, uint64_t device_index, const session& s);
 
-    void insert_session(user_index u_index, uint64_t device_index, const session& s);
+    void insert_session(const user_index& u_index, uint64_t device_index, const session& s);
 
-    void activate_session(user_index u_index, uint64_t device_index, const session& s);
+    void activate_session(const user_index& u_index, uint64_t device_index, const session& s);
 
-    void mark_user_stale(user_index u_index);
-    void mark_device_stale(user_index u_index, uint64_t device_index);
+    void mark_user_stale(const user_index& u_index);
+    void mark_device_stale(const user_index& u_index, uint64_t device_index);
 
     void conditionally_update(
-            user_index u_index, uint64_t device_index, const crypto::public_key& pub_key);
+            const user_index& u_index, uint64_t device_index, const crypto::public_key& pub_key);
 
     void prep_for_encryption(
-            user_index u_index, uint64_t device_index, const crypto::public_key& pub_key);
+            const user_index& u_index, uint64_t device_index, const crypto::public_key& pub_key);
 
 private:
     std::unordered_map<user_index, user_record, boost::hash<user_index>> correspondents;

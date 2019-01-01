@@ -2,47 +2,47 @@
 #include "device_record.h"
 #include "user_record.h"
 
-void device::delete_user_record(user_index u_index) {
+void device::delete_user_record(const user_index& u_index) {
     if (!correspondents.erase(u_index)) {
         //User index did not exist
         throw std::runtime_error("Tried to delete user record that did not exist");
     }
 }
 
-void device::delete_device_record(user_index u_index, uint64_t device_index) {
+void device::delete_device_record(const user_index& u_index, uint64_t device_index) {
     auto user_rec = correspondents.at(u_index);
     if (user_rec.delete_device_record(device_index)) {
         delete_user_record(u_index);
     }
 }
 
-void device::delete_session(user_index u_index, uint64_t device_index, const session& s) {
+void device::delete_session(const user_index& u_index, uint64_t device_index, const session& s) {
     auto device_rec = correspondents.at(u_index).user_devices.at(device_index);
     if (device_rec.delete_session(s)) {
         delete_device_record(u_index, device_index);
     }
 }
 
-void device::insert_session(user_index u_index, uint64_t device_index, const session& s) {
+void device::insert_session(const user_index& u_index, uint64_t device_index, const session& s) {
     auto device_rec = correspondents.at(u_index).user_devices.at(device_index);
     device_rec.insert_session(s);
 }
 
-void device::activate_session(user_index u_index, uint64_t device_index, const session& s) {
+void device::activate_session(const user_index& u_index, uint64_t device_index, const session& s) {
     auto device_rec = correspondents.at(u_index).user_devices.at(device_index);
     device_rec.activate_session(s);
 }
 
-void device::mark_user_stale(user_index u_index) {
+void device::mark_user_stale(const user_index& u_index) {
     correspondents.at(u_index).is_stale = true;
 }
 
-void device::mark_device_stale(user_index u_index, uint64_t device_index) {
+void device::mark_device_stale(const user_index& u_index, uint64_t device_index) {
     correspondents.at(u_index).user_devices.at(device_index).is_stale = true;
 }
 
 void device::conditionally_update(
-        user_index u_index, uint64_t device_index, const crypto::public_key& pub_key) {
+        const user_index& u_index, uint64_t device_index, const crypto::public_key& pub_key) {
     if (!correspondents.count(u_index)) {
         //User does not exist
         user_record ur;
@@ -61,7 +61,7 @@ void device::conditionally_update(
 }
 
 void device::prep_for_encryption(
-        user_index u_index, uint64_t device_index, const crypto::public_key& pub_key) {
+        const user_index& u_index, uint64_t device_index, const crypto::public_key& pub_key) {
     if (correspondents.at(u_index).is_stale) {
         delete_user_record(u_index);
     } else if (correspondents.at(u_index).user_devices.at(device_index).is_stale) {
