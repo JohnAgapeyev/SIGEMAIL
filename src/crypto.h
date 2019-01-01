@@ -105,6 +105,11 @@ namespace crypto {
     std::size_t hash_value(const crypto::secure_array<T, N>& arr) noexcept {
         return boost::hash_range(arr.cbegin(), arr.cend());
     }
+
+    template<typename T>
+    std::array<std::byte, 32> hash_data(const std::vector<T>& data);
+    template<typename T, std::size_t N>
+    std::array<std::byte, 32> hash_data(const std::array<T, N>& data);
 } // namespace crypto
 
 #endif

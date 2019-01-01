@@ -45,6 +45,7 @@ set(SIGEMAIL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/dh.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/kdf.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/encrypt.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/hash.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/sign.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/session.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/key_pack.cpp

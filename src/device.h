@@ -11,6 +11,8 @@
 #include "dh.h"
 #include "user_record.h"
 
+//User indices will be based off of a SHA256 hash of the email address string
+//Considering the addresses can be up to 254 characters, this isn't a huge waste of space compared to storing them raw
 using user_index = std::array<std::byte, 32>;
 
 class device {
