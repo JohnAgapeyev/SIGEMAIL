@@ -11,6 +11,7 @@
 #include <map>
 #include <openssl/crypto.h>
 #include <openssl/err.h>
+#include <openssl/evp.h>
 #include <unordered_map>
 #include <vector>
 
@@ -102,14 +103,52 @@ namespace crypto {
     const shared_key x3dh_derive(const secure_vector<std::byte>& key_material);
 
     template<typename T, std::size_t N>
-    std::size_t hash_value(const crypto::secure_array<T, N>& arr) noexcept {
+    std::size_t hash_value(const secure_array<T, N>& arr) noexcept {
         return boost::hash_range(arr.cbegin(), arr.cend());
     }
 
+    //Use SHA256 since it's a good universal hash, and anything that needs SHA512 or equivalent will use it inline, rather than using this interface
+    static inline std::array<std::byte, 32> hash_data_impl(
+            const unsigned char* data, const std::size_t len) {
+        std::array<std::byte, 32> hash;
+
+        std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> ctx{
+                EVP_MD_CTX_new(), &EVP_MD_CTX_free};
+
+        if (ctx.get() == NULL) {
+            throw std::bad_alloc();
+        }
+        if (!EVP_DigestInit_ex(ctx.get(), EVP_sha256(), NULL)) {
+            throw crypto::openssl_error(ERR_get_error());
+        }
+        if (!EVP_DigestUpdate(ctx.get(), data, len)) {
+            throw crypto::openssl_error(ERR_get_error());
+        }
+        if (!EVP_DigestFinal_ex(
+                    ctx.get(), reinterpret_cast<unsigned char*>(hash.data()), nullptr)) {
+            throw crypto::openssl_error(ERR_get_error());
+        }
+        return hash;
+    }
+
     template<typename T>
-    std::array<std::byte, 32> hash_data(const std::vector<T>& data);
+    std::array<std::byte, 32> hash_data(const std::vector<T>& data) {
+        return hash_data_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size());
+    }
+
     template<typename T, std::size_t N>
-    std::array<std::byte, 32> hash_data(const std::array<T, N>& data);
+    std::array<std::byte, 32> hash_data(const std::array<T, N>& data) {
+        return hash_data_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size());
+    }
+
+    template<typename T>
+    std::array<std::byte, 32> hash_data(const secure_vector<T>& data) {
+        return hash_data_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size());
+    }
+    template<typename T, std::size_t N>
+    std::array<std::byte, 32> hash_data(const secure_array<T, N>& data) {
+        return hash_data_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size());
+    }
 } // namespace crypto
 
 #endif

@@ -45,7 +45,6 @@ set(SIGEMAIL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/dh.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/kdf.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/encrypt.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/hash.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/sign.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/session.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/key_pack.cpp
@@ -68,6 +67,7 @@ set(TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/sign_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/protocol_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/session_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/test/hash_test.cpp
 )
 
 set(INCLUDE_DIRS
@@ -125,6 +125,7 @@ enable_testing()
 add_executable(test_binary ${TEST_SOURCES} ${Boost_INCLUDE_DIRS})
 add_test(NAME encryption_tests COMMAND test_binary -p -t encryption_tests)
 add_test(NAME signing_tests COMMAND test_binary -p -t sign_tests)
+add_test(NAME hash_tests COMMAND test_binary -p -t hash_tests)
 add_test(NAME protocol_tests COMMAND test_binary -p -t protocol_tests)
 add_test(NAME session_tests COMMAND test_binary -p -t session_tests)
 
