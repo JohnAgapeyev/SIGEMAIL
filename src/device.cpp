@@ -2,53 +2,53 @@
 #include "device_record.h"
 #include "user_record.h"
 
-void device::delete_user_record(uint64_t user_index) {
-    if (!correspondents.erase(user_index)) {
+void device::delete_user_record(user_index u_index) {
+    if (!correspondents.erase(u_index)) {
         //User index did not exist
         throw std::runtime_error("Tried to delete user record that did not exist");
     }
 }
 
-void device::delete_device_record(uint64_t user_index, uint64_t device_index) {
-    auto user_rec = correspondents.at(user_index);
+void device::delete_device_record(user_index u_index, uint64_t device_index) {
+    auto user_rec = correspondents.at(u_index);
     if (user_rec.delete_device_record(device_index)) {
-        delete_user_record(user_index);
+        delete_user_record(u_index);
     }
 }
 
-void device::delete_session(uint64_t user_index, uint64_t device_index, const session& s) {
-    auto device_rec = correspondents.at(user_index).user_devices.at(device_index);
+void device::delete_session(user_index u_index, uint64_t device_index, const session& s) {
+    auto device_rec = correspondents.at(u_index).user_devices.at(device_index);
     if (device_rec.delete_session(s)) {
-        delete_device_record(user_index, device_index);
+        delete_device_record(u_index, device_index);
     }
 }
 
-void device::insert_session(uint64_t user_index, uint64_t device_index, const session& s) {
-    auto device_rec = correspondents.at(user_index).user_devices.at(device_index);
+void device::insert_session(user_index u_index, uint64_t device_index, const session& s) {
+    auto device_rec = correspondents.at(u_index).user_devices.at(device_index);
     device_rec.insert_session(s);
 }
 
-void device::activate_session(uint64_t user_index, uint64_t device_index, const session& s) {
-    auto device_rec = correspondents.at(user_index).user_devices.at(device_index);
+void device::activate_session(user_index u_index, uint64_t device_index, const session& s) {
+    auto device_rec = correspondents.at(u_index).user_devices.at(device_index);
     device_rec.activate_session(s);
 }
 
-void device::mark_user_stale(uint64_t user_index) {
-    correspondents.at(user_index).is_stale = true;
+void device::mark_user_stale(user_index u_index) {
+    correspondents.at(u_index).is_stale = true;
 }
 
-void device::mark_device_stale(uint64_t user_index, uint64_t device_index) {
-    correspondents.at(user_index).user_devices.at(device_index).is_stale = true;
+void device::mark_device_stale(user_index u_index, uint64_t device_index) {
+    correspondents.at(u_index).user_devices.at(device_index).is_stale = true;
 }
 
 void device::conditionally_update(
-        uint64_t user_index, uint64_t device_index, const crypto::public_key& pub_key) {
-    if (!correspondents.count(user_index)) {
+        user_index u_index, uint64_t device_index, const crypto::public_key& pub_key) {
+    if (!correspondents.count(u_index)) {
         //User does not exist
         user_record ur;
-        correspondents.emplace(user_index, std::move(ur));
+        correspondents.emplace(u_index, std::move(ur));
     }
-    auto user_rec = correspondents.find(user_index)->second;
+    auto user_rec = correspondents.find(u_index)->second;
     if (!user_rec.user_devices.count(device_index)) {
         //Device record does not exist
         device_record dr{pub_key};
@@ -61,15 +61,15 @@ void device::conditionally_update(
 }
 
 void device::prep_for_encryption(
-        uint64_t user_index, uint64_t device_index, const crypto::public_key& pub_key) {
-    if (correspondents.at(user_index).is_stale) {
-        delete_user_record(user_index);
-    } else if (correspondents.at(user_index).user_devices.at(device_index).is_stale) {
-        delete_device_record(user_index, device_index);
+        user_index u_index, uint64_t device_index, const crypto::public_key& pub_key) {
+    if (correspondents.at(u_index).is_stale) {
+        delete_user_record(u_index);
+    } else if (correspondents.at(u_index).user_devices.at(device_index).is_stale) {
+        delete_device_record(u_index, device_index);
     }
-    conditionally_update(user_index, device_index, pub_key);
+    conditionally_update(u_index, device_index, pub_key);
 
-    auto device_rec = correspondents.at(user_index).user_devices.at(device_index);
+    auto device_rec = correspondents.at(u_index).user_devices.at(device_index);
     if (!device_rec.active_session) {
         //Create active session here
         //This requires server contact to retrieve key bundle for X3DH to generate shared secret needed for session creation
@@ -95,7 +95,7 @@ void device::prep_for_encryption(
         auto shared_secret = crypto::X3DH_sender(identity_keypair, alice_ephemeral,
                 bob_identity.get_public(), bob_pre_key.get_public(), one_time_key.get_public());
 
-        insert_session(user_index, device_index, session{shared_secret, bob_identity.get_public()});
+        insert_session(u_index, device_index, session{shared_secret, bob_identity.get_public()});
 #endif
     }
 }
