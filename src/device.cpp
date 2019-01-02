@@ -74,9 +74,7 @@ void device::prep_for_encryption(
         //Create active session here
         //This requires server contact to retrieve key bundle for X3DH to generate shared secret needed for session creation
         //For now, I'm just creating a "default" one that can be used for testing and later modification
-        //Scratch that, the usage of the given public key is a pain, so I'll have to revisit this later, once networking is valid
 
-#if 0
         //Alice
         crypto::DH_Keypair alice_ephemeral;
 
@@ -86,16 +84,18 @@ void device::prep_for_encryption(
         const auto pre_key_sig = crypto::sign_key(bob_identity, bob_pre_key.get_public());
         crypto::DH_Keypair one_time_key;
 
+        //Verify the signature
         if (!crypto::verify_signed_key(
                     pre_key_sig, bob_pre_key.get_public(), bob_identity.get_public())) {
             //Pre key signature failed to verify
             throw std::runtime_error("Bad pre key signature");
         }
 
+        //Generate the sender shared secret
         auto shared_secret = crypto::X3DH_sender(identity_keypair, alice_ephemeral,
                 bob_identity.get_public(), bob_pre_key.get_public(), one_time_key.get_public());
 
-        insert_session(u_index, device_index, session{shared_secret, bob_identity.get_public()});
-#endif
+        //Insert the session
+        insert_session(u_index, device_index, session{shared_secret, bob_pre_key.get_public()});
     }
 }
