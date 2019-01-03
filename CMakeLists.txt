@@ -10,7 +10,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "")
 set(CMAKE_CXX_FLAGS_MINSIZEREL "")
 
-set(BASE_COMPILE_OPTIONS -Wall -Wextra -Wpedantic -Wformat=2 -Wuninitialized -Wundef -Wfloat-equal -Wshadow -Wcast-align -Wstrict-overflow=2 -Wwrite-strings -pipe -march=native)
+set(BASE_COMPILE_OPTIONS -Wall -Wextra -Wpedantic -Wformat=2 -Wuninitialized -Wundef -Wfloat-equal -Wshadow -Wcast-align -Wstrict-overflow=2 -Wwrite-strings -Wno-format-nonliteral -pipe -march=native)
 set(DEBUG_OPTIONS ${BASE_COMPILE_OPTIONS} -g -O0)
 set(RELEASE_OPTIONS ${BASE_COMPILE_OPTIONS} -s -O3)
 
@@ -80,6 +80,7 @@ set(INCLUDE_DIRS
     libsignal-protocol-c/src/curve25519/ed25519/sha512
     libsignal-protocol-c/src/curve25519/ed25519
     libsignal-protocol-c/src/curve25519
+    spdlog/include
 )
 
 set(SOURCE_LIBRARY _${PROJECT_NAME})

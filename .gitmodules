@@ -2,3 +2,7 @@
 	path = libsignal-protocol-c
 	url = https://github.com/signalapp/libsignal-protocol-c
     ignore = dirty
+[submodule "spdlog"]
+	path = spdlog
+	url = https://github.com/gabime/spdlog
+    ignore = dirty
