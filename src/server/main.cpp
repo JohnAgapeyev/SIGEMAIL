@@ -12,13 +12,15 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include <string>
 #include <thread>
 #include <vector>
 
 #include "crypto.h"
-#include "session.h"
 #include "server_network.h"
+#include "session.h"
 
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
 namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
@@ -135,6 +137,8 @@ int main(int argc, char* argv[]) {
 
     // This holds the self-signed certificate used by the server
     load_server_certificate(ctx);
+
+    auto console = spdlog::stdout_color_mt("console");
 
     // Create and launch a listening port
     std::make_shared<listener>(ioc, ctx, tcp::endpoint{address, port})->run();
