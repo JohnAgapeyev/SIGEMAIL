@@ -87,9 +87,9 @@ set(SOURCE_LIBRARY _${PROJECT_NAME})
 set(CLIENT_LIBRARY _${PROJECT_NAME}_client)
 set(SERVER_LIBRARY _${PROJECT_NAME}_server)
 
-add_library(${SOURCE_LIBRARY} ${SIGEMAIL_SOURCES})
-add_library(${CLIENT_LIBRARY} ${CLIENT_SOURCES})
-add_library(${SERVER_LIBRARY} ${SERVER_SOURCES})
+add_library(${SOURCE_LIBRARY} OBJECT ${SIGEMAIL_SOURCES})
+add_library(${CLIENT_LIBRARY} OBJECT ${CLIENT_SOURCES})
+add_library(${SERVER_LIBRARY} OBJECT ${SERVER_SOURCES})
 
 target_compile_options(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>")
 target_compile_options(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
@@ -112,25 +112,28 @@ target_link_options(${SERVER_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:-s>")
 target_link_libraries(${SERVER_LIBRARY} PUBLIC signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES})
 target_include_directories(${SERVER_LIBRARY} PUBLIC ${INCLUDE_DIRS})
 
-add_executable(${PROJECT_NAME} ${CLIENT_MAIN_SOURCE})
-target_link_libraries(${PROJECT_NAME} PRIVATE ${SOURCE_LIBRARY} ${CLIENT_LIBRARY})
+add_executable(${PROJECT_NAME} ${CLIENT_MAIN_SOURCE} $<TARGET_OBJECTS:${SOURCE_LIBRARY}> $<TARGET_OBJECTS:${CLIENT_LIBRARY}>)
+target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES})
 target_link_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:RELEASE>:-s>")
 
 set(SERVER ${PROJECT_NAME}_server)
-add_executable(${SERVER} ${SERVER_MAIN_SOURCE})
-target_link_libraries(${SERVER} PRIVATE ${SOURCE_LIBRARY} ${SERVER_LIBRARY})
+add_executable(${SERVER} ${SERVER_MAIN_SOURCE} $<TARGET_OBJECTS:${SOURCE_LIBRARY}> $<TARGET_OBJECTS:${SERVER_LIBRARY}>)
+target_include_directories(${SERVER} PUBLIC ${INCLUDE_DIRS})
+target_link_libraries(${SERVER} PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES})
 target_link_options(${SERVER} PUBLIC "$<$<CONFIG:RELEASE>:-s>")
 
 enable_testing()
 
-add_executable(test_binary ${TEST_SOURCES} ${Boost_INCLUDE_DIRS})
+add_executable(test_binary ${TEST_SOURCES} ${Boost_INCLUDE_DIRS} $<TARGET_OBJECTS:${SOURCE_LIBRARY}> $<TARGET_OBJECTS:${CLIENT_LIBRARY}> $<TARGET_OBJECTS:${SERVER_LIBRARY}>)
+target_include_directories(test_binary PUBLIC ${INCLUDE_DIRS})
 add_test(NAME encryption_tests COMMAND test_binary -p -t encryption_tests)
 add_test(NAME signing_tests COMMAND test_binary -p -t sign_tests)
 add_test(NAME hash_tests COMMAND test_binary -p -t hash_tests)
 add_test(NAME protocol_tests COMMAND test_binary -p -t protocol_tests)
 add_test(NAME session_tests COMMAND test_binary -p -t session_tests)
 
-target_link_libraries(test_binary PRIVATE ${SOURCE_LIBRARY} ${CLIENT_LIBRARY} ${SERVER_LIBRARY} Boost::unit_test_framework)
+target_link_libraries(test_binary PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES} Boost::unit_test_framework)
 
 target_include_directories(test_binary PRIVATE
     src/test
