@@ -1,11 +1,13 @@
 #include <algorithm>
 #include <boost/asio/bind_executor.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/signal_set.hpp>
 #include <boost/asio/ssl/stream.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
-#include <boost/beast/websocket.hpp>
-#include <boost/beast/websocket/ssl.hpp>
+#include <boost/beast/http.hpp>
+#include <boost/beast/version.hpp>
 #include <cstdlib>
 #include <functional>
 #include <iostream>
@@ -20,169 +22,133 @@
 
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
 namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
-namespace websocket = boost::beast::websocket; // from <boost/beast/websocket.hpp>
 
-// Start the asynchronous operation
-void websocket_session::run() {
+void http_session::run() {
+    // Make sure we run on the strand
+    if (!strand.running_in_this_thread()) {
+        return boost::asio::post(boost::asio::bind_executor(
+                strand, std::bind(&http_session::run, shared_from_this())));
+    }
+
+    // Run the timer. The timer is operated
+    // continuously, this simplifies the code.
+    //on_timer({});
+
     spdlog::get("console")->debug("Starting SSL Handshake");
     // Perform the SSL handshake
-    ws.next_layer().async_handshake(ssl::stream_base::server,
+    stream.async_handshake(ssl::stream_base::server,
             boost::asio::bind_executor(strand,
-                    std::bind(&websocket_session::on_handshake, shared_from_this(),
+                    std::bind(&http_session::on_handshake, shared_from_this(),
                             std::placeholders::_1)));
 }
 
-void websocket_session::on_handshake(boost::system::error_code ec) {
+void http_session::on_handshake(boost::system::error_code ec) {
     if (ec) {
         //Handshake failed
         spdlog::get("console")->error("SSL Handshake failed");
         return;
     }
-
-    // Accept the websocket handshake
-    ws.async_accept(boost::asio::bind_executor(strand,
-            std::bind(&websocket_session::on_accept, shared_from_this(), std::placeholders::_1)));
-}
-
-void websocket_session::on_accept(boost::system::error_code ec) {
-    //Happens when the timer closes the socket
-    if (ec == boost::asio::error::operation_aborted) {
-        spdlog::get("console")->info("Websocket Accept aborted");
-        return;
-    }
-    if (ec) {
-        //Accept failed
-        spdlog::get("console")->error("Websocket Accept failed");
-        return;
-    }
-    spdlog::get("console")->info("Secure Websocket connection established");
-
-    // Read a message
     do_read();
 }
 
-void websocket_session::do_read() {
-    // Read a message into our buffer
-    ws.async_read(buffer,
+void http_session::do_read() {
+    // Set the timer
+    timer.expires_after(std::chrono::seconds(15));
+
+    // Make the request empty before reading,
+    // otherwise the operation behavior is undefined.
+    request = {};
+
+    // Read a request
+    http::async_read(stream, buffer, request,
             boost::asio::bind_executor(strand,
-                    std::bind(&websocket_session::on_read, shared_from_this(),
-                            std::placeholders::_1, std::placeholders::_2)));
+                    std::bind(&http_session::on_read, shared_from_this(), std::placeholders::_1)));
 }
 
-void websocket_session::on_read(boost::system::error_code ec, std::size_t bytes_transferred) {
-    boost::ignore_unused(bytes_transferred);
-
-    // This indicates that the websocket_session was closed
-    if (ec == websocket::error::closed) {
-        spdlog::get("console")->info("Session was closed");
+void http_session::on_read(boost::system::error_code ec) {
+    // Happens when the timer closes the socket
+    if (ec == boost::asio::error::operation_aborted)
         return;
-    }
 
-    if (ec) {
-        //Read failed
-        spdlog::get("console")->error("Read failed");
-    }
+    // This means they closed the connection
+    if (ec == http::error::end_of_stream)
+        return do_close();
 
-    // Echo the message
-    ws.text(ws.got_text());
-    ws.async_write(buffer.data(),
-            boost::asio::bind_executor(strand,
-                    std::bind(&websocket_session::on_write, shared_from_this(),
-                            std::placeholders::_1, std::placeholders::_2)));
+    if (ec)
+        //return fail(ec, "read");
+        return;
+
+    // Send the response
+    handle_request(std::move(request), [this](auto&& msg) {
+        // The lifetime of the message has to extend
+        // for the duration of the async operation so
+        // we use a shared_ptr to manage it.
+        //auto sp = std::make_shared<http::message<isRequest, Body, Fields>>(std::move(msg));
+        auto sp = std::make_shared<std::remove_reference_t<decltype(msg)>>(std::move(msg));
+
+        // Store a type-erased version of the shared
+        // pointer in the class to keep it alive.
+        result = sp;
+
+        // Write the response
+        http::async_write(stream, *sp,
+                boost::asio::bind_executor(strand,
+                        std::bind(&http_session::on_write, shared_from_this(),
+                                std::placeholders::_1, sp->need_eof())));
+    });
 }
 
-void websocket_session::on_write(boost::system::error_code ec, std::size_t bytes_transferred) {
-    boost::ignore_unused(bytes_transferred);
-
-    if (ec) {
-        //Write failed
-        spdlog::get("console")->error("Write failed");
+void http_session::on_write(boost::system::error_code ec, bool close) {
+    // Happens when the timer closes the socket
+    if (ec == boost::asio::error::operation_aborted)
         return;
+
+    if (ec)
+        //return fail(ec, "write");
+        return;
+
+    if (close) {
+        // This means we should close the connection, usually because
+        // the response indicated the "Connection: close" semantic.
+        return do_close();
     }
 
-    // Clear the buffer
-    buffer.consume(buffer.size());
-
-    // Do another read
+    // Read another request
     do_read();
 }
 
-void websocket_session::on_timer(boost::system::error_code ec) {
-    if (ec && ec != boost::asio::error::operation_aborted) {
-        spdlog::get("console")->error("Timer failure");
+#if 0
+void http_session::on_timer(boost::system::error_code ec) {
+    if (ec && ec != boost::asio::error::operation_aborted)
+        //return fail(ec, "timer");
         return;
-    }
 
-    // See if the timer really expired since the deadline may have moved.
+    // Check if this has been upgraded to Websocket
+    if (timer.expires_at() == (std::chrono::steady_clock::time_point::min)())
+        return;
+
+    // Verify that the timer really expired since the deadline may have moved.
     if (timer.expiry() <= std::chrono::steady_clock::now()) {
-        // If this is the first time the timer expired,
-        // send a ping to see if the other end is there.
-        if (ws.is_open() && ping_state == 0) {
-            // Note that we are sending a ping
-            ping_state = 1;
-
-            // Set the timer
-            timer.expires_after(std::chrono::seconds(15));
-
-            // Now send the ping
-            ws.async_ping({},
-                    boost::asio::bind_executor(strand,
-                            std::bind(&websocket_session::on_ping, shared_from_this(),
-                                    std::placeholders::_1)));
-        } else {
-            // The timer expired while trying to handshake,
-            // or we sent a ping and it never completed or
-            // we never got back a control frame, so close.
-
-            // Closing the socket cancels all outstanding operations. They
-            // will complete with boost::asio::error::operation_aborted
-            ws.next_layer().next_layer().shutdown(tcp::socket::shutdown_both, ec);
-            ws.next_layer().next_layer().close(ec);
-            return;
-        }
+        // Closing the socket cancels all outstanding operations. They
+        // will complete with boost::asio::error::operation_aborted
+        stream.shutdown();
+        stream.next_layer().shutdown(tcp::socket::shutdown_both);
+        stream.next_layer().close();
+        return;
     }
 
     // Wait on the timer
-    timer.async_wait(boost::asio::bind_executor(strand,
-            std::bind(&websocket_session::on_timer, shared_from_this(), std::placeholders::_1)));
+    timer.async_wait(boost::asio::bind_executor(
+            strand, std::bind(&http_session::on_timer, shared_from_this(), std::placeholders::_1)));
 }
+#endif
 
-void websocket_session::activity() { // Note that the connection is alive
-    ping_state = 0;
+void http_session::do_close() {
+    // Send a SSL+TCP shutdown
+    stream.shutdown();
+    stream.next_layer().shutdown(tcp::socket::shutdown_send);
 
-    // Set the timer
-    timer.expires_after(std::chrono::seconds(15));
-}
-
-void websocket_session::on_ping(boost::system::error_code ec) {
-    // Happens when the timer closes the socket
-    if (ec == boost::asio::error::operation_aborted) {
-        return;
-    }
-
-    if (ec) {
-        spdlog::get("console")->error("Ping failed");
-        return;
-    }
-
-    // Note that the ping was sent.
-    if (ping_state == 1) {
-        ping_state = 2;
-    } else {
-        // ping_state_ could have been set to 0
-        // if an incoming control frame was received
-        // at exactly the same time we sent a ping.
-        if (ping_state != 0) {
-            spdlog::get("console")->error("Open failed");
-        }
-    }
-}
-
-void websocket_session::on_control_callback(
-        websocket::frame_type kind, boost::beast::string_view payload) {
-    boost::ignore_unused(kind, payload);
-    // Note that there is activity
-    activity();
+    // At this point the connection is closed gracefully
 }
 
 listener::listener(boost::asio::io_context& ioc, ssl::context& ssl_ctx, tcp::endpoint endpoint) :
@@ -241,7 +207,7 @@ void listener::on_accept(boost::system::error_code ec) {
         spdlog::get("console")->trace("Accept failed");
     } else {
         // Create the websocket_session and run it
-        std::make_shared<websocket_session>(std::move(socket), ctx)->run();
+        std::make_shared<http_session>(std::move(socket), ctx)->run();
     }
     // Accept another connection
     do_accept();
