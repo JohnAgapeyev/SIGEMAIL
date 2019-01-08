@@ -30,9 +30,7 @@ class http_session : public std::enable_shared_from_this<http_session> {
 public:
     // Take ownership of the socket
     http_session(tcp::socket tcp_socket, ssl::context& ctx) :
-            stream(std::move(tcp_socket), ctx), strand(stream.get_executor()),
-            timer(stream.get_executor().context(), (std::chrono::steady_clock::time_point::max)()) {
-    }
+            stream(std::move(tcp_socket), ctx), strand(stream.get_executor()) {}
 
     // Start the asynchronous operation
     void run();
@@ -40,7 +38,6 @@ public:
     void do_read();
     void on_read(boost::system::error_code ec);
     void on_write(boost::system::error_code ec, bool close);
-    void on_timer(boost::system::error_code ec);
     void do_close();
 
     // This function produces an HTTP response for the given
@@ -143,7 +140,6 @@ private:
     ssl::stream<tcp::socket> stream;
     http::request<http::string_body> request;
     boost::asio::strand<boost::asio::io_context::executor_type> strand;
-    boost::asio::steady_timer timer;
     boost::beast::flat_buffer buffer;
     std::shared_ptr<void> result;
 };

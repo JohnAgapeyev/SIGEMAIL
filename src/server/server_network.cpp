@@ -12,12 +12,11 @@
 #include <functional>
 #include <iostream>
 #include <memory>
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
 #include <string>
 #include <thread>
 #include <vector>
 
+#include "logging.h"
 #include "server_network.h"
 
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
@@ -30,11 +29,8 @@ void http_session::run() {
                 strand, std::bind(&http_session::run, shared_from_this())));
     }
 
-    // Run the timer. The timer is operated
-    // continuously, this simplifies the code.
-    //on_timer({});
-
     spdlog::get("console")->debug("Starting SSL Handshake");
+
     // Perform the SSL handshake
     stream.async_handshake(ssl::stream_base::server,
             boost::asio::bind_executor(strand,
@@ -52,9 +48,6 @@ void http_session::on_handshake(boost::system::error_code ec) {
 }
 
 void http_session::do_read() {
-    // Set the timer
-    timer.expires_after(std::chrono::seconds(15));
-
     // Make the request empty before reading,
     // otherwise the operation behavior is undefined.
     request = {};
@@ -66,25 +59,27 @@ void http_session::do_read() {
 }
 
 void http_session::on_read(boost::system::error_code ec) {
-    // Happens when the timer closes the socket
-    if (ec == boost::asio::error::operation_aborted)
+    if (ec == boost::asio::error::operation_aborted) {
         return;
+    }
 
     // This means they closed the connection
-    if (ec == http::error::end_of_stream)
-        return do_close();
-
-    if (ec)
-        //return fail(ec, "read");
+    if (ec == http::error::end_of_stream) {
+        do_close();
         return;
+    }
+
+    if (ec) {
+        spdlog::get("console")->error("Read failed");
+        return;
+    }
 
     // Send the response
     handle_request(std::move(request), [this](auto&& msg) {
         // The lifetime of the message has to extend
         // for the duration of the async operation so
         // we use a shared_ptr to manage it.
-        //auto sp = std::make_shared<http::message<isRequest, Body, Fields>>(std::move(msg));
-        auto sp = std::make_shared<std::remove_reference_t<decltype(msg)>>(std::move(msg));
+        const auto sp = std::make_shared<std::remove_reference_t<decltype(msg)>>(std::move(msg));
 
         // Store a type-erased version of the shared
         // pointer in the class to keep it alive.
@@ -100,53 +95,30 @@ void http_session::on_read(boost::system::error_code ec) {
 
 void http_session::on_write(boost::system::error_code ec, bool close) {
     // Happens when the timer closes the socket
-    if (ec == boost::asio::error::operation_aborted)
+    if (ec == boost::asio::error::operation_aborted) {
         return;
+    }
 
-    if (ec)
-        //return fail(ec, "write");
+    if (ec) {
+        spdlog::get("console")->error("Write failed");
         return;
+    }
 
     if (close) {
-        // This means we should close the connection, usually because
-        // the response indicated the "Connection: close" semantic.
-        return do_close();
+        // This means we should close the connection, usually because the response indicated the "Connection: close" semantic.
+        do_close();
+        return;
     }
 
     // Read another request
     do_read();
 }
 
-#if 0
-void http_session::on_timer(boost::system::error_code ec) {
-    if (ec && ec != boost::asio::error::operation_aborted)
-        //return fail(ec, "timer");
-        return;
-
-    // Check if this has been upgraded to Websocket
-    if (timer.expires_at() == (std::chrono::steady_clock::time_point::min)())
-        return;
-
-    // Verify that the timer really expired since the deadline may have moved.
-    if (timer.expiry() <= std::chrono::steady_clock::now()) {
-        // Closing the socket cancels all outstanding operations. They
-        // will complete with boost::asio::error::operation_aborted
-        stream.shutdown();
-        stream.next_layer().shutdown(tcp::socket::shutdown_both);
-        stream.next_layer().close();
-        return;
-    }
-
-    // Wait on the timer
-    timer.async_wait(boost::asio::bind_executor(
-            strand, std::bind(&http_session::on_timer, shared_from_this(), std::placeholders::_1)));
-}
-#endif
-
 void http_session::do_close() {
     // Send a SSL+TCP shutdown
     stream.shutdown();
-    stream.next_layer().shutdown(tcp::socket::shutdown_send);
+    stream.lowest_layer().shutdown(tcp::socket::shutdown_both);
+    stream.lowest_layer().close();
 
     // At this point the connection is closed gracefully
 }
