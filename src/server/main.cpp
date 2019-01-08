@@ -119,15 +119,14 @@ inline void load_server_certificate(boost::asio::ssl::context& ctx) {
 
 int main(int argc, char* argv[]) {
     // Check command line arguments.
-    if (argc != 4) {
-        std::cerr << "Usage: websocket-server-async-ssl <address> <port> <threads>\n"
+    if (argc != 3) {
+        std::cerr << "Usage: websocket-server-async-ssl <port> <threads>\n"
                   << "Example:\n"
-                  << "    websocket-server-async-ssl 0.0.0.0 8080 1\n";
+                  << "    websocket-server-async-ssl 8080 1\n";
         return EXIT_FAILURE;
     }
-    auto const address = boost::asio::ip::make_address(argv[1]);
-    auto const port = static_cast<unsigned short>(std::atoi(argv[2]));
-    auto const threads = std::max<int>(1, std::atoi(argv[3]));
+    const auto port = static_cast<unsigned short>(std::atoi(argv[1]));
+    const auto threads = std::max<int>(1, std::atoi(argv[2]));
 
     // The io_context is required for all I/O
     boost::asio::io_context ioc{threads};
@@ -141,7 +140,7 @@ int main(int argc, char* argv[]) {
     auto console = spdlog::stdout_color_mt("console");
 
     // Create and launch a listening port
-    std::make_shared<listener>(ioc, ctx, tcp::endpoint{address, port})->run();
+    std::make_shared<listener>(ioc, ctx, tcp::endpoint{tcp::v4(), port})->run();
 
     // Run the I/O service on the requested number of threads
     std::vector<std::thread> v;
