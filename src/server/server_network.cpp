@@ -163,27 +163,30 @@ void http_session::handle_request(
         return res;
     };
 
+    static constexpr auto version_prefix = "/v1/";
+
     // Make sure we can handle the method
-    if (req.method() != http::verb::get && req.method() != http::verb::head) {
+    if (req.method() != http::verb::get && req.method() != http::verb::head
+            && req.method() != http::verb::put) {
         return send(bad_request("Unknown HTTP-method"));
     }
 
     // Request path must be absolute and not contain "..".
     if (req.target().empty() || req.target()[0] != '/'
-            || req.target().find("..") != boost::beast::string_view::npos) {
+            || req.target().find("..") != std::string_view::npos) {
         return send(bad_request("Illegal request-target"));
     }
 
-    // Build the path to the requested file
-    std::string path = req.target().to_string();
-    if (req.target().back() == '/') {
-        path.append("index.html");
+    //Check that the request targets the correct version endpoint
+    //I doubt I'll ever need a v2, but this ensures I have that flexibility
+    if (req.target().substr(strlen(version_prefix)).compare(version_prefix) != 0) {
+        return send(not_found("Unknown API endpoint"));
     }
 
     // Attempt to open the file
     boost::beast::error_code ec;
     http::file_body::value_type body;
-    body.open(path.c_str(), boost::beast::file_mode::scan, ec);
+    //body.open(path.c_str(), boost::beast::file_mode::scan, ec);
 
     // Handle the case where the file doesn't exist
     if (ec == boost::system::errc::no_such_file_or_directory) {
@@ -207,16 +210,20 @@ void http_session::handle_request(
         res.keep_alive(req.keep_alive());
         return send(std::move(res));
     }
-
-    // Respond to GET request
-    http::response<http::file_body> res{std::piecewise_construct, std::make_tuple(std::move(body)),
-            std::make_tuple(http::status::ok, req.version())};
-    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-    res.set(http::field::content_type, "text/html");
-    res.content_length(size);
-    res.keep_alive(req.keep_alive());
-
-    return send(std::move(res));
+    if (req.method() == http::verb::get) {
+        // Respond to GET request
+        http::response<http::file_body> res{std::piecewise_construct,
+                std::make_tuple(std::move(body)), std::make_tuple(http::status::ok, req.version())};
+        res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(http::field::content_type, "text/html");
+        res.content_length(size);
+        res.keep_alive(req.keep_alive());
+        return send(std::move(res));
+    }
+    if (req.method() == http::verb::put) {
+        //Put Request
+    }
+    //Unknown/unsupported request
 }
 
 listener::listener(boost::asio::io_context& ioc, ssl::context& ssl_ctx, tcp::endpoint endpoint) :
