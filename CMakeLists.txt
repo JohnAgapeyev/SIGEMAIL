@@ -28,8 +28,12 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libsignal-protocol-c)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-find_package(OpenSSL 1.1.1 REQUIRED)
+set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost 1.67 REQUIRED COMPONENTS system unit_test_framework)
+
+find_package(OpenSSL 1.1.1 REQUIRED)
 find_package(CURL REQUIRED)
 find_package(Threads REQUIRED)
 
