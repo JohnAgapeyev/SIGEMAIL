@@ -18,14 +18,14 @@ const crypto::secure_vector<std::byte> crypto::encrypt(const secure_vector<std::
         throw std::bad_alloc();
     }
 
-    if (!EVP_EncryptInit_ex(ctx.get(), EVP_chacha20_poly1305(), NULL,
+    if (!EVP_EncryptInit_ex(ctx.get(), EVP_chacha20_poly1305(), nullptr,
                 reinterpret_cast<const unsigned char*>(key.data()),
                 reinterpret_cast<const unsigned char*>(nonce.data()))) {
         throw crypto::openssl_error(ERR_get_error());
     }
 
     int len;
-    if (!EVP_EncryptUpdate(ctx.get(), NULL, &len,
+    if (!EVP_EncryptUpdate(ctx.get(), nullptr, &len,
                 reinterpret_cast<const unsigned char*>(aad.data()), aad.size())) {
         throw crypto::openssl_error(ERR_get_error());
     }
@@ -75,14 +75,14 @@ const crypto::secure_vector<std::byte> crypto::decrypt(secure_vector<std::byte>&
         throw std::bad_alloc();
     }
 
-    if (!EVP_DecryptInit_ex(ctx.get(), EVP_chacha20_poly1305(), NULL,
+    if (!EVP_DecryptInit_ex(ctx.get(), EVP_chacha20_poly1305(), nullptr,
                 reinterpret_cast<const unsigned char*>(key.data()),
                 reinterpret_cast<const unsigned char*>(nonce.data()))) {
         throw crypto::openssl_error(ERR_get_error());
     }
 
     int len;
-    if (!EVP_DecryptUpdate(ctx.get(), NULL, &len,
+    if (!EVP_DecryptUpdate(ctx.get(), nullptr, &len,
                 reinterpret_cast<const unsigned char*>(aad.data()), aad.size())) {
         throw crypto::openssl_error(ERR_get_error());
     }

@@ -10,8 +10,6 @@ extern "C" {
 #include "crypto.h"
 #include "dh.h"
 
-using namespace crypto;
-
 crypto::DH_Keypair::DH_Keypair() {
     RAND_bytes(reinterpret_cast<unsigned char*>(private_key.data()), 32);
     sc_clamp(reinterpret_cast<unsigned char*>(private_key.data()));

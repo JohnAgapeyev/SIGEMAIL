@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13.0)
 project(sigemail)
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
 endif()
 
 set(CMAKE_CXX_FLAGS_DEBUG "")
@@ -19,6 +19,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_LINK_WHAT_YOU_USE ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -151,10 +154,8 @@ include(CheckIPOSupported)
 check_ipo_supported(RESULT ipo_supported OUTPUT error)
 
 if(ipo_supported)
-    message(STATUS "IPO / LTO enabled")
     set_target_properties(${SOURCE_LIBRARY} ${CLIENT_LIBRARY} ${SERVER_LIBRARY} ${PROJECT_NAME} ${SERVER} test_binary PROPERTIES
         INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE
-        POSITION_INDEPENDENT_CODE TRUE
 )
 else()
     message(STATUS "IPO / LTO not supported: <${error}>")
