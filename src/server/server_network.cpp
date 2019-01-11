@@ -163,7 +163,37 @@ void http_session::handle_request(
         return res;
     };
 
+    /**
+     * List of endpoints:
+     *
+     * Request verification code:
+     * GET /v1/accounts/email/code/{number}
+     *
+     * Confirm verification code:
+     * PUT /v1/accounts/code/{verification_code}
+     *
+     * Register Prekeys
+     * PUT /v1/keys/
+     *
+     * Contact Intersection
+     * PUT /v1/directory/tokens
+     *
+     * Get Contact PreKey
+     * GET /v1/keys/{number}/{device_id}
+     *
+     * Submit Message
+     * PUT /v1/messages/{destination_number}
+     *
+     * These are based on the examples given at:
+     * https://github.com/signalapp/Signal-Server/wiki/API-Protocol
+     *
+     * I will be modifying it slightly for my own needs, primarily in regards to the message formatting
+     */
     static constexpr auto version_prefix = "/v1/";
+    static constexpr auto accounts_prefix = "accounts/";
+    static constexpr auto keys_prefix = "keys/";
+    static constexpr auto message_prefix = "messages";
+    static constexpr auto contact_intersection = "directory/tokens";
 
     // Make sure we can handle the method
     if (req.method() != http::verb::get && req.method() != http::verb::head
@@ -171,16 +201,67 @@ void http_session::handle_request(
         return send(bad_request("Unknown HTTP-method"));
     }
 
+    auto target = req.target();
+
     // Request path must be absolute and not contain "..".
-    if (req.target().empty() || req.target()[0] != '/'
-            || req.target().find("..") != std::string_view::npos) {
+    if (target.empty() || target[0] != '/'
+            || target.find("..") != std::string_view::npos) {
         return send(bad_request("Illegal request-target"));
     }
 
     //Check that the request targets the correct version endpoint
     //I doubt I'll ever need a v2, but this ensures I have that flexibility
-    if (req.target().substr(strlen(version_prefix)).compare(version_prefix) != 0) {
-        return send(not_found("Unknown API endpoint"));
+    if (target.substr(0, strlen(version_prefix)).compare(version_prefix) != 0) {
+        return send(not_found(req.target()));
+    }
+
+    //Move the view forward
+    target.remove_prefix(strlen(version_prefix));
+
+    //Ensure the target is large enough to hold the smallest valid target path
+    if (target.size() < strlen(keys_prefix)) {
+        return send(bad_request("Request-target is too short"));
+    }
+
+    //Check the target for the accounts prefix
+    if (target.substr(0, strlen(accounts_prefix)).compare(accounts_prefix) == 0) {
+        target.remove_prefix(strlen(accounts_prefix));
+
+        const auto code_index = target.find("code/");
+
+        if (code_index == 0) {
+            //Request verification code
+            spdlog::get("console")->info("Request verification message");
+        } else if (code_index == 6) {
+            if (target.substr(0, 6).compare("email/") != 0) {
+                //Malformed target
+                return send(not_found(req.target()));
+            }
+            //Confirm verification code
+            spdlog::get("console")->info("Confirm verification message");
+        } else {
+            //"code/" was not found, therefore it is not a valid target
+            return send(not_found(req.target()));
+        }
+    //Check for keys prefix
+    } else if (target.substr(0, strlen(keys_prefix)).compare(keys_prefix) == 0) {
+        target.remove_prefix(strlen(keys_prefix));
+        if (target.empty()) {
+            //PreKey registration
+            spdlog::get("console")->info("Key registration message");
+        } else {
+            //Request contact PreKeys
+            spdlog::get("console")->info("Key lookup message");
+        }
+    //Check for message prefix
+    } else if (target.substr(0, strlen(message_prefix)).compare(message_prefix) == 0) {
+        spdlog::get("console")->info("Message message");
+    //Check for contact intersection target
+    } else if (target.compare(contact_intersection) == 0) {
+        //Handle contact intersection request
+        spdlog::get("console")->info("Contact intersection");
+    } else {
+        return send(not_found(req.target()));
     }
 
     // Attempt to open the file
