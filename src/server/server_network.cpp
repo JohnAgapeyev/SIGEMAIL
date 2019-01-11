@@ -163,6 +163,15 @@ void http_session::handle_request(
         return res;
     };
 
+    //Responds to a HEAD request
+    const auto head_response = [&req](std::size_t size) {
+        http::response<http::empty_body> res{http::status::ok, req.version()};
+        res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(http::field::content_type, "text/html");
+        res.content_length(size);
+        res.keep_alive(req.keep_alive());
+        return res;
+    };
     /**
      * List of endpoints:
      *
@@ -239,8 +248,11 @@ void http_session::handle_request(
                 //Malformed target
                 return send(not_found(req.target()));
             }
-            if (req.method() != http::verb::get) {
+            if (req.method() != http::verb::get && req.method() != http::verb::head) {
                 return send(bad_request("Wrong request method"));
+            }
+            if (req.method() == http::verb::head) {
+                return send(head_response(0));
             }
             //Confirm verification code
             spdlog::get("console")->info("Request verification message");
@@ -258,8 +270,11 @@ void http_session::handle_request(
             //PreKey registration
             spdlog::get("console")->info("Key registration message");
         } else {
-            if (req.method() != http::verb::get) {
+            if (req.method() != http::verb::get && req.method() != http::verb::head) {
                 return send(bad_request("Wrong request method"));
+            }
+            if (req.method() == http::verb::head) {
+                return send(head_response(0));
             }
             //Request contact PreKeys
             spdlog::get("console")->info("Key lookup message");
@@ -301,12 +316,7 @@ void http_session::handle_request(
 
     // Respond to HEAD request
     if (req.method() == http::verb::head) {
-        http::response<http::empty_body> res{http::status::ok, req.version()};
-        res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-        res.set(http::field::content_type, "text/html");
-        res.content_length(size);
-        res.keep_alive(req.keep_alive());
-        return send(std::move(res));
+        return send(head_response(0));
     }
     if (req.method() == http::verb::get) {
         // Respond to GET request
