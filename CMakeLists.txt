@@ -59,6 +59,7 @@ set(CLIENT_SOURCES
 
 set(SERVER_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/server/server_network.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/server/listener.cpp
 )
 
 set(TEST_SOURCES

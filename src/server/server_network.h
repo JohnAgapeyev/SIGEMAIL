@@ -44,10 +44,29 @@ public:
     // request. The type of the response object depends on the
     // contents of the request, so the interface requires the
     // caller to pass a generic lambda for receiving the response.
-    template<class Body, class Allocator, class Send>
+    template<typename Body, typename Allocator, typename Send>
     void handle_request(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send);
 
 private:
+    template<typename Allocator>
+    const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
+            request_verification_code() const;
+    template<typename Allocator>
+    const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
+            verify_verification_code() const;
+    template<typename Allocator>
+    const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
+            register_prekeys() const;
+    template<typename Allocator>
+    const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
+            lookup_prekey() const;
+    template<typename Allocator>
+    const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
+            contact_intersection() const;
+    template<typename Allocator>
+    const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
+            submit_message() const;
+
     ssl::stream<tcp::socket> stream;
     http::request<http::string_body> request;
     boost::asio::strand<boost::asio::io_context::executor_type> strand;
@@ -57,20 +76,5 @@ private:
 
 //------------------------------------------------------------------------------
 
-// Accepts incoming connections and launches the websocket_sessions
-class listener : public std::enable_shared_from_this<listener> {
-public:
-    listener(boost::asio::io_context& ioc, ssl::context& ssl_ctx, tcp::endpoint endpoint);
-
-    // Start accepting incoming connections
-    void run();
-    void do_accept();
-    void on_accept(boost::system::error_code ec);
-
-private:
-    ssl::context& ctx;
-    tcp::acceptor acceptor;
-    tcp::socket socket;
-};
 
 #endif /* end of include guard: SERVER_NETWORK_H */

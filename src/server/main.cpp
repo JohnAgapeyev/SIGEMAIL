@@ -20,6 +20,7 @@
 
 #include "crypto.h"
 #include "server_network.h"
+#include "listener.h"
 #include "session.h"
 
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
