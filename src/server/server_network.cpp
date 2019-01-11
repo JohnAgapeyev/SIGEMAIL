@@ -204,8 +204,7 @@ void http_session::handle_request(
     auto target = req.target();
 
     // Request path must be absolute and not contain "..".
-    if (target.empty() || target[0] != '/'
-            || target.find("..") != std::string_view::npos) {
+    if (target.empty() || target[0] != '/' || target.find("..") != std::string_view::npos) {
         return send(bad_request("Illegal request-target"));
     }
 
@@ -231,33 +230,51 @@ void http_session::handle_request(
 
         if (code_index == 0) {
             //Request verification code
-            spdlog::get("console")->info("Request verification message");
+            if (req.method() != http::verb::put) {
+                return send(bad_request("Wrong request method"));
+            }
+            spdlog::get("console")->info("Confirm verification message");
         } else if (code_index == 6) {
             if (target.substr(0, 6).compare("email/") != 0) {
                 //Malformed target
                 return send(not_found(req.target()));
             }
+            if (req.method() != http::verb::get) {
+                return send(bad_request("Wrong request method"));
+            }
             //Confirm verification code
-            spdlog::get("console")->info("Confirm verification message");
+            spdlog::get("console")->info("Request verification message");
         } else {
             //"code/" was not found, therefore it is not a valid target
             return send(not_found(req.target()));
         }
-    //Check for keys prefix
+        //Check for keys prefix
     } else if (target.substr(0, strlen(keys_prefix)).compare(keys_prefix) == 0) {
         target.remove_prefix(strlen(keys_prefix));
         if (target.empty()) {
+            if (req.method() != http::verb::put) {
+                return send(bad_request("Wrong request method"));
+            }
             //PreKey registration
             spdlog::get("console")->info("Key registration message");
         } else {
+            if (req.method() != http::verb::get) {
+                return send(bad_request("Wrong request method"));
+            }
             //Request contact PreKeys
             spdlog::get("console")->info("Key lookup message");
         }
-    //Check for message prefix
+        //Check for message prefix
     } else if (target.substr(0, strlen(message_prefix)).compare(message_prefix) == 0) {
+        if (req.method() != http::verb::put) {
+            return send(bad_request("Wrong request method"));
+        }
         spdlog::get("console")->info("Message message");
-    //Check for contact intersection target
+        //Check for contact intersection target
     } else if (target.compare(contact_intersection) == 0) {
+        if (req.method() != http::verb::put) {
+            return send(bad_request("Wrong request method"));
+        }
         //Handle contact intersection request
         spdlog::get("console")->info("Contact intersection");
     } else {
