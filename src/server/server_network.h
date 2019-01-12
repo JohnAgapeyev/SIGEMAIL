@@ -7,6 +7,7 @@
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
+#include <string>
 #include <utility>
 
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
@@ -38,16 +39,16 @@ public:
 private:
     template<typename Allocator>
     const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-            request_verification_code() const;
+            request_verification_code(const std::string_view email) const;
     template<typename Allocator>
     const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-            verify_verification_code() const;
+            verify_verification_code(const std::string_view code) const;
     template<typename Allocator>
     const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
             register_prekeys() const;
     template<typename Allocator>
     const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-            lookup_prekey() const;
+            lookup_prekey(const std::string_view user, const std::string_view device) const;
     template<typename Allocator>
     const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
             contact_intersection() const;
@@ -63,6 +64,5 @@ private:
 };
 
 //------------------------------------------------------------------------------
-
 
 #endif /* end of include guard: SERVER_NETWORK_H */

@@ -336,12 +336,12 @@ void http_session::handle_request(
 
 template<typename Allocator>
 const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-        http_session::request_verification_code() const {
+        http_session::request_verification_code(const std::string_view email) const {
     //Foobar
 }
 template<typename Allocator>
 const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-        http_session::verify_verification_code() const {
+        http_session::verify_verification_code(const std::string_view code) const {
     //Foobar
 }
 template<typename Allocator>
@@ -351,7 +351,8 @@ const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allo
 }
 template<typename Allocator>
 const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-        http_session::lookup_prekey() const {
+        http_session::lookup_prekey(
+                const std::string_view user, const std::string_view device) const {
     //Foobar
 }
 template<typename Allocator>
@@ -365,4 +366,3 @@ const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allo
         http_session::submit_message() const {
     //Foobar
 }
-
