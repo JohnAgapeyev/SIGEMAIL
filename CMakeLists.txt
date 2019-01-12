@@ -27,9 +27,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libsignal-protocol-c)
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/libsignal-protocol-c)
 
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
@@ -58,6 +56,7 @@ set(SIGEMAIL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/user_record.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/device_record.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/device.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/extern/sqlite3/sqlite3.c
 )
 
 set(CLIENT_SOURCES
@@ -82,13 +81,13 @@ set(INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/server
     ${CMAKE_CURRENT_SOURCE_DIR}/src/client
-    libsignal-protocol-c/src/curve25519/ed25519/nacl_includes
-    libsignal-protocol-c/src/curve25519/ed25519/additions/generalized
-    libsignal-protocol-c/src/curve25519/ed25519/additions
-    libsignal-protocol-c/src/curve25519/ed25519/sha512
-    libsignal-protocol-c/src/curve25519/ed25519
-    libsignal-protocol-c/src/curve25519
-    spdlog/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/extern/libsignal-protocol-c/src/curve25519/ed25519/nacl_includes
+    ${CMAKE_CURRENT_SOURCE_DIR}/extern/libsignal-protocol-c/src/curve25519/ed25519/additions/generalized
+    ${CMAKE_CURRENT_SOURCE_DIR}/extern/libsignal-protocol-c/src/curve25519/ed25519/additions
+    ${CMAKE_CURRENT_SOURCE_DIR}/extern/libsignal-protocol-c/src/curve25519/ed25519/sha512
+    ${CMAKE_CURRENT_SOURCE_DIR}/extern/libsignal-protocol-c/src/curve25519/ed25519
+    ${CMAKE_CURRENT_SOURCE_DIR}/extern/libsignal-protocol-c/src/curve25519
+    ${CMAKE_CURRENT_SOURCE_DIR}/extern/spdlog/include
 )
 
 set(SOURCE_LIBRARY _${PROJECT_NAME})

@@ -1,8 +1,8 @@
 [submodule "libsignal-protocol-c"]
-	path = libsignal-protocol-c
+	path = extern/libsignal-protocol-c
 	url = https://github.com/signalapp/libsignal-protocol-c
     ignore = dirty
 [submodule "spdlog"]
-	path = spdlog
+	path = extern/spdlog
 	url = https://github.com/gabime/spdlog
     ignore = dirty
