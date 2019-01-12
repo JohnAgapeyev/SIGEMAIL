@@ -1,3 +1,6 @@
+#include <unordered_map>
+#include <vector>
+
 #include "device.h"
 #include "device_record.h"
 #include "user_record.h"
@@ -98,4 +101,49 @@ void device::prep_for_encryption(
         //Insert the session
         insert_session(u_index, device_index, session{shared_secret, bob_pre_key.get_public()});
     }
+}
+
+void device::send_signal_message(const crypto::secure_vector<std::byte>& plaintext,
+        const crypto::secure_vector<user_index>& recipients) {
+
+    //TODO This needs to be retrieved from the X3DH agreement somehow
+    const crypto::secure_vector<std::byte> aad;
+
+    for (const auto& user_id : recipients) {
+        std::map<uint64_t, signal_message> device_messages;
+
+        if (const auto it = correspondents.find(user_id); it != correspondents.end() && !it->second.is_stale) {
+            for (const auto& [device_id, device_rec] : it->second.user_devices) {
+                if (device_rec.is_stale || !device_rec.active_session) {
+                    continue;
+                }
+                auto& sess = *(device_rec.active_session.get());
+                const auto ciphertext = sess.ratchet_encrypt(plaintext, aad);
+
+                device_messages.emplace(device_id, ciphertext);
+            }
+        }
+        if (device_messages.empty()) {
+            continue;
+        }
+        //This will eventually have a response I will need to respond to
+        send_messages_to_server(user_id, device_messages);
+
+        //TODO add server response, record updating, and exception handling
+    }
+}
+
+void device::receive_signal_message(const crypto::secure_vector<std::byte>& ciphertext,
+        const user_index& user_id, const uint64_t device_id) {
+    //Foobar
+}
+
+/*
+ * This function needs to contact the server, and return its response.
+ * If successful, we're good, messages sent.
+ * If unsuccessful, we should get either bad user_id, or bad device_ids
+ * Those error conditions will be handled in send_signal_message, since they require record updates internally
+ */
+void device::send_messages_to_server(const user_index& user_id, const std::map<uint64_t, signal_message>& messages) {
+    //Foobar
 }

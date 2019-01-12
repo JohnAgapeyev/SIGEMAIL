@@ -44,7 +44,16 @@ public:
     void prep_for_encryption(
             const user_index& u_index, uint64_t device_index, const crypto::public_key& pub_key);
 
+    void send_signal_message(const crypto::secure_vector<std::byte>& plaintext,
+            const crypto::secure_vector<user_index>& recipients);
+
+    void receive_signal_message(const crypto::secure_vector<std::byte>& ciphertext,
+            const user_index& user_id, const uint64_t device_id);
+
 private:
+    void send_messages_to_server(const user_index& user_id, const std::map<uint64_t, signal_message>& messages);
+
+
     std::unordered_map<user_index, user_record, boost::hash<user_index>> correspondents;
     user_record self;
 
