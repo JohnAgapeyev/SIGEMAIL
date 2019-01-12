@@ -27,11 +27,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_LINK_WHAT_YOU_USE ON)
 
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/libsignal-protocol-c)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/spdlog)
 
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
@@ -60,7 +57,6 @@ set(SIGEMAIL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/user_record.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/device_record.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/device.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/extern/sqlite3/sqlite3.c
 )
 
 set(CLIENT_SOURCES
@@ -91,7 +87,6 @@ set(INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/extern/libsignal-protocol-c/src/curve25519/ed25519/sha512
     ${CMAKE_CURRENT_SOURCE_DIR}/extern/libsignal-protocol-c/src/curve25519/ed25519
     ${CMAKE_CURRENT_SOURCE_DIR}/extern/libsignal-protocol-c/src/curve25519
-    ${CMAKE_CURRENT_SOURCE_DIR}/extern/spdlog/include
 )
 
 set(SOURCE_LIBRARY _${PROJECT_NAME})
