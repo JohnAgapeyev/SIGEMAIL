@@ -24,9 +24,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_LINK_WHAT_YOU_USE ON)
-
 find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
 # Update submodules as needed
@@ -48,6 +45,18 @@ endif()
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/libsignal-protocol-c)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/spdlog)
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_LINK_WHAT_YOU_USE ON)
+
+include(CheckIPOSupported)
+check_ipo_supported(RESULT ipo_supported OUTPUT error)
+
+if(ipo_supported)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+else()
+    message(STATUS "IPO / LTO not supported: <${error}>")
+endif()
 
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
@@ -174,15 +183,4 @@ target_link_libraries(test_binary PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL
 target_include_directories(test_binary PRIVATE
     src/test
 )
-
-include(CheckIPOSupported)
-check_ipo_supported(RESULT ipo_supported OUTPUT error)
-
-if(ipo_supported)
-    set_target_properties(${SOURCE_LIBRARY} ${CLIENT_LIBRARY} ${SERVER_LIBRARY} ${PROJECT_NAME} ${SERVER} test_binary PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE
-)
-else()
-    message(STATUS "IPO / LTO not supported: <${error}>")
-endif()
 
