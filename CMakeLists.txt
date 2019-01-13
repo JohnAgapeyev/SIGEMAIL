@@ -14,7 +14,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "")
 set(CMAKE_CXX_FLAGS_MINSIZEREL "")
 
-set(BASE_COMPILE_OPTIONS -pipe -march=native)
+set(BASE_COMPILE_OPTIONS -pipe -march=native -fcf-protection=full -fstack-protector-strong)
 set(WARNINGS -Wall -Wextra -Wpedantic -Wformat=2 -Wuninitialized -Wundef -Wcast-align -Wstrict-overflow=2 -Wwrite-strings -Wno-format-nonliteral)
 set(DEBUG_OPTIONS ${BASE_COMPILE_OPTIONS} -g -O0)
 set(RELEASE_OPTIONS ${BASE_COMPILE_OPTIONS} -s -O3)
