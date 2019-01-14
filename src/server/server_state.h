@@ -43,35 +43,35 @@ namespace db {
     };
 
     constexpr auto create_users = "\
-        CREATE TABLE [IF NOT EXISTS] users (\
+        CREATE TABLE IF NOT EXISTS users (\
            user_id    TEXT PRIMARY KEY,\
-           trunc_hash BLOB NOT NULL,\
-        ) [WITHOUT ROWID];";
+           trunc_hash BLOB NOT NULL\
+        ) WITHOUT ROWID;";
     constexpr auto create_devices = "\
-        CREATE TABLE [IF NOT EXISTS] devices (\
+        CREATE TABLE IF NOT EXISTS devices (\
            device_id    INTEGER PRIMARY KEY,\
            user_id      TEXT    NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE,\
            identity_key BLOB    NOT NULL,\
            pre_key      BLOB    NOT NULL,\
-           signature    BLOB    NOT NULL,\
+           signature    BLOB    NOT NULL\
         );";
     constexpr auto create_one_time = "\
-        CREATE TABLE [IF NOT EXISTS] otpk (\
+        CREATE TABLE IF NOT EXISTS otpk (\
            key_id       INTEGER PRIMARY KEY,\
            device_id    INTEGER NOT NULL REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE,\
-           key          BLOB    NOT NULL,\
+           key          BLOB    NOT NULL\
         );";
     constexpr auto create_mailboxes = "\
-        CREATE TABLE [IF NOT EXISTS] mailbox (\
+        CREATE TABLE IF NOT EXISTS mailbox (\
            message_id   INTEGER PRIMARY KEY,\
            device_id    INTEGER NOT NULL REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE,\
-           contents     BLOB    NOT NULL,\
+           contents     BLOB    NOT NULL\
         );";
     constexpr auto create_registration_codes = "\
-        CREATE TABLE [IF NOT EXISTS] registration_codes (\
+        CREATE TABLE IF NOT EXISTS registration_codes (\
            email        TEXT    PRIMARY KEY,\
            code         INTEGER NOT NULL UNIQUE,\
-           expiration   TEXT    NOT NULL,\
+           expiration   TEXT    NOT NULL\
         );";
 } // namespace db
 

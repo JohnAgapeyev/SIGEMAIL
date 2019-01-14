@@ -20,6 +20,7 @@
 
 #include "crypto.h"
 #include "server_network.h"
+#include "server_state.h"
 #include "listener.h"
 #include "session.h"
 
@@ -139,6 +140,10 @@ int main(int argc, char* argv[]) {
     load_server_certificate(ctx);
 
     auto console = spdlog::stdout_color_mt("console");
+
+    console->info("Pre database");
+    db::database foo;
+    console->info("Post database");
 
     // Create and launch a listening port
     std::make_shared<listener>(ioc, ctx, tcp::endpoint{tcp::v4(), port})->run();
