@@ -1,19 +1,10 @@
 #ifndef CRYPTO_H
 #define CRYPTO_H
 
-#include <array>
 #include <boost/container_hash/hash.hpp>
-#include <cstddef>
-#include <cstdint>
-#include <cstdlib>
-#include <exception>
-#include <functional>
-#include <map>
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
-#include <unordered_map>
-#include <vector>
 
 #include "zallocator.h"
 

@@ -1,10 +1,6 @@
 #ifndef DIFFIE_HELLMAN_H
 #define DIFFIE_HELLMAN_H
 
-#include <array>
-#include <cstddef>
-#include <cstdint>
-
 #include "crypto.h"
 
 class crypto::DH_Keypair {

@@ -1,14 +1,8 @@
 #ifndef DEVICE_H
 #define DEVICE_H
 
-#include <array>
-#include <boost/container_hash/hash.hpp>
-#include <cstdint>
-#include <unordered_map>
-
 #include "crypto.h"
-#include "device_record.h"
-#include "dh.h"
+#include "session.h"
 #include "user_record.h"
 
 /*

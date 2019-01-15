@@ -1,8 +1,10 @@
+#include <array>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
+#include <vector>
 extern "C" {
 #include "curve25519-donna.h"
 #include "keygen.h"
@@ -29,10 +31,8 @@ const crypto::shared_key crypto::DH_Keypair::generate_shared_secret(
 }
 
 const crypto::shared_key crypto::X3DH_sender(const crypto::DH_Keypair& local_identity,
-        const crypto::DH_Keypair& local_ephemeral,
-        const crypto::public_key& remote_identity,
-        const crypto::public_key& remote_prekey,
-        const crypto::public_key& remote_one_time_key) {
+        const crypto::DH_Keypair& local_ephemeral, const crypto::public_key& remote_identity,
+        const crypto::public_key& remote_prekey, const crypto::public_key& remote_one_time_key) {
     const auto dh1 = local_identity.generate_shared_secret(remote_prekey);
     const auto dh2 = local_ephemeral.generate_shared_secret(remote_identity);
     const auto dh3 = local_ephemeral.generate_shared_secret(remote_prekey);
@@ -51,8 +51,7 @@ const crypto::shared_key crypto::X3DH_sender(const crypto::DH_Keypair& local_ide
 
 const crypto::shared_key crypto::X3DH_receiver(const DH_Keypair& local_identity,
         const DH_Keypair& local_pre_key, const DH_Keypair& local_one_time_key,
-        const crypto::public_key& remote_identity,
-        const crypto::public_key& remote_ephemeral) {
+        const crypto::public_key& remote_identity, const crypto::public_key& remote_ephemeral) {
     const auto dh1 = local_pre_key.generate_shared_secret(remote_identity);
     const auto dh2 = local_identity.generate_shared_secret(remote_ephemeral);
     const auto dh3 = local_pre_key.generate_shared_secret(remote_ephemeral);
@@ -70,8 +69,7 @@ const crypto::shared_key crypto::X3DH_receiver(const DH_Keypair& local_identity,
 }
 
 const crypto::shared_key crypto::X3DH_sender(const crypto::DH_Keypair& local_identity,
-        const crypto::DH_Keypair& local_ephemeral,
-        const crypto::public_key& remote_identity,
+        const crypto::DH_Keypair& local_ephemeral, const crypto::public_key& remote_identity,
         const crypto::public_key& remote_prekey) {
     const auto dh1 = local_identity.generate_shared_secret(remote_prekey);
     const auto dh2 = local_ephemeral.generate_shared_secret(remote_identity);

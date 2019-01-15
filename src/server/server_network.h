@@ -2,7 +2,6 @@
 #define SERVER_NETWORK_H
 
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/signal_set.hpp>
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
