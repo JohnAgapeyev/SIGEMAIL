@@ -177,6 +177,14 @@ int main(int argc, char* argv[]) {
     foo.add_message(99, {4, std::byte{0xab}});
     console->info("Post insert 8");
 
+    console->info("Pre insert 9");
+    foo.add_registration_code("foobar@test.com", 123456);
+    console->info("Post insert 9");
+
+    console->info("Pre insert 10");
+    foo.add_registration_code("foobar@test.com", 12);
+    console->info("Post insert 10");
+
     // Create and launch a listening port
     std::make_shared<listener>(ioc, ctx, tcp::endpoint{tcp::v4(), port})->run();
 

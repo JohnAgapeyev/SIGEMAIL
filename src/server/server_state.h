@@ -46,6 +46,7 @@ namespace db {
                 const crypto::public_key& pre_key, const crypto::signature& signature);
         void add_one_time_key(const int device_id, const crypto::public_key& one_time);
         void add_message(const int device_id, const std::vector<std::byte>& message_contents);
+        void add_registration_code(const std::string_view email, const int code);
 
     private:
         sqlite3* db_conn;
@@ -96,7 +97,7 @@ namespace db {
                                     VALUES (?1, ?2, ?3, ?4);";
     constexpr auto insert_one_time = "INSERT INTO otpk(device_id, key) VALUES (?1, ?2);";
     constexpr auto insert_message = "INSERT INTO mailbox(device_id, contents) VALUES (?1, ?2);";
-    constexpr auto insert_registration = "INSERT INTO registration_codes VALUES (?1, ?2, ?3);";
+    constexpr auto insert_registration = "INSERT INTO registration_codes VALUES (?1, ?2, datetime('now', '+1 month'));";
 } // namespace db
 
 #endif /* end of include guard: SERVER_STATE_H */

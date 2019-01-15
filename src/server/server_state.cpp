@@ -151,3 +151,25 @@ void db::database::add_message(const int device_id, const std::vector<std::byte>
     }
 }
 
+void db::database::add_registration_code(const std::string_view email, const int code) {
+    sqlite3_reset(registration_codes_insert);
+    sqlite3_clear_bindings(registration_codes_insert);
+
+    if (sqlite3_bind_text(registration_codes_insert, 1, email.data(), email.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+
+    if (sqlite3_bind_int(registration_codes_insert, 2, code) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+
+#if 0
+    if (sqlite3_bind_text(registration_codes_insert, 2, code) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+#endif
+
+    if (sqlite3_step(registration_codes_insert) != SQLITE_DONE) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+}
