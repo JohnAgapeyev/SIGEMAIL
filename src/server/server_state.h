@@ -63,22 +63,25 @@ namespace db {
     constexpr auto create_devices = "\
         CREATE TABLE IF NOT EXISTS devices (\
            device_id    INTEGER PRIMARY KEY,\
-           user_id      TEXT    NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE,\
+           user_id      TEXT    NOT NULL,\
            identity_key BLOB    NOT NULL,\
            pre_key      BLOB    NOT NULL,\
-           signature    BLOB    NOT NULL\
+           signature    BLOB    NOT NULL,\
+           FOREIGN KEY (user_id) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE\
         );";
     constexpr auto create_one_time = "\
         CREATE TABLE IF NOT EXISTS otpk (\
            key_id       INTEGER PRIMARY KEY,\
-           device_id    INTEGER NOT NULL REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE,\
-           key          BLOB    NOT NULL\
+           device_id    INTEGER NOT NULL,\
+           key          BLOB    NOT NULL,\
+           FOREIGN KEY (device_id) REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE\
         );";
     constexpr auto create_mailboxes = "\
         CREATE TABLE IF NOT EXISTS mailbox (\
            message_id   INTEGER PRIMARY KEY,\
-           device_id    INTEGER NOT NULL REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE,\
-           contents     BLOB    NOT NULL\
+           device_id    INTEGER NOT NULL,\
+           contents     BLOB    NOT NULL,\
+           FOREIGN KEY (device_id) REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE\
         );";
     constexpr auto create_registration_codes = "\
         CREATE TABLE IF NOT EXISTS registration_codes (\
