@@ -116,3 +116,20 @@ void db::database::add_device(const std::string_view user_id, const crypto::publ
         spdlog::get("console")->error(sqlite3_errmsg(db_conn));
     }
 }
+
+void db::database::add_one_time_key(const int device_id, const crypto::public_key& one_time) {
+    sqlite3_reset(otpk_insert);
+    sqlite3_clear_bindings(otpk_insert);
+
+    if (sqlite3_bind_int(otpk_insert, 1, device_id) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+
+    if (sqlite3_bind_blob(otpk_insert, 2, one_time.data(), one_time.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+
+    if (sqlite3_step(otpk_insert) != SQLITE_DONE) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+}

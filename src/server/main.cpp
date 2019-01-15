@@ -157,6 +157,14 @@ int main(int argc, char* argv[]) {
     foo.add_device("test_email@foobar.com", {}, {}, {});
     console->info("Post insert 3");
 
+    console->info("Pre insert 4");
+    foo.add_one_time_key(99, {});
+    console->info("Post insert 4");
+
+    console->info("Pre insert 5");
+    foo.add_one_time_key(1, {});
+    console->info("Post insert 5");
+
     // Create and launch a listening port
     std::make_shared<listener>(ioc, ctx, tcp::endpoint{tcp::v4(), port})->run();
 

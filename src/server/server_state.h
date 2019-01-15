@@ -44,6 +44,7 @@ namespace db {
         void add_user(const std::string_view user_id);
         void add_device(const std::string_view user_id, const crypto::public_key& identity,
                 const crypto::public_key& pre_key, const crypto::signature& signature);
+        void add_one_time_key(const int device_id, const crypto::public_key& one_time);
 
     private:
         sqlite3* db_conn;
@@ -90,8 +91,8 @@ namespace db {
            expiration   TEXT    NOT NULL\
         );";
     constexpr auto insert_user = "INSERT INTO users VALUES (?1, ?2);";
-    constexpr auto insert_device = "INSERT INTO devices(user_id, identity_key, pre_key, signature) "
-                                   "VALUES (?1, ?2, ?3, ?4);";
+    constexpr auto insert_device = "INSERT INTO devices(user_id, identity_key, pre_key, signature) \
+                                    VALUES (?1, ?2, ?3, ?4);";
     constexpr auto insert_one_time = "INSERT INTO otpk(device_id, key) VALUES (?1, ?2);";
     constexpr auto insert_message = "INSERT INTO mailbox(device_id, contents) VALUES (?1, ?2);";
     constexpr auto insert_registration = "INSERT INTO registration_codes VALUES (?1, ?2, ?3);";
