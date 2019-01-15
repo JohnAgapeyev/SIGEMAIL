@@ -45,6 +45,7 @@ namespace db {
         void add_device(const std::string_view user_id, const crypto::public_key& identity,
                 const crypto::public_key& pre_key, const crypto::signature& signature);
         void add_one_time_key(const int device_id, const crypto::public_key& one_time);
+        void add_message(const int device_id, const std::vector<std::byte>& message_contents);
 
     private:
         sqlite3* db_conn;

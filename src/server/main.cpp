@@ -165,6 +165,18 @@ int main(int argc, char* argv[]) {
     foo.add_one_time_key(1, {});
     console->info("Post insert 5");
 
+    console->info("Pre insert 6");
+    foo.add_message(1, {});
+    console->info("Post insert 5");
+
+    console->info("Pre insert 7");
+    foo.add_message(1, {4, std::byte{0xab}});
+    console->info("Post insert 7");
+
+    console->info("Pre insert 8");
+    foo.add_message(99, {4, std::byte{0xab}});
+    console->info("Post insert 8");
+
     // Create and launch a listening port
     std::make_shared<listener>(ioc, ctx, tcp::endpoint{tcp::v4(), port})->run();
 

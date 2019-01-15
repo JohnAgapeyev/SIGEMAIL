@@ -133,3 +133,21 @@ void db::database::add_one_time_key(const int device_id, const crypto::public_ke
         spdlog::get("console")->error(sqlite3_errmsg(db_conn));
     }
 }
+
+void db::database::add_message(const int device_id, const std::vector<std::byte>& message_contents) {
+    sqlite3_reset(mailbox_insert);
+    sqlite3_clear_bindings(mailbox_insert);
+
+    if (sqlite3_bind_int(mailbox_insert, 1, device_id) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+
+    if (sqlite3_bind_blob(mailbox_insert, 2, message_contents.data(), message_contents.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+
+    if (sqlite3_step(mailbox_insert) != SQLITE_DONE) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+}
+
