@@ -129,7 +129,7 @@ add_library(sqlite3 OBJECT
 )
 target_compile_options(sqlite3 PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>")
 target_compile_options(sqlite3 PUBLIC "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
-target_compile_definitions(sqlite3 PRIVATE SQLITE_OMIT_LOAD_EXTENSION)
+target_compile_definitions(sqlite3 PRIVATE SQLITE_OMIT_LOAD_EXTENSION SQLITE_DEFAULT_FOREIGN_KEYS=1)
 
 add_library(${SOURCE_LIBRARY} OBJECT ${SIGEMAIL_SOURCES})
 add_library(${CLIENT_LIBRARY} OBJECT ${CLIENT_SOURCES})

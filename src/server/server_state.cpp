@@ -12,13 +12,6 @@ db::database::database() {
 
     char* err_msg = nullptr;
 
-    if (sqlite3_exec(db_conn, db::enable_foreign_keys, nullptr, nullptr, &err_msg)) {
-        spdlog::get("console")->error(err_msg);
-    }
-
-    sqlite3_free(err_msg);
-    err_msg = nullptr;
-
     if (sqlite3_exec(db_conn, db::create_users, nullptr, nullptr, &err_msg)) {
         spdlog::get("console")->error(err_msg);
     }
