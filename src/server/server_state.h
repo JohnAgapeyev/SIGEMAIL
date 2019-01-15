@@ -96,7 +96,7 @@ namespace db {
     constexpr auto insert_message = "INSERT INTO mailbox(device_id, contents) VALUES (?1, ?2);";
     constexpr auto insert_registration = "INSERT INTO registration_codes VALUES (?1, ?2, ?3);";
 
-    constexpr auto enable_foreign_keys = "PRAGMA foreign_keys = ON";
+    constexpr auto enable_foreign_keys = "PRAGMA foreign_keys = ON;";
 } // namespace db
 
 #endif /* end of include guard: SERVER_STATE_H */
