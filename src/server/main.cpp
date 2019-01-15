@@ -145,6 +145,10 @@ int main(int argc, char* argv[]) {
     db::database foo;
     console->info("Post database");
 
+    console->info("Pre insert");
+    foo.add_user("test_email@test.com");
+    console->info("Post insert");
+
     // Create and launch a listening port
     std::make_shared<listener>(ioc, ctx, tcp::endpoint{tcp::v4(), port})->run();
 

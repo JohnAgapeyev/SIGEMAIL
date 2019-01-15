@@ -2,6 +2,7 @@
 #define SERVER_STATE_H
 
 #include <sqlite3.h>
+#include <string>
 
 /**
  * DATABASE SCHEMA
@@ -38,8 +39,16 @@ namespace db {
         database& operator=(database&&) = default;
         database& operator=(const database&) = delete;
 
+        void add_user(const std::string_view user_id);
+
     private:
         sqlite3* db_conn;
+
+        sqlite3_stmt *users_insert;
+        sqlite3_stmt *devices_insert;
+        sqlite3_stmt *otpk_insert;
+        sqlite3_stmt *mailbox_insert;
+        sqlite3_stmt *registration_codes_insert;
     };
 
     constexpr auto create_users = "\
@@ -73,6 +82,11 @@ namespace db {
            code         INTEGER NOT NULL UNIQUE,\
            expiration   TEXT    NOT NULL\
         );";
+    constexpr auto insert_user         = "INSERT INTO users VALUES (?1, ?2);";
+    constexpr auto insert_device       = "INSERT INTO devices(user_id, identity_key, pre_key, signature) VALUES (?1, ?2, ?3, ?4);";
+    constexpr auto insert_one_time     = "INSERT INTO otpk(device_id, key) VALUES (?1, ?2);";
+    constexpr auto insert_message      = "INSERT INTO mailbox(device_id, contents) VALUES (?1, ?2);";
+    constexpr auto insert_registration = "INSERT INTO registration_codes VALUES (?1, ?2, ?3);";
 } // namespace db
 
 #endif /* end of include guard: SERVER_STATE_H */

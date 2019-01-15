@@ -127,35 +127,35 @@ add_library(sqlite3 OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/extern/sqlite3/sqlite3.c
     ${CMAKE_CURRENT_SOURCE_DIR}/extern/sqlite3/sqlite3.h
 )
-target_compile_options(sqlite3 INTERFACE "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>")
-target_compile_options(sqlite3 INTERFACE "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
+target_compile_options(sqlite3 PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>")
+target_compile_options(sqlite3 PUBLIC "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
 target_compile_definitions(sqlite3 PRIVATE SQLITE_OMIT_LOAD_EXTENSION)
 
 add_library(${SOURCE_LIBRARY} OBJECT ${SIGEMAIL_SOURCES})
 add_library(${CLIENT_LIBRARY} OBJECT ${CLIENT_SOURCES})
 add_library(${SERVER_LIBRARY} OBJECT ${SERVER_SOURCES})
 
-target_compile_options(${SOURCE_LIBRARY} 
-    PRIVATE ${WARNINGS} 
+target_compile_options(${SOURCE_LIBRARY}
+    PRIVATE ${WARNINGS}
     PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>" "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
 target_compile_definitions(${SOURCE_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
 target_include_directories(${SOURCE_LIBRARY} PUBLIC ${INCLUDE_DIRS})
 
-target_compile_options(${CLIENT_LIBRARY} 
-    PRIVATE ${WARNINGS} 
+target_compile_options(${CLIENT_LIBRARY}
+    PRIVATE ${WARNINGS}
     PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>" "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
 target_compile_definitions(${CLIENT_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
 target_include_directories(${CLIENT_LIBRARY} PUBLIC ${INCLUDE_DIRS})
 
-target_compile_options(${SERVER_LIBRARY} 
-    PRIVATE ${WARNINGS} 
+target_compile_options(${SERVER_LIBRARY}
+    PRIVATE ${WARNINGS}
     PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>" "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
 target_compile_definitions(${SERVER_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
 target_include_directories(${SERVER_LIBRARY} PUBLIC ${INCLUDE_DIRS})
 
 add_executable(${PROJECT_NAME} ${CLIENT_MAIN_SOURCE} $<TARGET_OBJECTS:${SOURCE_LIBRARY}> $<TARGET_OBJECTS:${CLIENT_LIBRARY}>)
-target_compile_options(${PROJECT_NAME} 
-    PRIVATE ${WARNINGS} 
+target_compile_options(${PROJECT_NAME}
+    PRIVATE ${WARNINGS}
     PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>" "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
 target_compile_definitions(${PROJECT_NAME} PRIVATE "$<$<CONFIG:RELEASE>:NDEBUG>")
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
@@ -164,8 +164,8 @@ target_link_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:RELEASE>:-s>")
 
 set(SERVER ${PROJECT_NAME}_server)
 add_executable(${SERVER} ${SERVER_MAIN_SOURCE} $<TARGET_OBJECTS:${SOURCE_LIBRARY}> $<TARGET_OBJECTS:${SERVER_LIBRARY}> $<TARGET_OBJECTS:sqlite3>)
-target_compile_options(${SERVER} 
-    PRIVATE ${WARNINGS} 
+target_compile_options(${SERVER}
+    PRIVATE ${WARNINGS}
     PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>" "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
 target_compile_definitions(${SERVER} PRIVATE "$<$<CONFIG:RELEASE>:NDEBUG>")
 target_include_directories(${SERVER} PRIVATE ${INCLUDE_DIRS})
@@ -176,7 +176,7 @@ enable_testing()
 
 add_executable(test_binary ${TEST_SOURCES} ${Boost_INCLUDE_DIRS} $<TARGET_OBJECTS:${SOURCE_LIBRARY}> $<TARGET_OBJECTS:${CLIENT_LIBRARY}> $<TARGET_OBJECTS:${SERVER_LIBRARY}> $<TARGET_OBJECTS:sqlite3>)
 target_compile_options(test_binary
-    PRIVATE ${WARNINGS} 
+    PRIVATE ${WARNINGS}
     PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>" "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
 target_compile_definitions(test_binary PRIVATE "$<$<CONFIG:RELEASE>:NDEBUG>")
 target_include_directories(test_binary PRIVATE ${INCLUDE_DIRS})

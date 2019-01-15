@@ -60,4 +60,14 @@ BOOST_AUTO_TEST_CASE(modified_hash) {
     BOOST_TEST(h1 != h2);
 }
 
+BOOST_AUTO_TEST_CASE(string_hash) {
+    //Force the message to be empty
+    const auto m = "foobar";
+
+    const auto h1 = crypto::hash_string(m);
+    const auto h2 = crypto::hash_string(m);
+
+    BOOST_TEST(h1 == h2);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -1,6 +1,7 @@
 #include <sqlite3.h>
 #include <stdexcept>
 
+#include "crypto.h"
 #include "logging.h"
 #include "server_state.h"
 
@@ -42,8 +43,42 @@ db::database::database() {
 
     sqlite3_free(err_msg);
     err_msg = nullptr;
+
+    if (sqlite3_prepare_v2(db_conn, insert_user, strlen(insert_user) + 1, &users_insert, nullptr) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+    if (sqlite3_prepare_v2(db_conn, insert_device, strlen(insert_device) + 1, &devices_insert, nullptr) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+    if (sqlite3_prepare_v2(db_conn, insert_one_time, strlen(insert_one_time) + 1, &otpk_insert, nullptr) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+    if (sqlite3_prepare_v2(db_conn, insert_message, strlen(insert_message) + 1, &mailbox_insert, nullptr) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+    if (sqlite3_prepare_v2(db_conn, insert_registration, strlen(insert_registration) + 1, &registration_codes_insert, nullptr) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
 }
 
 db::database::~database() {
+    sqlite3_finalize(users_insert);
+    sqlite3_finalize(devices_insert);
+    sqlite3_finalize(otpk_insert);
+    sqlite3_finalize(mailbox_insert);
+    sqlite3_finalize(registration_codes_insert);
     sqlite3_close(db_conn);
+}
+
+void db::database::add_user(const std::string_view user_id) {
+    if (sqlite3_bind_text(users_insert, 1, user_id.data(), user_id.length(), SQLITE_TRANSIENT) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+
+    const auto trunc_hash = crypto::hash_string(user_id);
+
+    //Store the first 24/32 bytes of the email hash
+    if (sqlite3_bind_blob(users_insert, 2, trunc_hash.data(), trunc_hash.size() - 8, SQLITE_TRANSIENT) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
 }

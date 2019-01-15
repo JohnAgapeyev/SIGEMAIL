@@ -149,6 +149,9 @@ namespace crypto {
     std::array<std::byte, 32> hash_data(const secure_array<T, N>& data) {
         return hash_data_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size());
     }
+    static inline std::array<std::byte, 32> hash_string(const std::string_view data) {
+        return hash_data_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size());
+    }
 } // namespace crypto
 
 #endif
