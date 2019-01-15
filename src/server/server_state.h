@@ -58,14 +58,14 @@ namespace db {
     constexpr auto create_users = "\
         CREATE TABLE IF NOT EXISTS users (\
            user_id    TEXT PRIMARY KEY,\
-           trunc_hash BLOB NOT NULL\
+           trunc_hash BLOB NOT NULL UNIQUE\
         ) WITHOUT ROWID;";
     constexpr auto create_devices = "\
         CREATE TABLE IF NOT EXISTS devices (\
            device_id    INTEGER PRIMARY KEY,\
            user_id      TEXT    NOT NULL,\
-           identity_key BLOB    NOT NULL,\
-           pre_key      BLOB    NOT NULL,\
+           identity_key BLOB    NOT NULL UNIQUE,\
+           pre_key      BLOB    NOT NULL UNIQUE,\
            signature    BLOB    NOT NULL,\
            FOREIGN KEY (user_id) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE\
         );";
@@ -73,7 +73,7 @@ namespace db {
         CREATE TABLE IF NOT EXISTS otpk (\
            key_id       INTEGER PRIMARY KEY,\
            device_id    INTEGER NOT NULL,\
-           key          BLOB    NOT NULL,\
+           key          BLOB    NOT NULL UNIQUE,\
            FOREIGN KEY (device_id) REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE\
         );";
     constexpr auto create_mailboxes = "\
