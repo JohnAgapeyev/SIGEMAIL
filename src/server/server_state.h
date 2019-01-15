@@ -4,6 +4,8 @@
 #include <sqlite3.h>
 #include <string>
 
+#include "crypto.h"
+
 /**
  * DATABASE SCHEMA
  * Need the following tables:
@@ -40,15 +42,17 @@ namespace db {
         database& operator=(const database&) = delete;
 
         void add_user(const std::string_view user_id);
+        void add_device(const std::string_view user_id, const crypto::public_key& identity,
+                const crypto::public_key& pre_key, const crypto::signature& signature);
 
     private:
         sqlite3* db_conn;
 
-        sqlite3_stmt *users_insert;
-        sqlite3_stmt *devices_insert;
-        sqlite3_stmt *otpk_insert;
-        sqlite3_stmt *mailbox_insert;
-        sqlite3_stmt *registration_codes_insert;
+        sqlite3_stmt* users_insert;
+        sqlite3_stmt* devices_insert;
+        sqlite3_stmt* otpk_insert;
+        sqlite3_stmt* mailbox_insert;
+        sqlite3_stmt* registration_codes_insert;
     };
 
     constexpr auto create_users = "\
@@ -82,10 +86,11 @@ namespace db {
            code         INTEGER NOT NULL UNIQUE,\
            expiration   TEXT    NOT NULL\
         );";
-    constexpr auto insert_user         = "INSERT INTO users VALUES (?1, ?2);";
-    constexpr auto insert_device       = "INSERT INTO devices(user_id, identity_key, pre_key, signature) VALUES (?1, ?2, ?3, ?4);";
-    constexpr auto insert_one_time     = "INSERT INTO otpk(device_id, key) VALUES (?1, ?2);";
-    constexpr auto insert_message      = "INSERT INTO mailbox(device_id, contents) VALUES (?1, ?2);";
+    constexpr auto insert_user = "INSERT INTO users VALUES (?1, ?2);";
+    constexpr auto insert_device = "INSERT INTO devices(user_id, identity_key, pre_key, signature) "
+                                   "VALUES (?1, ?2, ?3, ?4);";
+    constexpr auto insert_one_time = "INSERT INTO otpk(device_id, key) VALUES (?1, ?2);";
+    constexpr auto insert_message = "INSERT INTO mailbox(device_id, contents) VALUES (?1, ?2);";
     constexpr auto insert_registration = "INSERT INTO registration_codes VALUES (?1, ?2, ?3);";
 } // namespace db
 

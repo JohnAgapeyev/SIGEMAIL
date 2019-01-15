@@ -71,7 +71,7 @@ db::database::~database() {
 }
 
 void db::database::add_user(const std::string_view user_id) {
-    if (sqlite3_bind_text(users_insert, 1, user_id.data(), user_id.length(), SQLITE_TRANSIENT) != SQLITE_OK) {
+    if (sqlite3_bind_text(users_insert, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
         spdlog::get("console")->error(sqlite3_errmsg(db_conn));
     }
 
@@ -79,6 +79,26 @@ void db::database::add_user(const std::string_view user_id) {
 
     //Store the first 24/32 bytes of the email hash
     if (sqlite3_bind_blob(users_insert, 2, trunc_hash.data(), trunc_hash.size() - 8, SQLITE_TRANSIENT) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+}
+
+void db::database::add_device(const std::string_view user_id, const crypto::public_key& identity,
+                const crypto::public_key& pre_key, const crypto::signature& signature) {
+    if (!crypto::verify_signed_key(signature, pre_key, identity)) {
+        spdlog::get("console")->error("Signature did not verify correctly");
+    }
+
+    if (sqlite3_bind_text(devices_insert, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+    if (sqlite3_bind_blob(devices_insert, 2, identity.data(), identity.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+    if (sqlite3_bind_blob(devices_insert, 3, pre_key.data(), pre_key.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+    if (sqlite3_bind_blob(devices_insert, 4, signature.data(), signature.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
         spdlog::get("console")->error(sqlite3_errmsg(db_conn));
     }
 }
