@@ -71,6 +71,9 @@ db::database::~database() {
 }
 
 void db::database::add_user(const std::string_view user_id) {
+    sqlite3_reset(users_insert);
+    sqlite3_clear_bindings(users_insert);
+
     if (sqlite3_bind_text(users_insert, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
         spdlog::get("console")->error(sqlite3_errmsg(db_conn));
     }
@@ -81,6 +84,10 @@ void db::database::add_user(const std::string_view user_id) {
     if (sqlite3_bind_blob(users_insert, 2, trunc_hash.data(), trunc_hash.size() - 8, SQLITE_TRANSIENT) != SQLITE_OK) {
         spdlog::get("console")->error(sqlite3_errmsg(db_conn));
     }
+
+    if (sqlite3_step(users_insert) != SQLITE_DONE) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
 }
 
 void db::database::add_device(const std::string_view user_id, const crypto::public_key& identity,
@@ -88,6 +95,9 @@ void db::database::add_device(const std::string_view user_id, const crypto::publ
     if (!crypto::verify_signed_key(signature, pre_key, identity)) {
         spdlog::get("console")->error("Signature did not verify correctly");
     }
+
+    sqlite3_reset(devices_insert);
+    sqlite3_clear_bindings(devices_insert);
 
     if (sqlite3_bind_text(devices_insert, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
         spdlog::get("console")->error(sqlite3_errmsg(db_conn));
@@ -99,6 +109,10 @@ void db::database::add_device(const std::string_view user_id, const crypto::publ
         spdlog::get("console")->error(sqlite3_errmsg(db_conn));
     }
     if (sqlite3_bind_blob(devices_insert, 4, signature.data(), signature.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+
+    if (sqlite3_step(devices_insert) != SQLITE_DONE) {
         spdlog::get("console")->error(sqlite3_errmsg(db_conn));
     }
 }
