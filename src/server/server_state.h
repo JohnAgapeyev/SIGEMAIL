@@ -42,6 +42,7 @@ namespace db {
         database& operator=(const database&) = delete;
 
         void add_user(const std::string_view user_id);
+        //Signature should be verified before this call
         void add_device(const std::string_view user_id, const crypto::public_key& identity,
                 const crypto::public_key& pre_key, const crypto::signature& signature);
         void add_one_time_key(const int device_id, const crypto::public_key& one_time);

@@ -116,10 +116,6 @@ void db::database::add_user(const std::string_view user_id) {
 
 void db::database::add_device(const std::string_view user_id, const crypto::public_key& identity,
                 const crypto::public_key& pre_key, const crypto::signature& signature) {
-    if (!crypto::verify_signed_key(signature, pre_key, identity)) {
-        spdlog::error("Signature did not verify correctly");
-    }
-
     sqlite3_reset(devices_insert);
     sqlite3_clear_bindings(devices_insert);
 
@@ -194,7 +190,6 @@ void db::database::add_registration_code(const std::string_view email, const int
 
 void db::database::update_pre_key(const int device_id, const crypto::public_key& pre_key,
                 const crypto::signature& signature) {
-    //Should check signature validity here, but that requires a subquery, which I'm not implementing yet
     sqlite3_reset(devices_update);
     sqlite3_clear_bindings(devices_update);
 
