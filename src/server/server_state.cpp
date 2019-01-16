@@ -1,5 +1,8 @@
+#include <algorithm>
+#include <iterator>
 #include <sqlite3.h>
 #include <stdexcept>
+#include <utility>
 
 #include "crypto.h"
 #include "logging.h"
@@ -44,37 +47,62 @@ db::database::database() {
     sqlite3_free(err_msg);
     err_msg = nullptr;
 
-    if (sqlite3_prepare_v2(db_conn, insert_user, strlen(insert_user) + 1, &users_insert, nullptr) != SQLITE_OK) {
+    if (sqlite3_prepare_v2(db_conn, insert_user, strlen(insert_user) + 1, &users_insert, nullptr)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
-    if (sqlite3_prepare_v2(db_conn, insert_device, strlen(insert_device) + 1, &devices_insert, nullptr) != SQLITE_OK) {
+    if (sqlite3_prepare_v2(
+                db_conn, insert_device, strlen(insert_device) + 1, &devices_insert, nullptr)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
-    if (sqlite3_prepare_v2(db_conn, insert_one_time, strlen(insert_one_time) + 1, &otpk_insert, nullptr) != SQLITE_OK) {
+    if (sqlite3_prepare_v2(
+                db_conn, insert_one_time, strlen(insert_one_time) + 1, &otpk_insert, nullptr)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
-    if (sqlite3_prepare_v2(db_conn, insert_message, strlen(insert_message) + 1, &mailbox_insert, nullptr) != SQLITE_OK) {
+    if (sqlite3_prepare_v2(
+                db_conn, insert_message, strlen(insert_message) + 1, &mailbox_insert, nullptr)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
-    if (sqlite3_prepare_v2(db_conn, insert_registration, strlen(insert_registration) + 1, &registration_codes_insert, nullptr) != SQLITE_OK) {
+    if (sqlite3_prepare_v2(db_conn, insert_registration, strlen(insert_registration) + 1,
+                &registration_codes_insert, nullptr)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
-    if (sqlite3_prepare_v2(db_conn, update_pre_key_stmt, strlen(update_pre_key_stmt) + 1, &devices_update, nullptr) != SQLITE_OK) {
+    if (sqlite3_prepare_v2(db_conn, update_pre_key_stmt, strlen(update_pre_key_stmt) + 1,
+                &devices_update, nullptr)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
-    if (sqlite3_prepare_v2(db_conn, delete_user, strlen(delete_user) + 1, &users_delete, nullptr) != SQLITE_OK) {
+    if (sqlite3_prepare_v2(db_conn, delete_user, strlen(delete_user) + 1, &users_delete, nullptr)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
-    if (sqlite3_prepare_v2(db_conn, delete_device, strlen(delete_device) + 1, &devices_delete, nullptr) != SQLITE_OK) {
+    if (sqlite3_prepare_v2(
+                db_conn, delete_device, strlen(delete_device) + 1, &devices_delete, nullptr)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
-    if (sqlite3_prepare_v2(db_conn, delete_one_time, strlen(delete_one_time) + 1, &otpk_delete, nullptr) != SQLITE_OK) {
+    if (sqlite3_prepare_v2(
+                db_conn, delete_one_time, strlen(delete_one_time) + 1, &otpk_delete, nullptr)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
-    if (sqlite3_prepare_v2(db_conn, delete_message, strlen(delete_message) + 1, &mailbox_delete, nullptr) != SQLITE_OK) {
+    if (sqlite3_prepare_v2(
+                db_conn, delete_message, strlen(delete_message) + 1, &mailbox_delete, nullptr)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
-    if (sqlite3_prepare_v2(db_conn, delete_registration_code, strlen(delete_registration_code) + 1, &registration_codes_delete, nullptr) != SQLITE_OK) {
+    if (sqlite3_prepare_v2(db_conn, delete_registration_code, strlen(delete_registration_code) + 1,
+                &registration_codes_delete, nullptr)
+            != SQLITE_OK) {
+        spdlog::error(sqlite3_errmsg(db_conn));
+    }
+    if (sqlite3_prepare_v2(db_conn, select_trunc_hash, strlen(select_trunc_hash) + 1,
+                &users_hash_select, nullptr)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
 }
@@ -91,6 +119,7 @@ db::database::~database() {
     sqlite3_finalize(otpk_delete);
     sqlite3_finalize(mailbox_delete);
     sqlite3_finalize(registration_codes_delete);
+    sqlite3_finalize(users_hash_select);
     sqlite3_close(db_conn);
 }
 
@@ -98,14 +127,17 @@ void db::database::add_user(const std::string_view user_id) {
     sqlite3_reset(users_insert);
     sqlite3_clear_bindings(users_insert);
 
-    if (sqlite3_bind_text(users_insert, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+    if (sqlite3_bind_text(users_insert, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
 
     const auto trunc_hash = crypto::hash_string(user_id);
 
     //Store the first 24/32 bytes of the email hash
-    if (sqlite3_bind_blob(users_insert, 2, trunc_hash.data(), trunc_hash.size() - 8, SQLITE_TRANSIENT) != SQLITE_OK) {
+    if (sqlite3_bind_blob(
+                users_insert, 2, trunc_hash.data(), trunc_hash.size() - 8, SQLITE_TRANSIENT)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
 
@@ -115,20 +147,24 @@ void db::database::add_user(const std::string_view user_id) {
 }
 
 void db::database::add_device(const std::string_view user_id, const crypto::public_key& identity,
-                const crypto::public_key& pre_key, const crypto::signature& signature) {
+        const crypto::public_key& pre_key, const crypto::signature& signature) {
     sqlite3_reset(devices_insert);
     sqlite3_clear_bindings(devices_insert);
 
-    if (sqlite3_bind_text(devices_insert, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+    if (sqlite3_bind_text(devices_insert, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
-    if (sqlite3_bind_blob(devices_insert, 2, identity.data(), identity.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+    if (sqlite3_bind_blob(devices_insert, 2, identity.data(), identity.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
-    if (sqlite3_bind_blob(devices_insert, 3, pre_key.data(), pre_key.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+    if (sqlite3_bind_blob(devices_insert, 3, pre_key.data(), pre_key.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
-    if (sqlite3_bind_blob(devices_insert, 4, signature.data(), signature.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+    if (sqlite3_bind_blob(devices_insert, 4, signature.data(), signature.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
 
@@ -145,7 +181,8 @@ void db::database::add_one_time_key(const int device_id, const crypto::public_ke
         spdlog::error(sqlite3_errmsg(db_conn));
     }
 
-    if (sqlite3_bind_blob(otpk_insert, 2, one_time.data(), one_time.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+    if (sqlite3_bind_blob(otpk_insert, 2, one_time.data(), one_time.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
 
@@ -154,7 +191,8 @@ void db::database::add_one_time_key(const int device_id, const crypto::public_ke
     }
 }
 
-void db::database::add_message(const int device_id, const std::vector<std::byte>& message_contents) {
+void db::database::add_message(
+        const int device_id, const std::vector<std::byte>& message_contents) {
     sqlite3_reset(mailbox_insert);
     sqlite3_clear_bindings(mailbox_insert);
 
@@ -162,7 +200,9 @@ void db::database::add_message(const int device_id, const std::vector<std::byte>
         spdlog::error(sqlite3_errmsg(db_conn));
     }
 
-    if (sqlite3_bind_blob(mailbox_insert, 2, message_contents.data(), message_contents.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+    if (sqlite3_bind_blob(mailbox_insert, 2, message_contents.data(), message_contents.size(),
+                SQLITE_TRANSIENT)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
 
@@ -175,7 +215,9 @@ void db::database::add_registration_code(const std::string_view email, const int
     sqlite3_reset(registration_codes_insert);
     sqlite3_clear_bindings(registration_codes_insert);
 
-    if (sqlite3_bind_text(registration_codes_insert, 1, email.data(), email.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+    if (sqlite3_bind_text(
+                registration_codes_insert, 1, email.data(), email.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
 
@@ -189,14 +231,16 @@ void db::database::add_registration_code(const std::string_view email, const int
 }
 
 void db::database::update_pre_key(const int device_id, const crypto::public_key& pre_key,
-                const crypto::signature& signature) {
+        const crypto::signature& signature) {
     sqlite3_reset(devices_update);
     sqlite3_clear_bindings(devices_update);
 
-    if (sqlite3_bind_blob(devices_update, 1, pre_key.data(), pre_key.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+    if (sqlite3_bind_blob(devices_update, 1, pre_key.data(), pre_key.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
-    if (sqlite3_bind_blob(devices_update, 2, signature.data(), signature.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+    if (sqlite3_bind_blob(devices_update, 2, signature.data(), signature.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
 
@@ -213,7 +257,8 @@ void db::database::remove_user(const std::string_view user_id) {
     sqlite3_reset(users_delete);
     sqlite3_clear_bindings(users_delete);
 
-    if (sqlite3_bind_text(users_delete, 1, user_id.data(), user_id.size() + 1, SQLITE_TRANSIENT) != SQLITE_OK) {
+    if (sqlite3_bind_text(users_delete, 1, user_id.data(), user_id.size() + 1, SQLITE_TRANSIENT)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
 
@@ -265,7 +310,9 @@ void db::database::remove_registration_code(const std::string_view email) {
     sqlite3_reset(registration_codes_delete);
     sqlite3_clear_bindings(registration_codes_delete);
 
-    if (sqlite3_bind_text(registration_codes_delete, 1, email.data(), email.size() + 1, SQLITE_TRANSIENT) != SQLITE_OK) {
+    if (sqlite3_bind_text(
+                registration_codes_delete, 1, email.data(), email.size() + 1, SQLITE_TRANSIENT)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
 
@@ -274,3 +321,40 @@ void db::database::remove_registration_code(const std::string_view email) {
     }
 }
 
+//This is inefficient once the database gets too big due to reallocating the vector, and doing the work outside the database
+//Fine for now, but will need attention if scale is ever a factor
+std::vector<std::array<std::byte, 24>> db::database::contact_intersection(
+        std::vector<std::array<std::byte, 24>> truncated_hashes) {
+    std::vector<std::array<std::byte, 24>> all_hashes;
+    int err;
+
+    sqlite3_reset(users_hash_select);
+
+    while ((err = sqlite3_step(users_hash_select)) == SQLITE_ROW) {
+        std::array<std::byte, 24> trunc_hash;
+
+        const auto db_data = sqlite3_column_blob(users_hash_select, 1);
+
+        //Copy data from database pointer to array
+        memcpy(trunc_hash.data(), db_data, 24);
+
+        //Store array into list
+        all_hashes.emplace_back(std::move(trunc_hash));
+    }
+
+    if (err != SQLITE_DONE) {
+        //Statement ended unexpectedly
+        spdlog::error(sqlite3_errmsg(db_conn));
+        return {};
+    }
+
+    std::sort(truncated_hashes.begin(), truncated_hashes.end());
+    std::sort(all_hashes.begin(), all_hashes.end());
+
+    std::vector<std::array<std::byte, 24>> intersect;
+
+    std::set_intersection(truncated_hashes.begin(), truncated_hashes.end(), all_hashes.begin(),
+            all_hashes.end(), std::make_move_iterator(intersect.end()));
+
+    return intersect;
+}

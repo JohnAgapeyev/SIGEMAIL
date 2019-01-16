@@ -58,6 +58,8 @@ namespace db {
         void remove_message(const int message_id);
         void remove_registration_code(const std::string_view email);
 
+        std::vector<std::array<std::byte, 24>> contact_intersection(std::vector<std::array<std::byte, 24>> truncated_hashes);
+
     private:
         sqlite3* db_conn;
 
@@ -74,6 +76,8 @@ namespace db {
         sqlite3_stmt* otpk_delete;
         sqlite3_stmt* mailbox_delete;
         sqlite3_stmt* registration_codes_delete;
+
+        sqlite3_stmt* users_hash_select;
     };
 
     constexpr auto create_users = "\
@@ -126,6 +130,8 @@ namespace db {
     constexpr auto delete_one_time = "DELETE FROM otpk WHERE key_id = ?1;";
     constexpr auto delete_message = "DELETE FROM mailbox WHERE message_id = ?1;";
     constexpr auto delete_registration_code = "DELETE FROM registration_codes WHERE email = ?1;";
+
+    constexpr auto select_trunc_hash = "SELECT trunc_hash FROM users;";
 } // namespace db
 
 #endif /* end of include guard: SERVER_STATE_H */
