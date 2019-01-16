@@ -185,6 +185,10 @@ int main(int argc, char* argv[]) {
     foo.add_registration_code("foobar@test.com", 12);
     console->info("Post insert 10");
 
+    console->info("Pre insert 11");
+    foo.update_pre_key(1, {}, {});
+    console->info("Post insert 11");
+
     // Create and launch a listening port
     std::make_shared<listener>(ioc, ctx, tcp::endpoint{tcp::v4(), port})->run();
 

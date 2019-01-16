@@ -59,6 +59,9 @@ db::database::database() {
     if (sqlite3_prepare_v2(db_conn, insert_registration, strlen(insert_registration) + 1, &registration_codes_insert, nullptr) != SQLITE_OK) {
         spdlog::get("console")->error(sqlite3_errmsg(db_conn));
     }
+    if (sqlite3_prepare_v2(db_conn, update_pre_key_stmt, strlen(update_pre_key_stmt) + 1, &device_key_update, nullptr) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
 }
 
 db::database::~database() {
@@ -163,13 +166,29 @@ void db::database::add_registration_code(const std::string_view email, const int
         spdlog::get("console")->error(sqlite3_errmsg(db_conn));
     }
 
-#if 0
-    if (sqlite3_bind_text(registration_codes_insert, 2, code) != SQLITE_OK) {
+    if (sqlite3_step(registration_codes_insert) != SQLITE_DONE) {
         spdlog::get("console")->error(sqlite3_errmsg(db_conn));
     }
-#endif
+}
 
-    if (sqlite3_step(registration_codes_insert) != SQLITE_DONE) {
+void db::database::update_pre_key(const int device_id, const crypto::public_key& pre_key,
+                const crypto::signature& signature) {
+    //Should check signature validity here, but that requires a subquery, which I'm not implementing yet
+    sqlite3_reset(device_key_update);
+    sqlite3_clear_bindings(device_key_update);
+
+    if (sqlite3_bind_blob(device_key_update, 1, pre_key.data(), pre_key.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+    if (sqlite3_bind_blob(device_key_update, 2, signature.data(), signature.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+
+    if (sqlite3_bind_int(device_key_update, 3, device_id) != SQLITE_OK) {
+        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+    }
+
+    if (sqlite3_step(device_key_update) != SQLITE_DONE) {
         spdlog::get("console")->error(sqlite3_errmsg(db_conn));
     }
 }

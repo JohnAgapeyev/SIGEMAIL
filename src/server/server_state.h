@@ -48,6 +48,9 @@ namespace db {
         void add_message(const int device_id, const std::vector<std::byte>& message_contents);
         void add_registration_code(const std::string_view email, const int code);
 
+        void update_pre_key(const int device_id, const crypto::public_key& pre_key,
+                const crypto::signature& signature);
+
     private:
         sqlite3* db_conn;
 
@@ -56,6 +59,7 @@ namespace db {
         sqlite3_stmt* otpk_insert;
         sqlite3_stmt* mailbox_insert;
         sqlite3_stmt* registration_codes_insert;
+        sqlite3_stmt* device_key_update;
     };
 
     constexpr auto create_users = "\
@@ -97,7 +101,11 @@ namespace db {
                                     VALUES (?1, ?2, ?3, ?4);";
     constexpr auto insert_one_time = "INSERT INTO otpk(device_id, key) VALUES (?1, ?2);";
     constexpr auto insert_message = "INSERT INTO mailbox(device_id, contents) VALUES (?1, ?2);";
-    constexpr auto insert_registration = "INSERT INTO registration_codes VALUES (?1, ?2, datetime('now', '+1 day'));";
+    constexpr auto insert_registration
+            = "INSERT INTO registration_codes VALUES (?1, ?2, datetime('now', '+1 day'));";
+
+    constexpr auto update_pre_key_stmt
+            = "UPDATE devices SET pre_key = ?1, signature = ?2 WHERE device_id = ?3;";
 } // namespace db
 
 #endif /* end of include guard: SERVER_STATE_H */
