@@ -51,6 +51,12 @@ namespace db {
         void update_pre_key(const int device_id, const crypto::public_key& pre_key,
                 const crypto::signature& signature);
 
+        void remove_user(const std::string_view user_id);
+        void remove_device(const int device_id);
+        void remove_one_time_key(const int key_id);
+        void remove_message(const int message_id);
+        void remove_registration_code(const std::string_view email);
+
     private:
         sqlite3* db_conn;
 
@@ -59,7 +65,14 @@ namespace db {
         sqlite3_stmt* otpk_insert;
         sqlite3_stmt* mailbox_insert;
         sqlite3_stmt* registration_codes_insert;
-        sqlite3_stmt* device_key_update;
+
+        sqlite3_stmt* devices_update;
+
+        sqlite3_stmt* users_delete;
+        sqlite3_stmt* devices_delete;
+        sqlite3_stmt* otpk_delete;
+        sqlite3_stmt* mailbox_delete;
+        sqlite3_stmt* registration_codes_delete;
     };
 
     constexpr auto create_users = "\
@@ -106,6 +119,12 @@ namespace db {
 
     constexpr auto update_pre_key_stmt
             = "UPDATE devices SET pre_key = ?1, signature = ?2 WHERE device_id = ?3;";
+
+    constexpr auto delete_user = "DELETE FROM users WHERE user_id = ?1;";
+    constexpr auto delete_device = "DELETE FROM devices WHERE device_id = ?1;";
+    constexpr auto delete_one_time = "DELETE FROM otpk WHERE key_id = ?1;";
+    constexpr auto delete_message = "DELETE FROM mailbox WHERE message_id = ?1;";
+    constexpr auto delete_registration_code = "DELETE FROM registration_codes WHERE email = ?1;";
 } // namespace db
 
 #endif /* end of include guard: SERVER_STATE_H */
