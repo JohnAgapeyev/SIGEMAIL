@@ -13,69 +13,69 @@ db::database::database() {
     char* err_msg = nullptr;
 
     if (sqlite3_exec(db_conn, db::create_users, nullptr, nullptr, &err_msg)) {
-        spdlog::get("console")->error(err_msg);
+        spdlog::error(err_msg);
     }
     sqlite3_free(err_msg);
     err_msg = nullptr;
 
     if (sqlite3_exec(db_conn, db::create_devices, nullptr, nullptr, &err_msg)) {
-        spdlog::get("console")->error(err_msg);
+        spdlog::error(err_msg);
     }
     sqlite3_free(err_msg);
     err_msg = nullptr;
 
     if (sqlite3_exec(db_conn, db::create_one_time, nullptr, nullptr, &err_msg)) {
-        spdlog::get("console")->error(err_msg);
+        spdlog::error(err_msg);
     }
     sqlite3_free(err_msg);
     err_msg = nullptr;
 
     if (sqlite3_exec(db_conn, db::create_mailboxes, nullptr, nullptr, &err_msg)) {
-        spdlog::get("console")->error(err_msg);
+        spdlog::error(err_msg);
     }
 
     sqlite3_free(err_msg);
     err_msg = nullptr;
 
     if (sqlite3_exec(db_conn, db::create_registration_codes, nullptr, nullptr, &err_msg)) {
-        spdlog::get("console")->error(err_msg);
+        spdlog::error(err_msg);
     }
 
     sqlite3_free(err_msg);
     err_msg = nullptr;
 
     if (sqlite3_prepare_v2(db_conn, insert_user, strlen(insert_user) + 1, &users_insert, nullptr) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
     if (sqlite3_prepare_v2(db_conn, insert_device, strlen(insert_device) + 1, &devices_insert, nullptr) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
     if (sqlite3_prepare_v2(db_conn, insert_one_time, strlen(insert_one_time) + 1, &otpk_insert, nullptr) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
     if (sqlite3_prepare_v2(db_conn, insert_message, strlen(insert_message) + 1, &mailbox_insert, nullptr) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
     if (sqlite3_prepare_v2(db_conn, insert_registration, strlen(insert_registration) + 1, &registration_codes_insert, nullptr) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
     if (sqlite3_prepare_v2(db_conn, update_pre_key_stmt, strlen(update_pre_key_stmt) + 1, &devices_update, nullptr) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
     if (sqlite3_prepare_v2(db_conn, delete_user, strlen(delete_user) + 1, &users_delete, nullptr) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
     if (sqlite3_prepare_v2(db_conn, delete_device, strlen(delete_device) + 1, &devices_delete, nullptr) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
     if (sqlite3_prepare_v2(db_conn, delete_one_time, strlen(delete_one_time) + 1, &otpk_delete, nullptr) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
     if (sqlite3_prepare_v2(db_conn, delete_message, strlen(delete_message) + 1, &mailbox_delete, nullptr) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
     if (sqlite3_prepare_v2(db_conn, delete_registration_code, strlen(delete_registration_code) + 1, &registration_codes_delete, nullptr) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 }
 
@@ -99,45 +99,45 @@ void db::database::add_user(const std::string_view user_id) {
     sqlite3_clear_bindings(users_insert);
 
     if (sqlite3_bind_text(users_insert, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 
     const auto trunc_hash = crypto::hash_string(user_id);
 
     //Store the first 24/32 bytes of the email hash
     if (sqlite3_bind_blob(users_insert, 2, trunc_hash.data(), trunc_hash.size() - 8, SQLITE_TRANSIENT) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 
     if (sqlite3_step(users_insert) != SQLITE_DONE) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 }
 
 void db::database::add_device(const std::string_view user_id, const crypto::public_key& identity,
                 const crypto::public_key& pre_key, const crypto::signature& signature) {
     if (!crypto::verify_signed_key(signature, pre_key, identity)) {
-        spdlog::get("console")->error("Signature did not verify correctly");
+        spdlog::error("Signature did not verify correctly");
     }
 
     sqlite3_reset(devices_insert);
     sqlite3_clear_bindings(devices_insert);
 
     if (sqlite3_bind_text(devices_insert, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
     if (sqlite3_bind_blob(devices_insert, 2, identity.data(), identity.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
     if (sqlite3_bind_blob(devices_insert, 3, pre_key.data(), pre_key.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
     if (sqlite3_bind_blob(devices_insert, 4, signature.data(), signature.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 
     if (sqlite3_step(devices_insert) != SQLITE_DONE) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 }
 
@@ -146,15 +146,15 @@ void db::database::add_one_time_key(const int device_id, const crypto::public_ke
     sqlite3_clear_bindings(otpk_insert);
 
     if (sqlite3_bind_int(otpk_insert, 1, device_id) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 
     if (sqlite3_bind_blob(otpk_insert, 2, one_time.data(), one_time.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 
     if (sqlite3_step(otpk_insert) != SQLITE_DONE) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 }
 
@@ -163,15 +163,15 @@ void db::database::add_message(const int device_id, const std::vector<std::byte>
     sqlite3_clear_bindings(mailbox_insert);
 
     if (sqlite3_bind_int(mailbox_insert, 1, device_id) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 
     if (sqlite3_bind_blob(mailbox_insert, 2, message_contents.data(), message_contents.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 
     if (sqlite3_step(mailbox_insert) != SQLITE_DONE) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 }
 
@@ -180,15 +180,15 @@ void db::database::add_registration_code(const std::string_view email, const int
     sqlite3_clear_bindings(registration_codes_insert);
 
     if (sqlite3_bind_text(registration_codes_insert, 1, email.data(), email.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 
     if (sqlite3_bind_int(registration_codes_insert, 2, code) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 
     if (sqlite3_step(registration_codes_insert) != SQLITE_DONE) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 }
 
@@ -199,18 +199,18 @@ void db::database::update_pre_key(const int device_id, const crypto::public_key&
     sqlite3_clear_bindings(devices_update);
 
     if (sqlite3_bind_blob(devices_update, 1, pre_key.data(), pre_key.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
     if (sqlite3_bind_blob(devices_update, 2, signature.data(), signature.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 
     if (sqlite3_bind_int(devices_update, 3, device_id) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 
     if (sqlite3_step(devices_update) != SQLITE_DONE) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 }
 
@@ -219,11 +219,11 @@ void db::database::remove_user(const std::string_view user_id) {
     sqlite3_clear_bindings(users_delete);
 
     if (sqlite3_bind_text(users_delete, 1, user_id.data(), user_id.size() + 1, SQLITE_TRANSIENT) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 
     if (sqlite3_step(users_delete) != SQLITE_DONE) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 }
 
@@ -232,11 +232,11 @@ void db::database::remove_device(const int device_id) {
     sqlite3_clear_bindings(devices_delete);
 
     if (sqlite3_bind_int(devices_delete, 1, device_id) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 
     if (sqlite3_step(devices_delete) != SQLITE_DONE) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 }
 
@@ -245,11 +245,11 @@ void db::database::remove_one_time_key(const int key_id) {
     sqlite3_clear_bindings(otpk_delete);
 
     if (sqlite3_bind_int(otpk_delete, 1, key_id) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 
     if (sqlite3_step(otpk_delete) != SQLITE_DONE) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 }
 
@@ -258,11 +258,11 @@ void db::database::remove_message(const int message_id) {
     sqlite3_clear_bindings(mailbox_delete);
 
     if (sqlite3_bind_int(mailbox_delete, 1, message_id) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 
     if (sqlite3_step(mailbox_delete) != SQLITE_DONE) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 }
 
@@ -271,11 +271,11 @@ void db::database::remove_registration_code(const std::string_view email) {
     sqlite3_clear_bindings(registration_codes_delete);
 
     if (sqlite3_bind_text(registration_codes_delete, 1, email.data(), email.size() + 1, SQLITE_TRANSIENT) != SQLITE_OK) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 
     if (sqlite3_step(registration_codes_delete) != SQLITE_DONE) {
-        spdlog::get("console")->error(sqlite3_errmsg(db_conn));
+        spdlog::error(sqlite3_errmsg(db_conn));
     }
 }
 

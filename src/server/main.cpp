@@ -139,55 +139,53 @@ int main(int argc, char* argv[]) {
     // This holds the self-signed certificate used by the server
     load_server_certificate(ctx);
 
-    auto console = spdlog::stdout_color_mt("console");
-
-    console->info("Pre database");
+    spdlog::info("Pre database");
     db::database foo;
-    console->info("Post database");
+    spdlog::info("Post database");
 
-    console->info("Pre insert");
+    spdlog::info("Pre insert");
     foo.add_user("test_email@test.com");
-    console->info("Post insert");
+    spdlog::info("Post insert");
 
-    console->info("Pre insert 2");
+    spdlog::info("Pre insert 2");
     foo.add_device("test_email@test.com", {}, {}, {});
-    console->info("Post insert 2");
+    spdlog::info("Post insert 2");
 
-    console->info("Pre insert 3");
+    spdlog::info("Pre insert 3");
     foo.add_device("test_email@foobar.com", {}, {}, {});
-    console->info("Post insert 3");
+    spdlog::info("Post insert 3");
 
-    console->info("Pre insert 4");
+    spdlog::info("Pre insert 4");
     foo.add_one_time_key(99, {});
-    console->info("Post insert 4");
+    spdlog::info("Post insert 4");
 
-    console->info("Pre insert 5");
+    spdlog::info("Pre insert 5");
     foo.add_one_time_key(1, {});
-    console->info("Post insert 5");
+    spdlog::info("Post insert 5");
 
-    console->info("Pre insert 6");
+    spdlog::info("Pre insert 6");
     foo.add_message(1, {});
-    console->info("Post insert 5");
+    spdlog::info("Post insert 5");
 
-    console->info("Pre insert 7");
+    spdlog::info("Pre insert 7");
     foo.add_message(1, {4, std::byte{0xab}});
-    console->info("Post insert 7");
+    spdlog::info("Post insert 7");
 
-    console->info("Pre insert 8");
+    spdlog::info("Pre insert 8");
     foo.add_message(99, {4, std::byte{0xab}});
-    console->info("Post insert 8");
+    spdlog::info("Post insert 8");
 
-    console->info("Pre insert 9");
+    spdlog::info("Pre insert 9");
     foo.add_registration_code("foobar@test.com", 123456);
-    console->info("Post insert 9");
+    spdlog::info("Post insert 9");
 
-    console->info("Pre insert 10");
+    spdlog::info("Pre insert 10");
     foo.add_registration_code("foobar@test.com", 12);
-    console->info("Post insert 10");
+    spdlog::info("Post insert 10");
 
-    console->info("Pre insert 11");
+    spdlog::info("Pre insert 11");
     foo.update_pre_key(1, {}, {});
-    console->info("Post insert 11");
+    spdlog::info("Post insert 11");
 
     // Create and launch a listening port
     std::make_shared<listener>(ioc, ctx, tcp::endpoint{tcp::v4(), port})->run();
