@@ -2,6 +2,7 @@
 #include <iterator>
 #include <sqlite3.h>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 #include "crypto.h"
@@ -105,6 +106,11 @@ db::database::database() {
             != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
+    if (sqlite3_prepare_v2(db_conn, select_user_auth_token, strlen(select_user_auth_token) + 1,
+                &users_auth_select, nullptr)
+            != SQLITE_OK) {
+        spdlog::error(sqlite3_errmsg(db_conn));
+    }
 }
 
 db::database::~database() {
@@ -120,6 +126,7 @@ db::database::~database() {
     sqlite3_finalize(mailbox_delete);
     sqlite3_finalize(registration_codes_delete);
     sqlite3_finalize(users_hash_select);
+    sqlite3_finalize(users_auth_select);
     sqlite3_close(db_conn);
 }
 
@@ -367,4 +374,23 @@ std::vector<std::array<std::byte, 24>> db::database::contact_intersection(
             all_hashes.end(), std::make_move_iterator(intersect.end()));
 
     return intersect;
+}
+
+[[nodiscard]] bool db::database::confirm_auth_token(const std::string_view user_id, const std::string_view auth_token) {
+    sqlite3_reset(users_auth_select);
+    sqlite3_clear_bindings(users_auth_select);
+
+    if (sqlite3_bind_text(users_auth_select, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+        spdlog::error(sqlite3_errmsg(db_conn));
+    }
+
+    //User did not exist in the table, or an error happened
+    if (sqlite3_step(users_auth_select) != SQLITE_ROW) {
+        return false;
+    }
+
+    const auto user_token = sqlite3_column_text(users_auth_select, 1);
+    const auto user_token_length = sqlite3_column_bytes(users_auth_select, 1);
+
+    return auth_token.compare(std::string_view{reinterpret_cast<const char *>(user_token), static_cast<unsigned long>(user_token_length)}) == 0;
 }

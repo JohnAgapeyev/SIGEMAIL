@@ -60,6 +60,8 @@ namespace db {
 
         std::vector<std::array<std::byte, 24>> contact_intersection(std::vector<std::array<std::byte, 24>> truncated_hashes);
 
+        [[nodiscard]] bool confirm_auth_token(const std::string_view user_id, const std::string_view auth_token);
+
     private:
         sqlite3* db_conn;
 
@@ -78,6 +80,7 @@ namespace db {
         sqlite3_stmt* registration_codes_delete;
 
         sqlite3_stmt* users_hash_select;
+        sqlite3_stmt* users_auth_select;
     };
 
     constexpr auto create_users = "\
@@ -135,6 +138,7 @@ namespace db {
     constexpr auto delete_registration_code = "DELETE FROM registration_codes WHERE email = ?1;";
 
     constexpr auto select_trunc_hash = "SELECT trunc_hash FROM users;";
+    constexpr auto select_user_auth_token = "SELECT auth_token FROM users WHERE user_id = ?1;";
 } // namespace db
 
 #endif /* end of include guard: SERVER_STATE_H */

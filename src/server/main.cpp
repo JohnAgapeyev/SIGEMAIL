@@ -191,6 +191,17 @@ int main(int argc, char* argv[]) {
     foo.update_pre_key(1, {}, {});
     spdlog::info("Post insert 11");
 
+    if (foo.confirm_auth_token("test_email@test.com", "")) {
+        spdlog::info("Confirm auth succeeded");
+    } else {
+        spdlog::info("Confirm auth failed");
+    }
+    if (foo.confirm_auth_token("test_email@test.com", "rats")) {
+        spdlog::info("Confirm auth succeeded 2");
+    } else {
+        spdlog::info("Confirm auth failed 2");
+    }
+
     // Create and launch a listening port
     std::make_shared<listener>(ioc, ctx, tcp::endpoint{tcp::v4(), port})->run();
 
