@@ -46,7 +46,7 @@ namespace db {
         void add_device(const std::string_view user_id, const crypto::public_key& identity,
                 const crypto::public_key& pre_key, const crypto::signature& signature);
         void add_one_time_key(const int device_id, const crypto::public_key& one_time);
-        void add_message(const int device_id, const std::vector<std::byte>& message_contents);
+        void add_message(const std::string_view user_id, const int device_id, const std::vector<std::byte>& message_contents);
         void add_registration_code(const std::string_view email, const int code);
 
         void update_pre_key(const int device_id, const crypto::public_key& pre_key,
@@ -104,9 +104,11 @@ namespace db {
     constexpr auto create_mailboxes = "\
         CREATE TABLE IF NOT EXISTS mailbox (\
            message_id   INTEGER PRIMARY KEY,\
+           user_id      TEXT NOT NULL,\
            device_id    INTEGER NOT NULL,\
            contents     BLOB    NOT NULL,\
-           FOREIGN KEY (device_id) REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE\
+           FOREIGN KEY (device_id) REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE,\
+           FOREIGN KEY (user_id) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE\
         );";
     constexpr auto create_registration_codes = "\
         CREATE TABLE IF NOT EXISTS registration_codes (\
@@ -118,7 +120,7 @@ namespace db {
     constexpr auto insert_device = "INSERT INTO devices(user_id, identity_key, pre_key, signature) \
                                     VALUES (?1, ?2, ?3, ?4);";
     constexpr auto insert_one_time = "INSERT INTO otpk(device_id, key) VALUES (?1, ?2);";
-    constexpr auto insert_message = "INSERT INTO mailbox(device_id, contents) VALUES (?1, ?2);";
+    constexpr auto insert_message = "INSERT INTO mailbox(user_id, device_id, contents) VALUES (?1, ?2, ?3);";
     constexpr auto insert_registration
             = "INSERT INTO registration_codes VALUES (?1, ?2, datetime('now', '+1 day'));";
 

@@ -164,15 +164,15 @@ int main(int argc, char* argv[]) {
     spdlog::info("Post insert 5");
 
     spdlog::info("Pre insert 6");
-    foo.add_message(1, {});
+    foo.add_message("foo@test.com", 1, {});
     spdlog::info("Post insert 5");
 
     spdlog::info("Pre insert 7");
-    foo.add_message(1, {4, std::byte{0xab}});
+    foo.add_message("", 1, {4, std::byte{0xab}});
     spdlog::info("Post insert 7");
 
     spdlog::info("Pre insert 8");
-    foo.add_message(99, {4, std::byte{0xab}});
+    foo.add_message("next@test.com", 99, {4, std::byte{0xab}});
     spdlog::info("Post insert 8");
 
     spdlog::info("Pre insert 9");
