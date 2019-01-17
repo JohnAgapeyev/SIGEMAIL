@@ -123,7 +123,7 @@ db::database::~database() {
     sqlite3_close(db_conn);
 }
 
-void db::database::add_user(const std::string_view user_id) {
+void db::database::add_user(const std::string_view user_id, const std::string_view auth_token) {
     sqlite3_reset(users_insert);
     sqlite3_clear_bindings(users_insert);
 
@@ -137,6 +137,11 @@ void db::database::add_user(const std::string_view user_id) {
     //Store the first 24/32 bytes of the email hash
     if (sqlite3_bind_blob(
                 users_insert, 2, trunc_hash.data(), trunc_hash.size() - 8, SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        spdlog::error(sqlite3_errmsg(db_conn));
+    }
+
+    if (sqlite3_bind_text(users_insert, 3, auth_token.data(), auth_token.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
@@ -191,11 +196,13 @@ void db::database::add_one_time_key(const int device_id, const crypto::public_ke
     }
 }
 
-void db::database::add_message(const std::string_view user_id, const int device_id, const std::vector<std::byte>& message_contents) {
+void db::database::add_message(const std::string_view user_id, const int device_id,
+        const std::vector<std::byte>& message_contents) {
     sqlite3_reset(mailbox_insert);
     sqlite3_clear_bindings(mailbox_insert);
 
-    if (sqlite3_bind_text(mailbox_insert, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+    if (sqlite3_bind_text(mailbox_insert, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
 

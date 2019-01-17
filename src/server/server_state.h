@@ -41,7 +41,7 @@ namespace db {
         database& operator=(database&&) = default;
         database& operator=(const database&) = delete;
 
-        void add_user(const std::string_view user_id);
+        void add_user(const std::string_view user_id, const std::string_view auth_token);
         //Signature should be verified before this call
         void add_device(const std::string_view user_id, const crypto::public_key& identity,
                 const crypto::public_key& pre_key, const crypto::signature& signature);
@@ -83,7 +83,8 @@ namespace db {
     constexpr auto create_users = "\
         CREATE TABLE IF NOT EXISTS users (\
            user_id    TEXT PRIMARY KEY,\
-           trunc_hash BLOB NOT NULL UNIQUE\
+           trunc_hash BLOB NOT NULL UNIQUE,\
+           auth_token TEXT NOT NULL UNIQUE\
         ) WITHOUT ROWID;";
     constexpr auto create_devices = "\
         CREATE TABLE IF NOT EXISTS devices (\
@@ -116,7 +117,7 @@ namespace db {
            code         INTEGER NOT NULL UNIQUE,\
            expiration   TEXT    NOT NULL\
         );";
-    constexpr auto insert_user = "INSERT INTO users VALUES (?1, ?2);";
+    constexpr auto insert_user = "INSERT INTO users VALUES (?1, ?2, ?3);";
     constexpr auto insert_device = "INSERT INTO devices(user_id, identity_key, pre_key, signature) \
                                     VALUES (?1, ?2, ?3, ?4);";
     constexpr auto insert_one_time = "INSERT INTO otpk(device_id, key) VALUES (?1, ?2);";

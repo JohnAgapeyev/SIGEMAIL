@@ -144,8 +144,12 @@ int main(int argc, char* argv[]) {
     spdlog::info("Post database");
 
     spdlog::info("Pre insert");
-    foo.add_user("test_email@test.com");
+    foo.add_user("test_email@test.com", "");
     spdlog::info("Post insert");
+
+    spdlog::info("Pre insert 0.5");
+    foo.add_user("nice@test.com", "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    spdlog::info("Post insert 0.5");
 
     spdlog::info("Pre insert 2");
     foo.add_device("test_email@test.com", {}, {}, {});
