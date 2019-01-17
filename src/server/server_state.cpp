@@ -111,6 +111,16 @@ db::database::database() {
             != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
+    if (sqlite3_prepare_v2(db_conn, select_devices_user_id, strlen(select_devices_user_id) + 1,
+                &devices_user_select, nullptr)
+            != SQLITE_OK) {
+        spdlog::error(sqlite3_errmsg(db_conn));
+    }
+    if (sqlite3_prepare_v2(db_conn, select_devices_device_id, strlen(select_devices_device_id) + 1,
+                &devices_id_select, nullptr)
+            != SQLITE_OK) {
+        spdlog::error(sqlite3_errmsg(db_conn));
+    }
 }
 
 db::database::~database() {
@@ -127,6 +137,8 @@ db::database::~database() {
     sqlite3_finalize(registration_codes_delete);
     sqlite3_finalize(users_hash_select);
     sqlite3_finalize(users_auth_select);
+    sqlite3_finalize(devices_id_select);
+    sqlite3_finalize(devices_user_select);
     sqlite3_close(db_conn);
 }
 
@@ -376,11 +388,13 @@ std::vector<std::array<std::byte, 24>> db::database::contact_intersection(
     return intersect;
 }
 
-[[nodiscard]] bool db::database::confirm_auth_token(const std::string_view user_id, const std::string_view auth_token) {
+[[nodiscard]] bool db::database::confirm_auth_token(
+        const std::string_view user_id, const std::string_view auth_token) {
     sqlite3_reset(users_auth_select);
     sqlite3_clear_bindings(users_auth_select);
 
-    if (sqlite3_bind_text(users_auth_select, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+    if (sqlite3_bind_text(users_auth_select, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
 
@@ -392,5 +406,83 @@ std::vector<std::array<std::byte, 24>> db::database::contact_intersection(
     const auto user_token = sqlite3_column_text(users_auth_select, 1);
     const auto user_token_length = sqlite3_column_bytes(users_auth_select, 1);
 
-    return auth_token.compare(std::string_view{reinterpret_cast<const char *>(user_token), static_cast<unsigned long>(user_token_length)}) == 0;
+    return auth_token.compare(std::string_view{reinterpret_cast<const char*>(user_token),
+                   static_cast<unsigned long>(user_token_length)})
+            == 0;
+}
+
+std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>>
+        db::database::lookup_devices(const std::string_view user_id) {
+    sqlite3_reset(devices_user_select);
+    sqlite3_clear_bindings(devices_user_select);
+
+    if (sqlite3_bind_text(devices_user_select, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        spdlog::error(sqlite3_errmsg(db_conn));
+    }
+
+    std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>> records;
+
+    int err;
+    while ((err = sqlite3_step(devices_user_select)) == SQLITE_ROW) {
+        auto device_id = sqlite3_column_int(devices_user_select, 1);
+
+        crypto::public_key identity_key;
+        const auto idk = sqlite3_column_blob(devices_user_select, 2);
+        memcpy(identity_key.data(), idk, identity_key.size());
+
+        crypto::public_key pre_key;
+        const auto prk = sqlite3_column_blob(devices_user_select, 3);
+        memcpy(pre_key.data(), prk, pre_key.size());
+
+        crypto::signature pre_key_signature;
+        const auto pks = sqlite3_column_blob(devices_user_select, 4);
+        memcpy(pre_key_signature.data(), pks, pre_key_signature.size());
+
+        records.emplace_back(std::move(device_id), std::move(identity_key), std::move(pre_key),
+                std::move(pre_key_signature));
+    }
+    if (err != SQLITE_DONE) {
+        spdlog::error(sqlite3_errmsg(db_conn));
+        return {};
+    }
+
+    return records;
+}
+
+std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>>
+        db::database::lookup_devices(const std::vector<int> device_ids) {
+    sqlite3_reset(devices_id_select);
+    sqlite3_clear_bindings(devices_id_select);
+
+    std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>> records;
+
+    for (const auto id : device_ids) {
+        sqlite3_bind_int(devices_id_select, 1, id);
+
+        if (sqlite3_step(devices_id_select) != SQLITE_ROW) {
+            spdlog::error(sqlite3_errmsg(db_conn));
+            return {};
+        }
+        auto device_id = sqlite3_column_int(devices_user_select, 1);
+
+        crypto::public_key identity_key;
+        const auto idk = sqlite3_column_blob(devices_user_select, 2);
+        memcpy(identity_key.data(), idk, identity_key.size());
+
+        crypto::public_key pre_key;
+        const auto prk = sqlite3_column_blob(devices_user_select, 3);
+        memcpy(pre_key.data(), prk, pre_key.size());
+
+        crypto::signature pre_key_signature;
+        const auto pks = sqlite3_column_blob(devices_user_select, 4);
+        memcpy(pre_key_signature.data(), pks, pre_key_signature.size());
+
+        records.emplace_back(std::move(device_id), std::move(identity_key), std::move(pre_key),
+                std::move(pre_key_signature));
+
+        sqlite3_reset(devices_id_select);
+        sqlite3_clear_bindings(devices_id_select);
+    }
+    return records;
 }

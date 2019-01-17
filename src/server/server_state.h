@@ -62,6 +62,9 @@ namespace db {
 
         [[nodiscard]] bool confirm_auth_token(const std::string_view user_id, const std::string_view auth_token);
 
+        std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>> lookup_devices(const std::string_view user_id);
+        std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>> lookup_devices(const std::vector<int> device_ids);
+
     private:
         sqlite3* db_conn;
 
@@ -81,6 +84,9 @@ namespace db {
 
         sqlite3_stmt* users_hash_select;
         sqlite3_stmt* users_auth_select;
+
+        sqlite3_stmt* devices_user_select;
+        sqlite3_stmt* devices_id_select;
     };
 
     constexpr auto create_users = "\
@@ -139,6 +145,8 @@ namespace db {
 
     constexpr auto select_trunc_hash = "SELECT trunc_hash FROM users;";
     constexpr auto select_user_auth_token = "SELECT auth_token FROM users WHERE user_id = ?1;";
+    constexpr auto select_devices_user_id = "SELECT device_id, identity_key, pre_key, signature FROM devices WHERE user_id = ?1;";
+    constexpr auto select_devices_device_id = "SELECT device_id, identity_key, pre_key, signature FROM devices WHERE device_id = ?1;";
 } // namespace db
 
 #endif /* end of include guard: SERVER_STATE_H */
