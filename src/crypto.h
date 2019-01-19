@@ -5,6 +5,7 @@
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
+#include <type_traits>
 
 #include "zallocator.h"
 
@@ -124,21 +125,27 @@ namespace crypto {
 
     template<typename T>
     std::array<std::byte, 32> hash_data(const std::vector<T>& data) {
-        return hash_data_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size() * sizeof(T));
+        static_assert(std::is_trivial_v<T>);
+        return hash_data_impl(
+                reinterpret_cast<const unsigned char*>(data.data()), data.size() * sizeof(T));
     }
-
     template<typename T, std::size_t N>
     std::array<std::byte, 32> hash_data(const std::array<T, N>& data) {
-        return hash_data_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size() * sizeof(T));
+        static_assert(std::is_trivial_v<T>);
+        return hash_data_impl(
+                reinterpret_cast<const unsigned char*>(data.data()), data.size() * sizeof(T));
     }
-
     template<typename T>
     std::array<std::byte, 32> hash_data(const secure_vector<T>& data) {
-        return hash_data_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size() * sizeof(T));
+        static_assert(std::is_trivial_v<T>);
+        return hash_data_impl(
+                reinterpret_cast<const unsigned char*>(data.data()), data.size() * sizeof(T));
     }
     template<typename T, std::size_t N>
     std::array<std::byte, 32> hash_data(const secure_array<T, N>& data) {
-        return hash_data_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size() * sizeof(T));
+        static_assert(std::is_trivial_v<T>);
+        return hash_data_impl(
+                reinterpret_cast<const unsigned char*>(data.data()), data.size() * sizeof(T));
     }
     static inline std::array<std::byte, 32> hash_string(const std::string_view data) {
         return hash_data_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size());
