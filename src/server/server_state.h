@@ -1,7 +1,9 @@
 #ifndef SERVER_STATE_H
 #define SERVER_STATE_H
 
+extern "C" {
 #include <sqlite3.h>
+}
 #include <string>
 
 #include "crypto.h"

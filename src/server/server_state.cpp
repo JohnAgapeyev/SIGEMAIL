@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <iterator>
+extern "C" {
 #include <sqlite3.h>
+}
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -527,13 +529,15 @@ std::tuple<int, crypto::public_key> db::database::get_one_time_key(const int dev
     return {std::move(key_id), std::move(output)};
 }
 
-std::vector<std::tuple<int, int, signal_message>> db::database::retrieve_messages(const std::string_view user_id) {
+std::vector<std::tuple<int, int, signal_message>> db::database::retrieve_messages(
+        const std::string_view user_id) {
     sqlite3_reset(mailbox_select);
     sqlite3_clear_bindings(mailbox_select);
 
     std::vector<std::tuple<int, int, signal_message>> records;
 
-    if (sqlite3_bind_text(mailbox_select, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+    if (sqlite3_bind_text(mailbox_select, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
         return {};
     }
