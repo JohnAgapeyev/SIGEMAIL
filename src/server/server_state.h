@@ -5,6 +5,7 @@
 #include <string>
 
 #include "crypto.h"
+#include "message.h"
 
 /**
  * DATABASE SCHEMA
@@ -67,6 +68,8 @@ namespace db {
 
         std::tuple<int, crypto::public_key> get_one_time_key(const int device_id);
 
+        std::vector<std::tuple<int, int, signal_message>> retrieve_messages(const std::string_view user_id);
+
     private:
         sqlite3* db_conn;
 
@@ -90,6 +93,7 @@ namespace db {
         sqlite3_stmt* devices_user_select;
         sqlite3_stmt* devices_id_select;
         sqlite3_stmt* otpk_select;
+        sqlite3_stmt* mailbox_select;
     };
 
     constexpr auto create_users = "\
@@ -151,6 +155,7 @@ namespace db {
     constexpr auto select_devices_user_id = "SELECT device_id, identity_key, pre_key, signature FROM devices WHERE user_id = ?1;";
     constexpr auto select_devices_device_id = "SELECT device_id, identity_key, pre_key, signature FROM devices WHERE device_id = ?1;";
     constexpr auto select_one_time = "SELECT key_id, key FROM otpk WHERE device_id = ?1 ORDER BY RANDOM() LIMIT 1;";
+    constexpr auto select_message = "SELECT message_id, device_id, contents FROM mailbox WHERE user_id = ?1;";
 } // namespace db
 
 #endif /* end of include guard: SERVER_STATE_H */

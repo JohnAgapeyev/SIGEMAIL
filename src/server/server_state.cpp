@@ -126,6 +126,11 @@ db::database::database() {
             != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
+    if (sqlite3_prepare_v2(
+                db_conn, select_message, strlen(select_message) + 1, &mailbox_select, nullptr)
+            != SQLITE_OK) {
+        spdlog::error(sqlite3_errmsg(db_conn));
+    }
 }
 
 db::database::~database() {
@@ -145,6 +150,7 @@ db::database::~database() {
     sqlite3_finalize(devices_id_select);
     sqlite3_finalize(devices_user_select);
     sqlite3_finalize(otpk_select);
+    sqlite3_finalize(mailbox_select);
     sqlite3_close(db_conn);
 }
 
@@ -464,7 +470,10 @@ std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::sign
     std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>> records;
 
     for (const auto id : device_ids) {
-        sqlite3_bind_int(devices_id_select, 1, id);
+        if (sqlite3_bind_int(devices_id_select, 1, id) != SQLITE_OK) {
+            spdlog::error(sqlite3_errmsg(db_conn));
+            return {};
+        }
 
         if (sqlite3_step(devices_id_select) != SQLITE_ROW) {
             spdlog::error(sqlite3_errmsg(db_conn));
@@ -497,7 +506,10 @@ std::tuple<int, crypto::public_key> db::database::get_one_time_key(const int dev
     sqlite3_reset(otpk_select);
     sqlite3_clear_bindings(otpk_select);
 
-    sqlite3_bind_int(otpk_select, 1, device_id);
+    if (sqlite3_bind_int(otpk_select, 1, device_id) != SQLITE_OK) {
+        spdlog::error(sqlite3_errmsg(db_conn));
+        return {};
+    }
 
     if (sqlite3_step(otpk_select) != SQLITE_ROW) {
         spdlog::error(sqlite3_errmsg(db_conn));
@@ -513,4 +525,33 @@ std::tuple<int, crypto::public_key> db::database::get_one_time_key(const int dev
     memcpy(output.data(), tmp_key, output.size());
 
     return {std::move(key_id), std::move(output)};
+}
+
+std::vector<std::tuple<int, int, signal_message>> db::database::retrieve_messages(const std::string_view user_id) {
+    sqlite3_reset(mailbox_select);
+    sqlite3_clear_bindings(mailbox_select);
+
+    std::vector<std::tuple<int, int, signal_message>> records;
+
+    if (sqlite3_bind_text(mailbox_select, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+        spdlog::error(sqlite3_errmsg(db_conn));
+        return {};
+    }
+
+    int err;
+    while ((err = sqlite3_step(devices_user_select)) == SQLITE_ROW) {
+        const auto message_id = sqlite3_column_int(mailbox_select, 1);
+        const auto device_id = sqlite3_column_int(mailbox_select, 2);
+
+        //This needs deserialization of signal messages
+        signal_message mesg;
+
+        records.emplace_back(std::move(message_id), std::move(device_id), std::move(mesg));
+    }
+    if (err != SQLITE_DONE) {
+        spdlog::error(sqlite3_errmsg(db_conn));
+        return {};
+    }
+
+    return records;
 }
