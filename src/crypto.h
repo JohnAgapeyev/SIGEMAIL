@@ -49,7 +49,6 @@ namespace crypto {
 
     template<typename T>
     using secure_vector = std::vector<T, zallocator<T>>;
-    template<typename T>
     using secure_string = std::basic_string<char, std::char_traits<char>, zallocator<char>>;
     template<typename Key, typename T>
     using secure_map = std::map<Key, T, std::less<Key>, zallocator<std::pair<const Key, T>>>;
@@ -111,14 +110,14 @@ namespace crypto {
             throw std::bad_alloc();
         }
         if (!EVP_DigestInit_ex(ctx.get(), EVP_sha256(), NULL)) {
-            throw crypto::openssl_error(ERR_get_error());
+            throw openssl_error(ERR_get_error());
         }
         if (!EVP_DigestUpdate(ctx.get(), data, len)) {
-            throw crypto::openssl_error(ERR_get_error());
+            throw openssl_error(ERR_get_error());
         }
         if (!EVP_DigestFinal_ex(
                     ctx.get(), reinterpret_cast<unsigned char*>(hash.data()), nullptr)) {
-            throw crypto::openssl_error(ERR_get_error());
+            throw openssl_error(ERR_get_error());
         }
         return hash;
     }
@@ -149,6 +148,53 @@ namespace crypto {
     }
     static inline std::array<std::byte, 32> hash_string(const std::string_view data) {
         return hash_data_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size());
+    }
+
+    static inline std::string base64_encode_impl(const unsigned char *data, const std::size_t len) {
+        if (len == 0) {
+            throw std::runtime_error("Tried to base64 encode an empty string");
+        }
+        std::unique_ptr<unsigned char[]> tmp_buf{new unsigned char[(((len / 3) + 1) * 4) + 1]};
+        int size;
+        if ((size = EVP_EncodeBlock(tmp_buf.get(), data, len)) == -1) {
+            throw openssl_error(ERR_get_error());
+        }
+        std::string out;
+        out.assign(&tmp_buf[0], &tmp_buf[size]);
+        return out;
+    }
+
+    template<typename T>
+    static inline std::string base64_encode(const std::vector<T>& data) {
+        static_assert(std::is_trivial_v<T>);
+        return base64_encode_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size() * sizeof(T));
+    }
+    template<typename T>
+    static inline std::string base64_encode(const secure_vector<T>& data) {
+        static_assert(std::is_trivial_v<T>);
+        return base64_encode_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size() * sizeof(T));
+    }
+    template<typename T, std::size_t N>
+    static inline std::string base64_encode(const std::array<T, N>& data) {
+        static_assert(std::is_trivial_v<T>);
+        return base64_encode_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size() * sizeof(T));
+    }
+    static inline std::vector<std::byte> base64_decode_impl(const unsigned char *data, const std::size_t len) {
+        if (len == 0) {
+            throw std::runtime_error("Tried to base64 decode an empty string");
+        }
+        std::unique_ptr<unsigned char[]> tmp_buf{new unsigned char[len]};
+        int size;
+        if ((size = EVP_DecodeBlock(tmp_buf.get(), data, len)) == -1) {
+            throw openssl_error(ERR_get_error());
+        }
+        std::vector<std::byte> out;
+        out.assign(reinterpret_cast<std::byte *>(&tmp_buf[0]), reinterpret_cast<std::byte *>(&tmp_buf[size - 1]));
+        return out;
+    }
+
+    static inline std::vector<std::byte> base64_decode(const std::string_view data) {
+        return base64_decode_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size());
     }
 } // namespace crypto
 

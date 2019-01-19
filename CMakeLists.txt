@@ -105,6 +105,7 @@ set(TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/protocol_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/session_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/hash_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/test/base64_test.cpp
 )
 
 set(INCLUDE_DIRS
@@ -184,6 +185,7 @@ target_include_directories(test_binary PRIVATE ${INCLUDE_DIRS})
 add_test(NAME encryption_tests COMMAND test_binary -p -t encryption_tests)
 add_test(NAME signing_tests COMMAND test_binary -p -t sign_tests)
 add_test(NAME hash_tests COMMAND test_binary -p -t hash_tests)
+add_test(NAME base64_tests COMMAND test_binary -p -t base64_tests)
 add_test(NAME protocol_tests COMMAND test_binary -p -t protocol_tests)
 add_test(NAME session_tests COMMAND test_binary -p -t session_tests)
 
