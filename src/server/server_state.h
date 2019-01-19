@@ -65,7 +65,7 @@ namespace db {
         std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>> lookup_devices(const std::string_view user_id);
         std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>> lookup_devices(const std::vector<int> device_ids);
 
-        crypto::public_key get_one_time_key(const int device_id);
+        std::tuple<int, crypto::public_key> get_one_time_key(const int device_id);
 
     private:
         sqlite3* db_conn;

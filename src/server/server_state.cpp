@@ -493,7 +493,7 @@ std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::sign
     return records;
 }
 
-crypto::public_key db::database::get_one_time_key(const int device_id) {
+std::tuple<int, crypto::public_key> db::database::get_one_time_key(const int device_id) {
     sqlite3_reset(otpk_select);
     sqlite3_clear_bindings(otpk_select);
 
@@ -505,9 +505,12 @@ crypto::public_key db::database::get_one_time_key(const int device_id) {
     }
 
     crypto::public_key output;
+
+    const auto key_id = sqlite3_column_int(otpk_select, 1);
+
     const auto tmp_key = sqlite3_column_blob(otpk_select, 2);
 
     memcpy(output.data(), tmp_key, output.size());
 
-    return output;
+    return {std::move(key_id), std::move(output)};
 }
