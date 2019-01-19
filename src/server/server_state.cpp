@@ -121,6 +121,11 @@ db::database::database() {
             != SQLITE_OK) {
         spdlog::error(sqlite3_errmsg(db_conn));
     }
+    if (sqlite3_prepare_v2(
+                db_conn, select_one_time, strlen(select_one_time) + 1, &otpk_select, nullptr)
+            != SQLITE_OK) {
+        spdlog::error(sqlite3_errmsg(db_conn));
+    }
 }
 
 db::database::~database() {
@@ -139,6 +144,7 @@ db::database::~database() {
     sqlite3_finalize(users_auth_select);
     sqlite3_finalize(devices_id_select);
     sqlite3_finalize(devices_user_select);
+    sqlite3_finalize(otpk_select);
     sqlite3_close(db_conn);
 }
 
@@ -485,4 +491,23 @@ std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::sign
         sqlite3_clear_bindings(devices_id_select);
     }
     return records;
+}
+
+crypto::public_key db::database::get_one_time_key(const int device_id) {
+    sqlite3_reset(otpk_select);
+    sqlite3_clear_bindings(otpk_select);
+
+    sqlite3_bind_int(otpk_select, 1, device_id);
+
+    if (sqlite3_step(otpk_select) != SQLITE_ROW) {
+        spdlog::error(sqlite3_errmsg(db_conn));
+        return {};
+    }
+
+    crypto::public_key output;
+    const auto tmp_key = sqlite3_column_blob(otpk_select, 2);
+
+    memcpy(output.data(), tmp_key, output.size());
+
+    return output;
 }
