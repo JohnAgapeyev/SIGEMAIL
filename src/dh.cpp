@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <openssl/crypto.h>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
 #include <vector>
@@ -21,12 +22,17 @@ crypto::DH_Keypair::DH_Keypair() {
 
 const crypto::shared_key crypto::DH_Keypair::generate_shared_secret(
         const crypto::public_key& remote_public) const noexcept {
-    secure_array<std::byte, 32> out;
+    crypto::shared_key out;
     curve25519_donna(reinterpret_cast<unsigned char*>(out.data()),
             reinterpret_cast<const unsigned char*>(private_key.data()),
             reinterpret_cast<const unsigned char*>(remote_public.data()));
-    SHA256(reinterpret_cast<unsigned char*>(out.data()), sizeof(uint8_t) * 32,
-            reinterpret_cast<unsigned char*>(out.data()));
+
+    auto hash = crypto::hash_data(out);
+    memcpy(out.data(), hash.data(), out.size());
+
+    //Have to manually clear the memory from the stack temporary
+    OPENSSL_cleanse(hash.data(), hash.size());
+
     return out;
 }
 
