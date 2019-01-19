@@ -22,9 +22,11 @@ const signal_message session::ratchet_encrypt(const crypto::secure_vector<std::b
 
     const signal_message m = [&]() {
         signal_message result;
-        result.header.dh_public_key = self_keypair.get_public();
-        result.header.prev_chain_len = previous_send_chain_size;
-        result.header.message_num = send_message_num;
+        message_header h;
+        h.dh_public_key = self_keypair.get_public();
+        h.prev_chain_len = previous_send_chain_size;
+        h.message_num = send_message_num;
+        result.header = h;
         result.message = crypto::encrypt(plaintext, message_key, aad);
         result.aad = crypto::secure_vector<std::byte>{aad};
         return result;
@@ -43,11 +45,12 @@ const crypto::secure_vector<std::byte> session::ratchet_decrypt(const signal_mes
                 skipped_result.has_value()) {
             return *skipped_result;
         }
-        if (message.header.dh_public_key != remote_public_key) {
-            skip_message_keys(message.header.prev_chain_len);
-            DH_ratchet(message.header.dh_public_key);
+        const auto header = std::get<message_header>(message.header);
+        if (header.dh_public_key != remote_public_key) {
+            skip_message_keys(header.prev_chain_len);
+            DH_ratchet(header.dh_public_key);
         }
-        skip_message_keys(message.header.message_num);
+        skip_message_keys(header.message_num);
         const auto message_key = crypto::chain_derive(receive_chain_key);
         ++receive_message_num;
 
@@ -63,7 +66,8 @@ const crypto::secure_vector<std::byte> session::ratchet_decrypt(const signal_mes
 
 const std::optional<crypto::secure_vector<std::byte>> session::try_skipped_message_keys(
         const signal_message& message) {
-    const auto dict_key = std::make_pair(message.header.dh_public_key, message.header.message_num);
+    const auto header = std::get<message_header>(message.header);
+    const auto dict_key = std::make_pair(header.dh_public_key, header.message_num);
     if (skipped_keys.find(dict_key) != skipped_keys.end()) {
         const auto message_key = skipped_keys[dict_key];
         skipped_keys.erase(dict_key);
@@ -132,4 +136,30 @@ bool session::operator==(const session& other) const {
         return false;
     }
     return true;
+}
+
+std::pair<session, crypto::secure_vector<std::byte>> decrypt_initial_message(
+        const signal_message& message, const crypto::DH_Keypair& identity,
+        const crypto::DH_Keypair& prekey, const crypto::DH_Keypair& one_time) {
+    const auto header = std::get<initial_message_header>(message.header);
+
+    const auto secret_key
+            = X3DH_receiver(identity, prekey, one_time, header.identity_key, header.ephemeral_key);
+
+    //I don't like having to copy the message here, but the GCM set tag call in OpenSSL takes a non-const pointer to the tag
+    auto message_copy = message.message;
+    return {{secret_key, prekey}, crypto::decrypt(message_copy, secret_key, message.aad)};
+}
+
+std::pair<session, crypto::secure_vector<std::byte>> decrypt_initial_message(
+        const signal_message& message, const crypto::DH_Keypair& identity,
+        const crypto::DH_Keypair& prekey) {
+    const auto header = std::get<initial_message_header>(message.header);
+
+    const auto secret_key
+            = X3DH_receiver(identity, prekey, header.identity_key, header.ephemeral_key);
+
+    //I don't like having to copy the message here, but the GCM set tag call in OpenSSL takes a non-const pointer to the tag
+    auto message_copy = message.message;
+    return {{secret_key, prekey}, crypto::decrypt(message_copy, secret_key, message.aad)};
 }

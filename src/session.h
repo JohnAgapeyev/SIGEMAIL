@@ -52,4 +52,11 @@ private:
             skipped_keys;
 };
 
+std::pair<session, crypto::secure_vector<std::byte>> decrypt_initial_message(
+        const signal_message& message, const crypto::DH_Keypair& identity,
+        const crypto::DH_Keypair& prekey, const crypto::DH_Keypair& one_time);
+std::pair<session, crypto::secure_vector<std::byte>> decrypt_initial_message(
+        const signal_message& message, const crypto::DH_Keypair& identity,
+        const crypto::DH_Keypair& prekey);
+
 #endif /* end of include guard: PROTOCOL_STATE_H */
