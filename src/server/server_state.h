@@ -1,9 +1,7 @@
 #ifndef SERVER_STATE_H
 #define SERVER_STATE_H
 
-extern "C" {
 #include <sqlite3.h>
-}
 #include <string>
 
 #include "crypto.h"
@@ -70,7 +68,7 @@ namespace db {
 
         std::tuple<int, crypto::public_key> get_one_time_key(const int device_id);
 
-        std::vector<std::tuple<int, int, signal_message>> retrieve_messages(const std::string_view user_id);
+        std::vector<std::tuple<int, int, std::string>> retrieve_messages(const std::string_view user_id);
 
     private:
         sqlite3* db_conn;

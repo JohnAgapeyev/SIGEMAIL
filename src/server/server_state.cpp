@@ -1,8 +1,9 @@
 #include <algorithm>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 #include <iterator>
-extern "C" {
 #include <sqlite3.h>
-}
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -529,12 +530,12 @@ std::tuple<int, crypto::public_key> db::database::get_one_time_key(const int dev
     return {std::move(key_id), std::move(output)};
 }
 
-std::vector<std::tuple<int, int, signal_message>> db::database::retrieve_messages(
+std::vector<std::tuple<int, int, std::string>> db::database::retrieve_messages(
         const std::string_view user_id) {
     sqlite3_reset(mailbox_select);
     sqlite3_clear_bindings(mailbox_select);
 
-    std::vector<std::tuple<int, int, signal_message>> records;
+    std::vector<std::tuple<int, int, std::string>> records;
 
     if (sqlite3_bind_text(mailbox_select, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
@@ -547,10 +548,12 @@ std::vector<std::tuple<int, int, signal_message>> db::database::retrieve_message
         const auto message_id = sqlite3_column_int(mailbox_select, 1);
         const auto device_id = sqlite3_column_int(mailbox_select, 2);
 
-        //This needs deserialization of signal messages
-        signal_message mesg;
+        const auto m_data = sqlite3_column_text(mailbox_select, 3);
+        const auto m_data_len = sqlite3_column_bytes(mailbox_select, 3);
 
-        records.emplace_back(std::move(message_id), std::move(device_id), std::move(mesg));
+        records.emplace_back(std::move(message_id), std::move(device_id),
+                std::string{reinterpret_cast<const char*>(m_data),
+                        static_cast<unsigned long>(m_data_len)});
     }
     if (err != SQLITE_DONE) {
         spdlog::error(sqlite3_errmsg(db_conn));
