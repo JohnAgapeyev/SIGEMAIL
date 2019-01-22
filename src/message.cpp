@@ -1,3 +1,5 @@
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 #include <sstream>
 #include <string>
 
@@ -5,6 +7,7 @@
 #include "message.h"
 
 std::string serialize_message(const signal_message& mesg) {
+#if 0
     std::stringstream ss;
 
     //First, encode the header
@@ -32,9 +35,18 @@ std::string serialize_message(const signal_message& mesg) {
     ss << crypto::base64_encode(mesg.aad);
 
     return ss.str();
+#else
+    std::stringstream ss;
+    boost::archive::text_oarchive arch{ss};
+
+    arch << mesg;
+
+    return ss.str();
+#endif
 }
 
 signal_message deserialize_message(std::string mesg) {
+#if 0
     try {
         signal_message out;
 
@@ -148,4 +160,16 @@ signal_message deserialize_message(std::string mesg) {
         //throw std::runtime_error("7 Corrupted message serialization");
         throw;
     }
+#else
+    try {
+        std::stringstream ss{mesg};
+        boost::archive::text_iarchive arch{ss};
+
+        signal_message m;
+        arch >> m;
+        return m;
+    } catch (const boost::archive::archive_exception&) {
+        throw std::runtime_error("Archive deserialization encountered an error");
+    }
+#endif
 }

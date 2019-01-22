@@ -62,7 +62,7 @@ endif()
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
-find_package(Boost 1.67 REQUIRED COMPONENTS system unit_test_framework)
+find_package(Boost 1.67 REQUIRED COMPONENTS system unit_test_framework serialization)
 
 find_package(OpenSSL 1.1.1 REQUIRED)
 find_package(CURL REQUIRED)
@@ -163,7 +163,7 @@ target_compile_options(${PROJECT_NAME}
     PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>" "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
 target_compile_definitions(${PROJECT_NAME} PRIVATE "$<$<CONFIG:RELEASE>:NDEBUG>")
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES} spdlog)
+target_link_libraries(${PROJECT_NAME} PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES} Boost::serialization spdlog)
 target_link_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:RELEASE>:-s>")
 
 set(SERVER ${PROJECT_NAME}_server)
@@ -173,7 +173,7 @@ target_compile_options(${SERVER}
     PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>" "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
 target_compile_definitions(${SERVER} PRIVATE "$<$<CONFIG:RELEASE>:NDEBUG>")
 target_include_directories(${SERVER} PRIVATE ${INCLUDE_DIRS})
-target_link_libraries(${SERVER} PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES} spdlog)
+target_link_libraries(${SERVER} PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES} Boost::serialization spdlog)
 target_link_options(${SERVER} PRIVATE "$<$<CONFIG:RELEASE>:-s>")
 
 enable_testing()
@@ -192,7 +192,7 @@ add_test(NAME protocol_tests COMMAND test_binary -p -t protocol_tests)
 add_test(NAME session_tests COMMAND test_binary -p -t session_tests)
 add_test(NAME serialization_tests COMMAND test_binary -p -t serialization_tests)
 
-target_link_libraries(test_binary PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES} Boost::unit_test_framework spdlog)
+target_link_libraries(test_binary PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES} Boost::unit_test_framework Boost::serialization spdlog)
 
 target_include_directories(test_binary PRIVATE
     src/test

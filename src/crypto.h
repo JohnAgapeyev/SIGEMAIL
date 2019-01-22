@@ -6,6 +6,7 @@
 #include <boost/archive/iterators/binary_from_base64.hpp>
 #include <boost/archive/iterators/transform_width.hpp>
 #include <boost/container_hash/hash.hpp>
+#include <boost/serialization/access.hpp>
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
@@ -48,7 +49,29 @@ namespace crypto {
 
     template<typename T, std::size_t N>
     struct secure_array : public std::array<T, N> {
+        static_assert(std::is_trivial_v<T>);
+
         ~secure_array() { OPENSSL_cleanse(this->data(), this->size() * sizeof(T)); }
+
+        friend class boost::serialization::access;
+
+        template<class Archive>
+        void serialize(Archive& ar, const unsigned int version) {
+            boost::ignore_unused_variable_warning(version);
+
+#if 0
+            std::array<T, N> tmp;
+            std::copy(this->begin(), this->end(), tmp.begin());
+
+            ar & tmp;
+
+            OPENSSL_cleanse(tmp.data(), N * sizeof(T));
+#else
+            for (size_t i = 0; i < N; ++i) {
+                ar & this->data()[i];
+            }
+#endif
+        }
     };
 
     template<typename T>
@@ -173,7 +196,7 @@ namespace crypto {
 
         return out;
 #else
-        auto val = std::string{reinterpret_cast<const char *>(data), len};
+        auto val = std::string{reinterpret_cast<const char*>(data), len};
         using namespace boost::archive::iterators;
         using It = base64_from_binary<transform_width<std::string::const_iterator, 6, 8>>;
         auto tmp = std::string(It(std::begin(val)), It(std::end(val)));
@@ -225,7 +248,7 @@ namespace crypto {
         if (len % 4 != 0) {
             throw std::runtime_error("Tried to base64 decode a corrupted string");
         }
-        auto val = std::string{reinterpret_cast<const char *>(data), len};
+        auto val = std::string{reinterpret_cast<const char*>(data), len};
         using namespace boost::archive::iterators;
         using It = transform_width<binary_from_base64<std::string::const_iterator>, 8, 6>;
 

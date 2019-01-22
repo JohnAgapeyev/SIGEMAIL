@@ -15,12 +15,10 @@ BOOST_AUTO_TEST_CASE(basic_serialization) {
     const auto message = session.ratchet_encrypt(get_message(), get_aad());
 
     const auto mesg_str = serialize_message(message);
+
     const auto deser = deserialize_message(mesg_str);
 
-    bool test = message == deser;
-
-    //BOOST_TEST((message == deser));
-    BOOST_TEST(test);
+    BOOST_TEST((message == deser));
 }
 
 BOOST_AUTO_TEST_CASE(basic_encode) {
