@@ -18,3 +18,9 @@ crypto::shared_key get_key() {
     return out;
 }
 
+session get_session() {
+    const auto key = get_key();
+    crypto::DH_Keypair kp;
+    session s{key, kp.get_public()};
+    return s;
+}

@@ -19,8 +19,13 @@ BOOST_AUTO_TEST_CASE(empty_encode) {
 
     std::array<std::byte, 0> m2;
 
-    BOOST_REQUIRE_THROW(crypto::base64_encode(m), std::runtime_error);
-    BOOST_REQUIRE_THROW(crypto::base64_encode(m2), std::runtime_error);
+    const auto s = crypto::base64_encode(m);
+
+    BOOST_TEST(crypto::base64_encode(m) == "");
+    BOOST_TEST(crypto::base64_encode(m2) == "");
+
+    //BOOST_REQUIRE_THROW(crypto::base64_encode(m), std::runtime_error);
+    //BOOST_REQUIRE_THROW(crypto::base64_encode(m2), std::runtime_error);
 }
 
 BOOST_AUTO_TEST_CASE(basic_encode) {
@@ -52,6 +57,29 @@ BOOST_AUTO_TEST_CASE(basic_decode) {
     BOOST_TEST(m == d);
 }
 
+BOOST_AUTO_TEST_CASE(longer_decode) {
+    const std::vector<std::byte> m{173, std::byte{'y'}};
+
+    const auto e = crypto::base64_encode(m);
+
+    const auto d = crypto::base64_decode(e);
+
+    BOOST_TEST(m == d);
+}
+
+BOOST_AUTO_TEST_CASE(short_encode) {
+    std::vector<std::byte> m;
+    m.push_back(std::byte{'a'});
+    m.push_back(std::byte{'b'});
+    m.push_back(std::byte{'c'});
+
+    const auto e = crypto::base64_encode(m);
+
+    const auto d = crypto::base64_decode(e);
+
+    BOOST_TEST(m == d);
+}
+
 BOOST_AUTO_TEST_CASE(change_decode) {
     const std::vector<std::byte> m{17, std::byte{0xab}};
 
@@ -72,7 +100,7 @@ BOOST_AUTO_TEST_CASE(bad_decode) {
 BOOST_AUTO_TEST_CASE(bad_decode_length) {
     //This string needs to be padded but isn't
     const auto m = "Zm9vYmFyCg";
-    BOOST_REQUIRE_THROW(crypto::base64_decode(m), crypto::openssl_error);
+    BOOST_REQUIRE_THROW(crypto::base64_decode(m), std::runtime_error);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

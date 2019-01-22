@@ -86,6 +86,7 @@ set(SIGEMAIL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/user_record.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/device_record.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/device.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/message.cpp
 )
 
 set(CLIENT_SOURCES
@@ -106,6 +107,7 @@ set(TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/session_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/hash_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/base64_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/test/message_serialize_test.cpp
 )
 
 set(INCLUDE_DIRS
@@ -188,6 +190,7 @@ add_test(NAME hash_tests COMMAND test_binary -p -t hash_tests)
 add_test(NAME base64_tests COMMAND test_binary -p -t base64_tests)
 add_test(NAME protocol_tests COMMAND test_binary -p -t protocol_tests)
 add_test(NAME session_tests COMMAND test_binary -p -t session_tests)
+add_test(NAME serialization_tests COMMAND test_binary -p -t serialization_tests)
 
 target_link_libraries(test_binary PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES} Boost::unit_test_framework spdlog)
 

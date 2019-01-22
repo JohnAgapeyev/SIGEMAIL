@@ -1,6 +1,10 @@
 #ifndef CRYPTO_H
 #define CRYPTO_H
 
+#include <boost/algorithm/string.hpp>
+#include <boost/archive/iterators/base64_from_binary.hpp>
+#include <boost/archive/iterators/binary_from_base64.hpp>
+#include <boost/archive/iterators/transform_width.hpp>
 #include <boost/container_hash/hash.hpp>
 #include <openssl/crypto.h>
 #include <openssl/err.h>
@@ -150,36 +154,54 @@ namespace crypto {
         return hash_data_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size());
     }
 
-    static inline std::string base64_encode_impl(const unsigned char *data, const std::size_t len) {
+    static inline std::string base64_encode_impl(const unsigned char* data, const std::size_t len) {
+#if 0
         if (len == 0) {
             throw std::runtime_error("Tried to base64 encode an empty string");
         }
-        std::unique_ptr<unsigned char[]> tmp_buf{new unsigned char[(((len / 3) + 1) * 4) + 1]};
+        std::unique_ptr<unsigned char[]> tmp_buf{new unsigned char[(((len / 3) + 1) * 4) + 1 + (len / 64)]};
         int size;
         if ((size = EVP_EncodeBlock(tmp_buf.get(), data, len)) == -1) {
             throw openssl_error(ERR_get_error());
         }
         std::string out;
-        out.assign(&tmp_buf[0], &tmp_buf[size]);
+        //out.assign(&tmp_buf[0], &tmp_buf[size]);
+
+        for (int i = 0; i < size; ++i) {
+            out.push_back(tmp_buf[i]);
+        }
+
         return out;
+#else
+        auto val = std::string{reinterpret_cast<const char *>(data), len};
+        using namespace boost::archive::iterators;
+        using It = base64_from_binary<transform_width<std::string::const_iterator, 6, 8>>;
+        auto tmp = std::string(It(std::begin(val)), It(std::end(val)));
+        return tmp.append((3 - val.size() % 3) % 3, '=');
+#endif
     }
 
     template<typename T>
     static inline std::string base64_encode(const std::vector<T>& data) {
         static_assert(std::is_trivial_v<T>);
-        return base64_encode_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size() * sizeof(T));
+        return base64_encode_impl(
+                reinterpret_cast<const unsigned char*>(data.data()), data.size() * sizeof(T));
     }
     template<typename T>
     static inline std::string base64_encode(const secure_vector<T>& data) {
         static_assert(std::is_trivial_v<T>);
-        return base64_encode_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size() * sizeof(T));
+        return base64_encode_impl(
+                reinterpret_cast<const unsigned char*>(data.data()), data.size() * sizeof(T));
     }
     template<typename T, std::size_t N>
     static inline std::string base64_encode(const std::array<T, N>& data) {
         static_assert(std::is_trivial_v<T>);
-        return base64_encode_impl(reinterpret_cast<const unsigned char*>(data.data()), data.size() * sizeof(T));
+        return base64_encode_impl(
+                reinterpret_cast<const unsigned char*>(data.data()), data.size() * sizeof(T));
     }
-    static inline std::vector<std::byte> base64_decode_impl(const unsigned char *data, const std::size_t len) {
+    static inline std::vector<std::byte> base64_decode_impl(
+            const unsigned char* data, const std::size_t len) {
+#if 0
         if (len == 0) {
             throw std::runtime_error("Tried to base64 decode an empty string");
         }
@@ -189,8 +211,35 @@ namespace crypto {
             throw openssl_error(ERR_get_error());
         }
         std::vector<std::byte> out;
-        out.assign(reinterpret_cast<std::byte *>(&tmp_buf[0]), reinterpret_cast<std::byte *>(&tmp_buf[size - 1]));
+        //out.assign(reinterpret_cast<std::byte *>(&tmp_buf[0]), reinterpret_cast<std::byte *>(&tmp_buf[size - 1]));
+
+        for (int i = 0; i < size - 1; ++i) {
+            out.push_back(std::byte{tmp_buf[i]});
+        }
+
         return out;
+#else
+        if (len == 0) {
+            throw std::runtime_error("Tried to base64 decode an empty string");
+        }
+        if (len % 4 != 0) {
+            throw std::runtime_error("Tried to base64 decode a corrupted string");
+        }
+        auto val = std::string{reinterpret_cast<const char *>(data), len};
+        using namespace boost::archive::iterators;
+        using It = transform_width<binary_from_base64<std::string::const_iterator>, 8, 6>;
+
+        auto out_str = boost::algorithm::trim_right_copy_if(
+                std::string(It(std::begin(val)), It(std::end(val))),
+                [](char c) { return c == '\0'; });
+
+        std::vector<std::byte> out;
+        for (const auto c : out_str) {
+            out.push_back(std::byte{static_cast<unsigned char>(c)});
+        }
+
+        return out;
+#endif
     }
 
     static inline std::vector<std::byte> base64_decode(const std::string_view data) {
