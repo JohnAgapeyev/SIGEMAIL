@@ -3,6 +3,7 @@
 #include <openssl/evp.h>
 
 #include "crypto.h"
+#include "error.h"
 
 #define KDF_COUNT 10000
 

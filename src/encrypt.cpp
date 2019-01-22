@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "crypto.h"
+#include "error.h"
 
 const crypto::secure_vector<std::byte> crypto::encrypt(const secure_vector<std::byte>& message,
         const crypto::shared_key& key, const secure_vector<std::byte>& aad) {

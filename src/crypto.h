@@ -2,9 +2,6 @@
 #define CRYPTO_H
 
 #include <boost/algorithm/string.hpp>
-#include <boost/archive/iterators/base64_from_binary.hpp>
-#include <boost/archive/iterators/binary_from_base64.hpp>
-#include <boost/archive/iterators/transform_width.hpp>
 #include <boost/container_hash/hash.hpp>
 #include <boost/serialization/access.hpp>
 #include <openssl/crypto.h>
@@ -16,36 +13,6 @@
 
 namespace crypto {
     class DH_Keypair;
-
-    class openssl_error : public std::exception {
-    public:
-        openssl_error(unsigned long e) : err_code(e) {}
-        ~openssl_error() = default;
-        openssl_error(const openssl_error&) = default;
-        openssl_error(openssl_error&&) = default;
-        openssl_error& operator=(openssl_error&&) = default;
-        openssl_error& operator=(const openssl_error&) = default;
-
-        const char* what() const noexcept { return ERR_error_string(err_code, nullptr); }
-
-    private:
-        unsigned long err_code;
-    };
-
-    class expected_error : public std::exception {
-    public:
-        expected_error(const char* what) : mesg(what) {}
-        ~expected_error() = default;
-        expected_error(const expected_error&) = default;
-        expected_error(expected_error&&) = default;
-        expected_error& operator=(expected_error&&) = default;
-        expected_error& operator=(const expected_error&) = default;
-
-        const char* what() const noexcept { return mesg; }
-
-    private:
-        const char* mesg;
-    };
 
     template<typename T, std::size_t N>
     struct secure_array : public std::array<T, N> {
@@ -117,28 +84,8 @@ namespace crypto {
     }
 
     //Use SHA256 since it's a good universal hash, and anything that needs SHA512 or equivalent will use it inline, rather than using this interface
-    static inline std::array<std::byte, 32> hash_data_impl(
-            const unsigned char* data, const std::size_t len) {
-        std::array<std::byte, 32> hash;
-
-        std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> ctx{
-                EVP_MD_CTX_new(), &EVP_MD_CTX_free};
-
-        if (ctx.get() == NULL) {
-            throw std::bad_alloc();
-        }
-        if (!EVP_DigestInit_ex(ctx.get(), EVP_sha256(), NULL)) {
-            throw openssl_error(ERR_get_error());
-        }
-        if (!EVP_DigestUpdate(ctx.get(), data, len)) {
-            throw openssl_error(ERR_get_error());
-        }
-        if (!EVP_DigestFinal_ex(
-                    ctx.get(), reinterpret_cast<unsigned char*>(hash.data()), nullptr)) {
-            throw openssl_error(ERR_get_error());
-        }
-        return hash;
-    }
+    std::array<std::byte, 32> hash_data_impl(
+            const unsigned char* data, const std::size_t len);
 
     template<typename T>
     std::array<std::byte, 32> hash_data(const std::vector<T>& data) {

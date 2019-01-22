@@ -4,6 +4,7 @@
 
 #include "test.h"
 #include "crypto.h"
+#include "error.h"
 #include "dh.h"
 
 BOOST_AUTO_TEST_SUITE(encryption_tests)
