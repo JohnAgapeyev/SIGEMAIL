@@ -4,6 +4,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/container_hash/hash.hpp>
 #include <boost/serialization/access.hpp>
+#include <boost/serialization/array.hpp>
+#include <boost/serialization/base_object.hpp>
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
