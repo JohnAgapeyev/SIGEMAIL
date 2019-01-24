@@ -138,7 +138,7 @@ int main(int argc, char* argv[]) {
     load_server_certificate(ctx);
 
     spdlog::info("Pre database");
-    db::database foo{"foobar_db"};
+    db::database foo{db::IN_MEMORY_DB};
     spdlog::info("Post database");
 
     spdlog::info("Pre insert");

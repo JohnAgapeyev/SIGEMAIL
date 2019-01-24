@@ -38,4 +38,19 @@ namespace crypto {
 
 } // namespace crypto
 
+class db_error : public std::exception {
+public:
+    db_error(const char* what) : mesg(what) {}
+    ~db_error() = default;
+    db_error(const db_error&) = default;
+    db_error(db_error&&) = default;
+    db_error& operator=(db_error&&) = default;
+    db_error& operator=(const db_error&) = default;
+
+    const char* what() const noexcept { return mesg; }
+
+private:
+    const char* mesg;
+};
+
 #endif /* end of include guard: ERROR_H */

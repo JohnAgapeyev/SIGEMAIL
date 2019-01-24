@@ -94,6 +94,9 @@ namespace db {
         sqlite3_stmt* devices_id_select;
         sqlite3_stmt* otpk_select;
         sqlite3_stmt* mailbox_select;
+
+        void prepare_statement(const char *sql, sqlite3_stmt **stmt);
+        void exec_statement(const char *sql);
     };
 
     constexpr auto IN_MEMORY_DB = ":memory:";
