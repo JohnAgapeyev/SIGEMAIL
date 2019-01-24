@@ -36,24 +36,26 @@ public:
     void handle_request(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send);
 
 private:
-    template<typename Allocator>
+    template<typename Body, typename Allocator>
     const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-            request_verification_code(const std::string_view email) const;
-    template<typename Allocator>
+            request_verification_code(http::request<Body, http::basic_fields<Allocator>>&& req) const;
+    template<typename Body, typename Allocator>
     const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-            verify_verification_code(const std::string_view code) const;
-    template<typename Allocator>
+            verify_verification_code(http::request<Body, http::basic_fields<Allocator>>&& req) const;
+    template<typename Body, typename Allocator>
     const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-            register_prekeys() const;
-    template<typename Allocator>
+            register_prekeys(http::request<Body, http::basic_fields<Allocator>>&& req) const;
+    template<typename Body, typename Allocator>
     const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-            lookup_prekey(const std::string_view user, const std::string_view device) const;
-    template<typename Allocator>
+            lookup_prekey(http::request<Body, http::basic_fields<Allocator>>&& req) const;
+    template<typename Body, typename Allocator>
     const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-            contact_intersection() const;
-    template<typename Allocator>
+            contact_intersection(http::request<Body, http::basic_fields<Allocator>>&& req) const;
+    template<typename Body, typename Allocator>
     const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-            submit_message() const;
+            submit_message(http::request<Body, http::basic_fields<Allocator>>&& req) const;
+
+    [[nodiscard]] bool confirm_authentication(std::string_view www_auth) const;
 
     ssl::stream<tcp::socket> stream;
     http::request<http::string_body> request;
@@ -61,7 +63,5 @@ private:
     boost::beast::flat_buffer buffer;
     std::shared_ptr<void> result;
 };
-
-//------------------------------------------------------------------------------
 
 #endif /* end of include guard: SERVER_NETWORK_H */

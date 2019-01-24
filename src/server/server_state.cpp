@@ -12,6 +12,8 @@
 #include "logging.h"
 #include "server_state.h"
 
+db::database server_db;
+
 db::database::database() {
     if (sqlite3_open("foobar_db", &db_conn) != SQLITE_OK) {
         throw std::runtime_error(sqlite3_errmsg(db_conn));
@@ -405,6 +407,15 @@ std::vector<std::array<std::byte, 24>> db::database::contact_intersection(
 
 [[nodiscard]] bool db::database::confirm_auth_token(
         const std::string_view user_id, const std::string_view auth_token) {
+
+    int auth_token_val;
+    try {
+        auth_token_val = std::stoi(auth_token.data(), nullptr, 10);
+    } catch (...) {
+        //Could not convert string to int
+        return false;
+    }
+
     sqlite3_reset(users_auth_select);
     sqlite3_clear_bindings(users_auth_select);
 
@@ -418,12 +429,9 @@ std::vector<std::array<std::byte, 24>> db::database::contact_intersection(
         return false;
     }
 
-    const auto user_token = sqlite3_column_text(users_auth_select, 1);
-    const auto user_token_length = sqlite3_column_bytes(users_auth_select, 1);
+    const auto user_token = sqlite3_column_int(users_auth_select, 1);
 
-    return auth_token.compare(std::string_view{reinterpret_cast<const char*>(user_token),
-                   static_cast<unsigned long>(user_token_length)})
-            == 0;
+    return auth_token_val == user_token;
 }
 
 std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>>

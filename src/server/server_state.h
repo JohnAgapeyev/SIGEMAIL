@@ -158,4 +158,6 @@ namespace db {
     constexpr auto select_message = "SELECT message_id, device_id, contents FROM mailbox WHERE user_id = ?1;";
 } // namespace db
 
+extern db::database server_db;
+
 #endif /* end of include guard: SERVER_STATE_H */

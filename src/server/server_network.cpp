@@ -18,6 +18,7 @@
 
 #include "logging.h"
 #include "server_network.h"
+#include "server_state.h"
 
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
 namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
@@ -334,35 +335,93 @@ void http_session::handle_request(
     //Unknown/unsupported request
 }
 
-template<typename Allocator>
+template<typename Body, typename Allocator>
 const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-        http_session::request_verification_code(const std::string_view email) const {
-    //Foobar
-}
-template<typename Allocator>
-const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-        http_session::verify_verification_code(const std::string_view code) const {
-    //Foobar
-}
-template<typename Allocator>
-const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-        http_session::register_prekeys() const {
-    //Foobar
-}
-template<typename Allocator>
-const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-        http_session::lookup_prekey(
-                const std::string_view user, const std::string_view device) const {
-    //Foobar
-}
-template<typename Allocator>
-const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-        http_session::contact_intersection() const {
-    //Foobar
+        http_session::request_verification_code(
+                http::request<Body, http::basic_fields<Allocator>>&& req) const {
+    //This functions does not need a verification confirmation, since it is how they are originally requested
 }
 
-template<typename Allocator>
+template<typename Body, typename Allocator>
 const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-        http_session::submit_message() const {
-    //Foobar
+        http_session::verify_verification_code(
+                http::request<Body, http::basic_fields<Allocator>>&& req) const {
+    if (!confirm_authentication(req.get(http::field::www_authenticate))) {
+        //Authentication code verification failed
+    }
+}
+
+template<typename Body, typename Allocator>
+const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
+        http_session::register_prekeys(
+                http::request<Body, http::basic_fields<Allocator>>&& req) const {
+    if (!confirm_authentication(req.get(http::field::www_authenticate))) {
+        //Authentication code verification failed
+    }
+}
+
+template<typename Body, typename Allocator>
+const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
+        http_session::lookup_prekey(
+                http::request<Body, http::basic_fields<Allocator>>&& req) const {
+    if (!confirm_authentication(req.get(http::field::www_authenticate))) {
+        //Authentication code verification failed
+    }
+}
+
+template<typename Body, typename Allocator>
+const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
+        http_session::contact_intersection(
+                http::request<Body, http::basic_fields<Allocator>>&& req) const {
+    if (!confirm_authentication(req.get(http::field::www_authenticate))) {
+        //Authentication code verification failed
+    }
+}
+
+template<typename Body, typename Allocator>
+const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
+        http_session::submit_message(
+                http::request<Body, http::basic_fields<Allocator>>&& req) const {
+    if (!confirm_authentication(req.get(http::field::www_authenticate))) {
+        //Authentication code verification failed
+    }
+}
+
+[[nodiscard]] bool http_session::confirm_authentication(std::string_view www_auth) const {
+    if (www_auth.empty()) {
+        //No WWW-Authenticate header
+        return false;
+    }
+
+    size_t delim_loc = www_auth.find_first_of(' ');
+    if (delim_loc == 0 || delim_loc == std::string_view::npos || delim_loc == www_auth.size()) {
+        //Space delimeter is in an unexpected spot
+        return false;
+    }
+
+    if (www_auth.substr(0, delim_loc - 1).compare("Basic") != 0) {
+        //Auth type is not Basic, therefore unsupported
+        return false;
+    }
+
+    //Drop the auth type from the string
+    www_auth.remove_prefix(delim_loc);
+
+    /*
+     * Alright, so there will be no base64 involved with the auth token.
+     * My reason for this is that I'm already limiting things to ASCII
+     * Base64 won't prevent someone's email address from having a colon char in it, which is still a problem.
+     * I can treat the rest of the text after the colon as the "password", so escaping those kinds of chars isn't necessary
+     */
+
+    delim_loc = www_auth.find_first_of(':');
+    if (delim_loc == 0 || delim_loc == std::string_view::npos || delim_loc == www_auth.size()) {
+        //Colon delimeter is in an unexpected spot
+        return false;
+    }
+
+    const auto user_id = www_auth.substr(0, delim_loc - 1);
+    const auto password = www_auth.substr(delim_loc + 1);
+
+    return server_db.confirm_auth_token(user_id, password);
 }
