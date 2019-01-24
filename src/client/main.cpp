@@ -12,7 +12,6 @@
 
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
 namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
-namespace websocket = boost::beast::websocket; // from <boost/beast/websocket.hpp>
 
 int main(int argc, char** argv) {
     // Check command line arguments.
@@ -30,8 +29,12 @@ int main(int argc, char** argv) {
     boost::asio::io_context ioc;
 
     // The SSL context is required, and holds certificates
-    ssl::context ctx{ssl::context::sslv23_client};
+    ssl::context ctx{ssl::context::tls};
     ctx.set_default_verify_paths();
+
+    // Verify the remote server's certificate
+    ctx.set_verify_mode(ssl::verify_peer);
+    ctx.set_verify_callback(ssl::rfc2818_verification("localhost"));
 
     // Launch the asynchronous operation
     std::make_shared<client_network_session>(ioc, ctx)->run(host, port, text);
