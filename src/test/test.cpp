@@ -1,4 +1,5 @@
 #include "test.h"
+#include "server_state.h"
 
 crypto::secure_vector<std::byte> get_message() {
     crypto::secure_vector<std::byte> out;
@@ -24,3 +25,8 @@ session get_session() {
     session s{key, kp.get_public()};
     return s;
 }
+
+db::database get_db() {
+    return db::database{db::IN_MEMORY_DB};
+}
+

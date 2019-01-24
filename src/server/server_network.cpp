@@ -30,7 +30,7 @@ void http_session::run() {
                 strand, std::bind(&http_session::run, shared_from_this())));
     }
 
-    spdlog::debug("Starting SSL Handshake");
+    SPDLOG_DEBUG("Starting SSL Handshake");
 
     // Perform the SSL handshake
     stream.async_handshake(ssl::stream_base::server,
@@ -42,7 +42,7 @@ void http_session::run() {
 void http_session::on_handshake(boost::system::error_code ec) {
     if (ec) {
         //Handshake failed
-        spdlog::error("SSL Handshake failed");
+        SPDLOG_ERROR("SSL Handshake failed");
         return;
     }
     do_read();
@@ -71,7 +71,7 @@ void http_session::on_read(boost::system::error_code ec) {
     }
 
     if (ec) {
-        spdlog::error("Read failed");
+        SPDLOG_ERROR("Read failed");
         return;
     }
 
@@ -101,7 +101,7 @@ void http_session::on_write(boost::system::error_code ec, bool close) {
     }
 
     if (ec) {
-        spdlog::error("Write failed");
+        SPDLOG_ERROR("Write failed");
         return;
     }
 
@@ -243,7 +243,7 @@ void http_session::handle_request(
             if (req.method() != http::verb::put) {
                 return send(bad_request("Wrong request method"));
             }
-            spdlog::info("Confirm verification message");
+            SPDLOG_INFO("Confirm verification message");
             return send(verify_verification_code(std::move(req)));
         } else if (code_index == 6) {
             if (target.substr(0, 6).compare("email/") != 0) {
@@ -257,7 +257,7 @@ void http_session::handle_request(
                 return send(head_response(0));
             }
             //Confirm verification code
-            spdlog::info("Request verification message");
+            SPDLOG_INFO("Request verification message");
             return send(request_verification_code(std::move(req)));
         } else {
             //"code/" was not found, therefore it is not a valid target
@@ -271,7 +271,7 @@ void http_session::handle_request(
                 return send(bad_request("Wrong request method"));
             }
             //PreKey registration
-            spdlog::info("Key registration message");
+            SPDLOG_INFO("Key registration message");
             return send(register_prekeys(std::move(req)));
         } else {
             if (req.method() != http::verb::get && req.method() != http::verb::head) {
@@ -281,7 +281,7 @@ void http_session::handle_request(
                 return send(head_response(0));
             }
             //Request contact PreKeys
-            spdlog::info("Key lookup message");
+            SPDLOG_INFO("Key lookup message");
             return send(lookup_prekey(std::move(req)));
         }
         //Check for message prefix
@@ -289,7 +289,7 @@ void http_session::handle_request(
         if (req.method() != http::verb::put) {
             return send(bad_request("Wrong request method"));
         }
-        spdlog::info("Message message");
+        SPDLOG_INFO("Message message");
         return send(submit_message(std::move(req)));
         //Check for contact intersection target
     } else if (target.compare(contact_intersection_target) == 0) {
@@ -297,7 +297,7 @@ void http_session::handle_request(
             return send(bad_request("Wrong request method"));
         }
         //Handle contact intersection request
-        spdlog::info("Contact intersection");
+        SPDLOG_INFO("Contact intersection");
         return send(contact_intersection(std::move(req)));
     } else {
         return send(not_found(req.target()));

@@ -20,14 +20,14 @@ listener::listener(boost::asio::io_context& ioc, ssl::context& ssl_ctx, tcp::end
     acceptor.open(endpoint.protocol(), ec);
     if (ec) {
         //Open failed
-        spdlog::error("Open failed");
+        SPDLOG_ERROR("Open failed");
         return;
     }
 
     // Allow address reuse
     acceptor.set_option(boost::asio::socket_base::reuse_address(true), ec);
     if (ec) {
-        spdlog::error("Unable to reuse address");
+        SPDLOG_ERROR("Unable to reuse address");
         return;
     }
 
@@ -35,7 +35,7 @@ listener::listener(boost::asio::io_context& ioc, ssl::context& ssl_ctx, tcp::end
     acceptor.bind(endpoint, ec);
     if (ec) {
         //Bind failed
-        spdlog::error("Failed to bind");
+        SPDLOG_ERROR("Failed to bind");
         return;
     }
 
@@ -43,7 +43,7 @@ listener::listener(boost::asio::io_context& ioc, ssl::context& ssl_ctx, tcp::end
     acceptor.listen(boost::asio::socket_base::max_listen_connections, ec);
     if (ec) {
         //Listen failed
-        spdlog::error("Failed to listen");
+        SPDLOG_ERROR("Failed to listen");
         return;
     }
 }
@@ -51,7 +51,7 @@ listener::listener(boost::asio::io_context& ioc, ssl::context& ssl_ctx, tcp::end
 // Start accepting incoming connections
 void listener::run() {
     if (!acceptor.is_open()) {
-        spdlog::error("Tried to accept when acceptor isn't open");
+        SPDLOG_ERROR("Tried to accept when acceptor isn't open");
         return;
     }
     do_accept();
@@ -65,7 +65,7 @@ void listener::do_accept() {
 void listener::on_accept(boost::system::error_code ec) {
     if (ec) {
         //Accept failed
-        spdlog::trace("Accept failed");
+        SPDLOG_TRACE("Accept failed");
     } else {
         // Create the http session and run it
         std::make_shared<http_session>(std::move(socket), ctx, server_db)->run();

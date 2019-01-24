@@ -108,6 +108,7 @@ set(TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/session_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/hash_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/message_serialize_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/test/db_test.cpp
 )
 
 set(INCLUDE_DIRS
@@ -182,14 +183,15 @@ add_executable(test_binary ${TEST_SOURCES} ${Boost_INCLUDE_DIRS} $<TARGET_OBJECT
 target_compile_options(test_binary
     PRIVATE ${WARNINGS}
     PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>" "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
-target_compile_definitions(test_binary PRIVATE "$<$<CONFIG:RELEASE>:NDEBUG>")
+target_compile_definitions(test_binary PRIVATE "$<$<CONFIG:RELEASE>:NDEBUG>" SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_OFF)
 target_include_directories(test_binary PRIVATE ${INCLUDE_DIRS})
-add_test(NAME encryption_tests COMMAND test_binary -p -t encryption_tests)
-add_test(NAME signing_tests COMMAND test_binary -p -t sign_tests)
-add_test(NAME hash_tests COMMAND test_binary -p -t hash_tests)
-add_test(NAME protocol_tests COMMAND test_binary -p -t protocol_tests)
-add_test(NAME session_tests COMMAND test_binary -p -t session_tests)
-add_test(NAME serialization_tests COMMAND test_binary -p -t serialization_tests)
+add_test(NAME encryption_tests COMMAND test_binary -t encryption_tests)
+add_test(NAME signing_tests COMMAND test_binary -t sign_tests)
+add_test(NAME hash_tests COMMAND test_binary -t hash_tests)
+add_test(NAME protocol_tests COMMAND test_binary -t protocol_tests)
+add_test(NAME session_tests COMMAND test_binary -t session_tests)
+add_test(NAME serialization_tests COMMAND test_binary -t serialization_tests)
+add_test(NAME db_tests COMMAND test_binary -t db_tests)
 
 target_link_libraries(test_binary PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES} Boost::unit_test_framework Boost::serialization spdlog)
 
