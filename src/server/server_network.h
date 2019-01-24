@@ -36,24 +36,24 @@ public:
     void handle_request(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send);
 
 private:
-    template<typename Body, typename Allocator>
-    const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-            request_verification_code(http::request<Body, http::basic_fields<Allocator>>&& req) const;
-    template<typename Body, typename Allocator>
-    const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-            verify_verification_code(http::request<Body, http::basic_fields<Allocator>>&& req) const;
-    template<typename Body, typename Allocator>
-    const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-            register_prekeys(http::request<Body, http::basic_fields<Allocator>>&& req) const;
-    template<typename Body, typename Allocator>
-    const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-            lookup_prekey(http::request<Body, http::basic_fields<Allocator>>&& req) const;
-    template<typename Body, typename Allocator>
-    const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-            contact_intersection(http::request<Body, http::basic_fields<Allocator>>&& req) const;
-    template<typename Body, typename Allocator>
-    const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-            submit_message(http::request<Body, http::basic_fields<Allocator>>&& req) const;
+    template<typename Body>
+    const http::response<http::string_body, http::fields> request_verification_code(
+            http::request<Body, http::fields>&& req) const;
+    template<typename Body>
+    const http::response<http::string_body, http::fields> verify_verification_code(
+            http::request<Body, http::fields>&& req) const;
+    template<typename Body>
+    const http::response<http::string_body, http::fields> register_prekeys(
+            http::request<Body, http::fields>&& req) const;
+    template<typename Body>
+    const http::response<http::string_body, http::fields> lookup_prekey(
+            http::request<Body, http::fields>&& req) const;
+    template<typename Body>
+    const http::response<http::string_body, http::fields> contact_intersection(
+            http::request<Body, http::fields>&& req) const;
+    template<typename Body>
+    const http::response<http::string_body, http::fields> submit_message(
+            http::request<Body, http::fields>&& req) const;
 
     [[nodiscard]] bool confirm_authentication(std::string_view www_auth) const;
 
@@ -61,7 +61,7 @@ private:
     http::request<http::string_body> request;
     boost::asio::strand<boost::asio::io_context::executor_type> strand;
     boost::beast::flat_buffer buffer;
-    std::shared_ptr<void> result;
+    std::shared_ptr<const void> result;
 };
 
 #endif /* end of include guard: SERVER_NETWORK_H */

@@ -84,7 +84,7 @@ void http_session::on_read(boost::system::error_code ec) {
 
         // Store a type-erased version of the shared
         // pointer in the class to keep it alive.
-        result = sp;
+        result = std::reinterpret_pointer_cast<const void>(sp);
 
         // Write the response
         http::async_write(stream, *sp,
@@ -203,7 +203,7 @@ void http_session::handle_request(
     static constexpr auto accounts_prefix = "accounts/";
     static constexpr auto keys_prefix = "keys/";
     static constexpr auto message_prefix = "messages";
-    static constexpr auto contact_intersection = "directory/tokens";
+    static constexpr auto contact_intersection_target = "directory/tokens";
 
     // Make sure we can handle the method
     if (req.method() != http::verb::get && req.method() != http::verb::head
@@ -244,6 +244,7 @@ void http_session::handle_request(
                 return send(bad_request("Wrong request method"));
             }
             spdlog::info("Confirm verification message");
+            return send(verify_verification_code(std::move(req)));
         } else if (code_index == 6) {
             if (target.substr(0, 6).compare("email/") != 0) {
                 //Malformed target
@@ -257,6 +258,7 @@ void http_session::handle_request(
             }
             //Confirm verification code
             spdlog::info("Request verification message");
+            return send(request_verification_code(std::move(req)));
         } else {
             //"code/" was not found, therefore it is not a valid target
             return send(not_found(req.target()));
@@ -270,6 +272,7 @@ void http_session::handle_request(
             }
             //PreKey registration
             spdlog::info("Key registration message");
+            return send(register_prekeys(std::move(req)));
         } else {
             if (req.method() != http::verb::get && req.method() != http::verb::head) {
                 return send(bad_request("Wrong request method"));
@@ -279,6 +282,7 @@ void http_session::handle_request(
             }
             //Request contact PreKeys
             spdlog::info("Key lookup message");
+            return send(lookup_prekey(std::move(req)));
         }
         //Check for message prefix
     } else if (target.substr(0, strlen(message_prefix)).compare(message_prefix) == 0) {
@@ -286,105 +290,142 @@ void http_session::handle_request(
             return send(bad_request("Wrong request method"));
         }
         spdlog::info("Message message");
+        return send(submit_message(std::move(req)));
         //Check for contact intersection target
-    } else if (target.compare(contact_intersection) == 0) {
+    } else if (target.compare(contact_intersection_target) == 0) {
         if (req.method() != http::verb::put) {
             return send(bad_request("Wrong request method"));
         }
         //Handle contact intersection request
         spdlog::info("Contact intersection");
+        return send(contact_intersection(std::move(req)));
     } else {
         return send(not_found(req.target()));
     }
+}
 
-    // Attempt to open the file
-    boost::beast::error_code ec;
-    http::file_body::value_type body;
-    //body.open(path.c_str(), boost::beast::file_mode::scan, ec);
+template<typename Body>
+const http::response<http::string_body, http::fields> http_session::request_verification_code(
+        http::request<Body, http::fields>&& req) const {
+    //This functions does not need a verification confirmation, since it is how they are originally requested
 
-    // Handle the case where the file doesn't exist
-    if (ec == boost::system::errc::no_such_file_or_directory) {
-        return send(not_found(req.target()));
-    }
+    http::response<http::string_body> res{http::status::ok, req.version()};
+    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+    res.set(http::field::content_type, "text/html");
+    res.keep_alive(req.keep_alive());
+    res.body() = "Foobar test string";
+    res.prepare_payload();
+    return res;
+}
 
-    // Handle an unknown error
-    if (ec) {
-        return send(server_error(ec.message()));
-    }
-
-    // Cache the size since we need it after the move
-    const auto size = body.size();
-
-    // Respond to HEAD request
-    if (req.method() == http::verb::head) {
-        return send(head_response(0));
-    }
-    if (req.method() == http::verb::get) {
-        // Respond to GET request
-        http::response<http::file_body> res{std::piecewise_construct,
-                std::make_tuple(std::move(body)), std::make_tuple(http::status::ok, req.version())};
+template<typename Body>
+const http::response<http::string_body, http::fields> http_session::verify_verification_code(
+        http::request<Body, http::fields>&& req) const {
+    if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
+        //Authentication code verification failed
+        http::response<http::string_body> res{http::status::unauthorized, req.version()};
         res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
         res.set(http::field::content_type, "text/html");
-        res.content_length(size);
         res.keep_alive(req.keep_alive());
-        return send(std::move(res));
+        res.body() = "Bad authentication code";
+        res.prepare_payload();
+        return res;
     }
-    if (req.method() == http::verb::put) {
-        //Put Request
-    }
-    //Unknown/unsupported request
+    http::response<http::string_body> res{http::status::ok, req.version()};
+    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+    res.set(http::field::content_type, "text/html");
+    res.keep_alive(req.keep_alive());
+    res.body() = "Foobar test string";
+    res.prepare_payload();
+    return res;
 }
 
-template<typename Body, typename Allocator>
-const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-        http_session::request_verification_code(
-                http::request<Body, http::basic_fields<Allocator>>&& req) const {
-    //This functions does not need a verification confirmation, since it is how they are originally requested
-}
-
-template<typename Body, typename Allocator>
-const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-        http_session::verify_verification_code(
-                http::request<Body, http::basic_fields<Allocator>>&& req) const {
-    if (!confirm_authentication(req.get(http::field::www_authenticate))) {
+template<typename Body>
+const http::response<http::string_body, http::fields> http_session::register_prekeys(
+        http::request<Body, http::fields>&& req) const {
+    if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
+        http::response<http::string_body> res{http::status::unauthorized, req.version()};
+        res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(http::field::content_type, "text/html");
+        res.keep_alive(req.keep_alive());
+        res.body() = "Bad authentication code";
+        res.prepare_payload();
+        return res;
     }
+    http::response<http::string_body> res{http::status::ok, req.version()};
+    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+    res.set(http::field::content_type, "text/html");
+    res.keep_alive(req.keep_alive());
+    res.body() = "Foobar test string";
+    res.prepare_payload();
+    return res;
 }
 
-template<typename Body, typename Allocator>
-const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-        http_session::register_prekeys(
-                http::request<Body, http::basic_fields<Allocator>>&& req) const {
-    if (!confirm_authentication(req.get(http::field::www_authenticate))) {
+template<typename Body>
+const http::response<http::string_body, http::fields> http_session::lookup_prekey(
+        http::request<Body, http::fields>&& req) const {
+    if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
+        http::response<http::string_body> res{http::status::unauthorized, req.version()};
+        res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(http::field::content_type, "text/html");
+        res.keep_alive(req.keep_alive());
+        res.body() = "Bad authentication code";
+        res.prepare_payload();
+        return res;
     }
+    http::response<http::string_body> res{http::status::ok, req.version()};
+    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+    res.set(http::field::content_type, "text/html");
+    res.keep_alive(req.keep_alive());
+    res.body() = "Foobar test string";
+    res.prepare_payload();
+    return res;
 }
 
-template<typename Body, typename Allocator>
-const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-        http_session::lookup_prekey(
-                http::request<Body, http::basic_fields<Allocator>>&& req) const {
-    if (!confirm_authentication(req.get(http::field::www_authenticate))) {
+template<typename Body>
+const http::response<http::string_body, http::fields> http_session::contact_intersection(
+        http::request<Body, http::fields>&& req) const {
+    if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
+        http::response<http::string_body> res{http::status::unauthorized, req.version()};
+        res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(http::field::content_type, "text/html");
+        res.keep_alive(req.keep_alive());
+        res.body() = "Bad authentication code";
+        res.prepare_payload();
+        return res;
     }
+    http::response<http::string_body> res{http::status::ok, req.version()};
+    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+    res.set(http::field::content_type, "text/html");
+    res.keep_alive(req.keep_alive());
+    res.body() = "Foobar test string";
+    res.prepare_payload();
+    return res;
 }
 
-template<typename Body, typename Allocator>
-const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-        http_session::contact_intersection(
-                http::request<Body, http::basic_fields<Allocator>>&& req) const {
-    if (!confirm_authentication(req.get(http::field::www_authenticate))) {
+template<typename Body>
+const http::response<http::string_body, http::fields> http_session::submit_message(
+        http::request<Body, http::fields>&& req) const {
+    if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
+        http::response<http::string_body> res{http::status::unauthorized, req.version()};
+        res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(http::field::content_type, "text/html");
+        res.keep_alive(req.keep_alive());
+        res.body() = "Bad authentication code";
+        res.prepare_payload();
+        return res;
     }
-}
-
-template<typename Body, typename Allocator>
-const http::response<http::basic_string_body<Allocator>, http::basic_fields<Allocator>>
-        http_session::submit_message(
-                http::request<Body, http::basic_fields<Allocator>>&& req) const {
-    if (!confirm_authentication(req.get(http::field::www_authenticate))) {
-        //Authentication code verification failed
-    }
+    http::response<http::string_body> res{http::status::ok, req.version()};
+    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+    res.set(http::field::content_type, "text/html");
+    res.keep_alive(req.keep_alive());
+    res.body() = "Foobar test string";
+    res.prepare_payload();
+    return res;
 }
 
 [[nodiscard]] bool http_session::confirm_authentication(std::string_view www_auth) const {
