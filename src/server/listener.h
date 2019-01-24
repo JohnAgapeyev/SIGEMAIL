@@ -5,13 +5,15 @@
 #include <boost/asio/ssl/stream.hpp>
 #include <utility>
 
+#include "server_state.h"
+
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
 namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
 
 // Accepts incoming connections and launches the websocket_sessions
 class listener : public std::enable_shared_from_this<listener> {
 public:
-    listener(boost::asio::io_context& ioc, ssl::context& ssl_ctx, tcp::endpoint endpoint);
+    listener(boost::asio::io_context& ioc, ssl::context& ssl_ctx, tcp::endpoint endpoint, db::database& db);
 
     // Start accepting incoming connections
     void run();
@@ -22,6 +24,8 @@ private:
     ssl::context& ctx;
     tcp::acceptor acceptor;
     tcp::socket socket;
+
+    db::database& server_db;
 };
 
 #endif /* end of include guard: LISTENER_H */

@@ -12,10 +12,8 @@
 #include "logging.h"
 #include "server_state.h"
 
-db::database server_db;
-
-db::database::database() {
-    if (sqlite3_open("foobar_db", &db_conn) != SQLITE_OK) {
+db::database::database(const char *db_name) {
+    if (sqlite3_open(db_name, &db_conn) != SQLITE_OK) {
         throw std::runtime_error(sqlite3_errmsg(db_conn));
     }
 
@@ -407,7 +405,6 @@ std::vector<std::array<std::byte, 24>> db::database::contact_intersection(
 
 [[nodiscard]] bool db::database::confirm_auth_token(
         const std::string_view user_id, const std::string_view auth_token) {
-
     int auth_token_val;
     try {
         auth_token_val = std::stoi(auth_token.data(), nullptr, 10);

@@ -9,6 +9,8 @@
 #include <string>
 #include <utility>
 
+#include "server_state.h"
+
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
 namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
 namespace http = boost::beast::http; // from <boost/beast/http.hpp>
@@ -17,8 +19,8 @@ namespace http = boost::beast::http; // from <boost/beast/http.hpp>
 class http_session : public std::enable_shared_from_this<http_session> {
 public:
     // Take ownership of the socket
-    http_session(tcp::socket tcp_socket, ssl::context& ctx) :
-            stream(std::move(tcp_socket), ctx), strand(stream.get_executor()) {}
+    http_session(tcp::socket tcp_socket, ssl::context& ctx, db::database& db) :
+            stream(std::move(tcp_socket), ctx), strand(stream.get_executor()), server_db(db) {}
 
     // Start the asynchronous operation
     void run();
@@ -62,6 +64,8 @@ private:
     boost::asio::strand<boost::asio::io_context::executor_type> strand;
     boost::beast::flat_buffer buffer;
     std::shared_ptr<const void> result;
+
+    db::database& server_db;
 };
 
 #endif /* end of include guard: SERVER_NETWORK_H */

@@ -8,9 +8,12 @@
 #include "listener.h"
 #include "logging.h"
 #include "server_network.h"
+#include "server_state.h"
 
-listener::listener(boost::asio::io_context& ioc, ssl::context& ssl_ctx, tcp::endpoint endpoint) :
-        ctx(ssl_ctx), acceptor(ioc), socket(ioc) {
+listener::listener(boost::asio::io_context& ioc, ssl::context& ssl_ctx, tcp::endpoint endpoint,
+        db::database& db) :
+        ctx(ssl_ctx),
+        acceptor(ioc), socket(ioc), server_db(db) {
     boost::system::error_code ec;
 
     // Open the acceptor
@@ -64,8 +67,8 @@ void listener::on_accept(boost::system::error_code ec) {
         //Accept failed
         spdlog::trace("Accept failed");
     } else {
-        // Create the websocket_session and run it
-        std::make_shared<http_session>(std::move(socket), ctx)->run();
+        // Create the http session and run it
+        std::make_shared<http_session>(std::move(socket), ctx, server_db)->run();
     }
     // Accept another connection
     do_accept();

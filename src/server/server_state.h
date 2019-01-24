@@ -35,7 +35,7 @@
 namespace db {
     class database {
     public:
-        database();
+        database(const char *db_name);
         ~database();
         database(const database&) = delete;
         database(database&&) = default;
@@ -95,6 +95,8 @@ namespace db {
         sqlite3_stmt* otpk_select;
         sqlite3_stmt* mailbox_select;
     };
+
+    constexpr auto IN_MEMORY_DB = ":memory:";
 
     constexpr auto create_users = "\
         CREATE TABLE IF NOT EXISTS users (\
@@ -157,7 +159,5 @@ namespace db {
     constexpr auto select_one_time = "SELECT key_id, key FROM otpk WHERE device_id = ?1 ORDER BY RANDOM() LIMIT 1;";
     constexpr auto select_message = "SELECT message_id, device_id, contents FROM mailbox WHERE user_id = ?1;";
 } // namespace db
-
-extern db::database server_db;
 
 #endif /* end of include guard: SERVER_STATE_H */

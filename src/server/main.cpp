@@ -4,29 +4,27 @@
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
-#include <boost/beast/websocket.hpp>
-#include <boost/beast/websocket/ssl.hpp>
+#include <boost/beast/http.hpp>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <functional>
 #include <iostream>
 #include <memory>
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
 #include <string>
 #include <thread>
 #include <vector>
 
 #include "crypto.h"
+#include "listener.h"
+#include "logging.h"
 #include "server_network.h"
 #include "server_state.h"
-#include "listener.h"
 #include "session.h"
 
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
 namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
-namespace websocket = boost::beast::websocket; // from <boost/beast/websocket.hpp>
+namespace http = boost::beast::http; // from <boost/beast/http.hpp>
 
 /*  Load a signed certificate into the ssl context, and configure
     the context for use with a server.
@@ -140,7 +138,7 @@ int main(int argc, char* argv[]) {
     load_server_certificate(ctx);
 
     spdlog::info("Pre database");
-    db::database foo;
+    db::database foo{"foobar_db"};
     spdlog::info("Post database");
 
     spdlog::info("Pre insert");
@@ -202,8 +200,10 @@ int main(int argc, char* argv[]) {
         spdlog::info("Confirm auth failed 2");
     }
 
+    db::database server_db{"server_db"};
     // Create and launch a listening port
-    std::make_shared<listener>(ioc, ctx, tcp::endpoint{tcp::v4(), port})->run();
+    std::make_shared<listener>(ioc, ctx, tcp::endpoint{tcp::v4(), port}, server_db)
+            ->run();
 
     // Run the I/O service on the requested number of threads
     std::vector<std::thread> v;
