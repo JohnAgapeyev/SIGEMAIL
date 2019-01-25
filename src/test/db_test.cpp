@@ -277,4 +277,113 @@ BOOST_AUTO_TEST_CASE(remove_registration_code_empty_table) {
     db.remove_registration_code("foobar@test.com");
 }
 
+BOOST_AUTO_TEST_CASE(contact_intersection_single) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "12345");
+
+    std::vector<std::array<std::byte, 24>> hashes;
+    hashes.emplace_back(get_truncated_hash("foobar@test.com"));
+
+    const auto intersection = db.contact_intersection(hashes);
+
+    BOOST_TEST(intersection.size() == 1);
+    BOOST_TEST(intersection.front() == hashes.front());
+}
+
+BOOST_AUTO_TEST_CASE(contact_intersection_multiple) {
+    auto db = get_db();
+
+    std::vector<std::string_view> users;
+    users.emplace_back("foobar1@test.com");
+    users.emplace_back("foobar2@test.com");
+    users.emplace_back("foobar3@test.com");
+    users.emplace_back("foobar4@test.com");
+    users.emplace_back("foobar5@test.com");
+
+    for (const auto& id : users) {
+        db.add_user(id, id);
+    }
+
+    std::vector<std::array<std::byte, 24>> hashes;
+    for (const auto& id : users) {
+        hashes.emplace_back(get_truncated_hash(id));
+    }
+
+    const auto intersection = db.contact_intersection(hashes);
+
+    std::sort(hashes.begin(), hashes.end());
+
+    BOOST_TEST(intersection.size() == users.size());
+    BOOST_TEST(intersection == hashes);
+}
+
+BOOST_AUTO_TEST_CASE(contact_intersection_not_all) {
+    auto db = get_db();
+
+    std::vector<std::string_view> users;
+    users.emplace_back("foobar1@test.com");
+    users.emplace_back("foobar2@test.com");
+
+    for (const auto& id : users) {
+        db.add_user(id, id);
+    }
+
+    std::vector<std::array<std::byte, 24>> hashes;
+    for (const auto& id : users) {
+        hashes.emplace_back(get_truncated_hash(id));
+    }
+    hashes.emplace_back(get_truncated_hash("foobar3@test.com"));
+    hashes.emplace_back(get_truncated_hash("foobar4@test.com"));
+    hashes.emplace_back(get_truncated_hash("foobar5@test.com"));
+
+    const auto intersection = db.contact_intersection(hashes);
+
+    BOOST_TEST(intersection.size() == 2);
+}
+
+BOOST_AUTO_TEST_CASE(contact_intersection_none) {
+    auto db = get_db();
+
+    std::vector<std::string_view> users;
+    users.emplace_back("foobar1@test.com");
+    users.emplace_back("foobar2@test.com");
+    users.emplace_back("foobar3@test.com");
+    users.emplace_back("foobar4@test.com");
+    users.emplace_back("foobar5@test.com");
+
+    for (const auto& id : users) {
+        db.add_user(id, id);
+    }
+
+    std::vector<std::array<std::byte, 24>> hashes;
+    hashes.emplace_back(get_truncated_hash("foo3@test.com"));
+    hashes.emplace_back(get_truncated_hash("foo4@test.com"));
+    hashes.emplace_back(get_truncated_hash("foo5@test.com"));
+
+    const auto intersection = db.contact_intersection(hashes);
+
+    BOOST_TEST(intersection.size() == 0);
+}
+
+BOOST_AUTO_TEST_CASE(contact_intersection_empty) {
+    auto db = get_db();
+
+    std::vector<std::string_view> users;
+    users.emplace_back("foobar1@test.com");
+    users.emplace_back("foobar2@test.com");
+    users.emplace_back("foobar3@test.com");
+    users.emplace_back("foobar4@test.com");
+    users.emplace_back("foobar5@test.com");
+
+    for (const auto& id : users) {
+        db.add_user(id, id);
+    }
+
+    std::vector<std::array<std::byte, 24>> hashes;
+
+    const auto intersection = db.contact_intersection(hashes);
+
+    BOOST_TEST(intersection.size() == 0);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

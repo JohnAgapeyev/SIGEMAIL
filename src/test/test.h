@@ -12,6 +12,8 @@ crypto::secure_vector<std::byte> get_message();
 crypto::secure_vector<std::byte> get_aad();
 crypto::shared_key get_key();
 
+std::array<std::byte, 24> get_truncated_hash(const std::string_view data);
+
 session get_session();
 
 db::database get_db();

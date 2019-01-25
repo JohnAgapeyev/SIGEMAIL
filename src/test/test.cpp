@@ -30,3 +30,11 @@ session get_session() {
 db::database get_db() {
     return db::database{db::IN_MEMORY_DB};
 }
+
+std::array<std::byte, 24> get_truncated_hash(const std::string_view data) {
+    const auto hash = crypto::hash_string(data);
+    std::array<std::byte, 24> out;
+    std::copy(hash.begin(), hash.begin() + 24, out.begin());
+    return out;
+}
+

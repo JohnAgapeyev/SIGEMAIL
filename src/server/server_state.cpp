@@ -98,11 +98,13 @@ void db::database::add_user(const std::string_view user_id, const std::string_vi
         throw_db_error();
     }
 
-    const auto trunc_hash = crypto::hash_string(user_id);
+    const auto hash = crypto::hash_string(user_id);
+    std::array<std::byte, 24> trunc_hash;
+    std::copy(hash.begin(), hash.begin() + 24, trunc_hash.begin());
 
     //Store the first 24/32 bytes of the email hash
     if (sqlite3_bind_blob(
-                users_insert, 2, trunc_hash.data(), trunc_hash.size() - 8, SQLITE_TRANSIENT)
+                users_insert, 2, trunc_hash.data(), trunc_hash.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
         throw_db_error();
     }
@@ -309,7 +311,10 @@ std::vector<std::array<std::byte, 24>> db::database::contact_intersection(
     while ((err = sqlite3_step(users_hash_select)) == SQLITE_ROW) {
         std::array<std::byte, 24> trunc_hash;
 
-        const auto db_data = sqlite3_column_blob(users_hash_select, 1);
+        const auto db_data = sqlite3_column_blob(users_hash_select, 0);
+        if (!db_data) {
+            throw_db_error();
+        }
 
         //Copy data from database pointer to array
         memcpy(trunc_hash.data(), db_data, 24);
@@ -329,7 +334,7 @@ std::vector<std::array<std::byte, 24>> db::database::contact_intersection(
     std::vector<std::array<std::byte, 24>> intersect;
 
     std::set_intersection(truncated_hashes.begin(), truncated_hashes.end(), all_hashes.begin(),
-            all_hashes.end(), std::make_move_iterator(intersect.end()));
+            all_hashes.end(), std::back_inserter(intersect));
 
     return intersect;
 }
