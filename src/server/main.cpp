@@ -137,67 +137,67 @@ int main(int argc, char* argv[]) {
     // This holds the self-signed certificate used by the server
     load_server_certificate(ctx);
 
-    SPDLOG_INFO("Pre database");
+    spdlog::info("Pre database");
     db::database foo{db::IN_MEMORY_DB};
-    SPDLOG_INFO("Post database");
+    spdlog::info("Post database");
 
-    SPDLOG_INFO("Pre insert");
+    spdlog::info("Pre insert");
     foo.add_user("test_email@test.com", "");
-    SPDLOG_INFO("Post insert");
+    spdlog::info("Post insert");
 
-    SPDLOG_INFO("Pre insert 0.5");
+    spdlog::info("Pre insert 0.5");
     foo.add_user("nice@test.com", "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-    SPDLOG_INFO("Post insert 0.5");
+    spdlog::info("Post insert 0.5");
 
-    SPDLOG_INFO("Pre insert 2");
+    spdlog::info("Pre insert 2");
     foo.add_device("test_email@test.com", {}, {}, {});
-    SPDLOG_INFO("Post insert 2");
+    spdlog::info("Post insert 2");
 
-    SPDLOG_INFO("Pre insert 3");
+    spdlog::info("Pre insert 3");
     foo.add_device("test_email@foobar.com", {}, {}, {});
-    SPDLOG_INFO("Post insert 3");
+    spdlog::info("Post insert 3");
 
-    SPDLOG_INFO("Pre insert 4");
+    spdlog::info("Pre insert 4");
     foo.add_one_time_key(99, {});
-    SPDLOG_INFO("Post insert 4");
+    spdlog::info("Post insert 4");
 
-    SPDLOG_INFO("Pre insert 5");
+    spdlog::info("Pre insert 5");
     foo.add_one_time_key(1, {});
-    SPDLOG_INFO("Post insert 5");
+    spdlog::info("Post insert 5");
 
-    SPDLOG_INFO("Pre insert 6");
+    spdlog::info("Pre insert 6");
     foo.add_message("foo@test.com", 1, {});
-    SPDLOG_INFO("Post insert 5");
+    spdlog::info("Post insert 5");
 
-    SPDLOG_INFO("Pre insert 7");
+    spdlog::info("Pre insert 7");
     foo.add_message("", 1, {4, std::byte{0xab}});
-    SPDLOG_INFO("Post insert 7");
+    spdlog::info("Post insert 7");
 
-    SPDLOG_INFO("Pre insert 8");
+    spdlog::info("Pre insert 8");
     foo.add_message("next@test.com", 99, {4, std::byte{0xab}});
-    SPDLOG_INFO("Post insert 8");
+    spdlog::info("Post insert 8");
 
-    SPDLOG_INFO("Pre insert 9");
+    spdlog::info("Pre insert 9");
     foo.add_registration_code("foobar@test.com", 123456);
-    SPDLOG_INFO("Post insert 9");
+    spdlog::info("Post insert 9");
 
-    SPDLOG_INFO("Pre insert 10");
+    spdlog::info("Pre insert 10");
     foo.add_registration_code("foobar@test.com", 12);
-    SPDLOG_INFO("Post insert 10");
+    spdlog::info("Post insert 10");
 
-    SPDLOG_INFO("Pre insert 11");
+    spdlog::info("Pre insert 11");
     foo.update_pre_key(1, {}, {});
-    SPDLOG_INFO("Post insert 11");
+    spdlog::info("Post insert 11");
 
     if (foo.confirm_auth_token("test_email@test.com", "")) {
-        SPDLOG_INFO("Confirm auth succeeded");
+        spdlog::info("Confirm auth succeeded");
     } else {
-        SPDLOG_INFO("Confirm auth failed");
+        spdlog::info("Confirm auth failed");
     }
     if (foo.confirm_auth_token("test_email@test.com", "rats")) {
-        SPDLOG_INFO("Confirm auth succeeded 2");
+        spdlog::info("Confirm auth succeeded 2");
     } else {
-        SPDLOG_INFO("Confirm auth failed 2");
+        spdlog::info("Confirm auth failed 2");
     }
 
     db::database server_db{"server_db"};

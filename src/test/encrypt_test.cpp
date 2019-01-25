@@ -7,6 +7,8 @@
 #include "error.h"
 #include "dh.h"
 
+BOOST_TEST_GLOBAL_FIXTURE(DisableLogging);
+
 BOOST_AUTO_TEST_SUITE(encryption_tests)
 
 BOOST_AUTO_TEST_CASE(basic_encryption) {

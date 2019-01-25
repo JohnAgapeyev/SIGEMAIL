@@ -183,7 +183,7 @@ add_executable(test_binary ${TEST_SOURCES} ${Boost_INCLUDE_DIRS} $<TARGET_OBJECT
 target_compile_options(test_binary
     PRIVATE ${WARNINGS}
     PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>" "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
-target_compile_definitions(test_binary PRIVATE "$<$<CONFIG:RELEASE>:NDEBUG>" SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_OFF)
+target_compile_definitions(test_binary PRIVATE "$<$<CONFIG:RELEASE>:NDEBUG>")
 target_include_directories(test_binary PRIVATE ${INCLUDE_DIRS})
 add_test(NAME encryption_tests COMMAND test_binary -t encryption_tests)
 add_test(NAME signing_tests COMMAND test_binary -t sign_tests)

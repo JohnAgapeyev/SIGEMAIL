@@ -1,5 +1,6 @@
-#include "test.h"
+#include "logging.h"
 #include "server_state.h"
+#include "test.h"
 
 crypto::secure_vector<std::byte> get_message() {
     crypto::secure_vector<std::byte> out;
@@ -29,4 +30,3 @@ session get_session() {
 db::database get_db() {
     return db::database{db::IN_MEMORY_DB};
 }
-
