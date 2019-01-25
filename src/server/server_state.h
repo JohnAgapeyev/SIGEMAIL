@@ -97,6 +97,7 @@ namespace db {
 
         void prepare_statement(const char *sql, sqlite3_stmt **stmt);
         void exec_statement(const char *sql);
+        void throw_db_error();
     };
 
     constexpr auto IN_MEMORY_DB = ":memory:";
