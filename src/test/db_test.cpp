@@ -430,4 +430,97 @@ BOOST_AUTO_TEST_CASE(confirm_auth_truncated_token) {
     BOOST_TEST(!db.confirm_auth_token("foobar@test.com", "1234"));
 }
 
+BOOST_AUTO_TEST_CASE(lookup_devices_single) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "123456789");
+    db.add_device("foobar@test.com", {}, {}, {});
+
+    const auto data = db.lookup_devices("foobar@test.com");
+    BOOST_TEST(data.size() == 1);
+}
+
+BOOST_AUTO_TEST_CASE(lookup_devices_multiple) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "123456789");
+
+    for (int i = 0; i < 5; ++i) {
+        crypto::DH_Keypair kp1, kp2;
+        const auto sig = crypto::sign_key(kp1, kp2.get_public());
+        db.add_device("foobar@test.com", kp1.get_public(), kp2.get_public(), sig);
+    }
+
+    const auto data = db.lookup_devices("foobar@test.com");
+    BOOST_TEST(data.size() == 5);
+}
+
+BOOST_AUTO_TEST_CASE(lookup_devices_wrong_user) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "123456789");
+
+    for (int i = 0; i < 5; ++i) {
+        crypto::DH_Keypair kp1, kp2;
+        const auto sig = crypto::sign_key(kp1, kp2.get_public());
+        db.add_device("foobar@test.com", kp1.get_public(), kp2.get_public(), sig);
+    }
+
+    const auto data = db.lookup_devices("foo@test");
+    BOOST_TEST(data.size() == 0);
+}
+
+BOOST_AUTO_TEST_CASE(lookup_devices_empty_user) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "123456789");
+
+    for (int i = 0; i < 5; ++i) {
+        crypto::DH_Keypair kp1, kp2;
+        const auto sig = crypto::sign_key(kp1, kp2.get_public());
+        db.add_device("foobar@test.com", kp1.get_public(), kp2.get_public(), sig);
+    }
+
+    const auto data = db.lookup_devices("");
+    BOOST_TEST(data.size() == 0);
+}
+
+BOOST_AUTO_TEST_CASE(lookup_devices_id) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "123456789");
+
+    for (int i = 0; i < 5; ++i) {
+        crypto::DH_Keypair kp1, kp2;
+        const auto sig = crypto::sign_key(kp1, kp2.get_public());
+        db.add_device("foobar@test.com", kp1.get_public(), kp2.get_public(), sig);
+    }
+
+    const auto data = db.lookup_devices({1});
+    BOOST_TEST(data.size() == 1);
+}
+
+BOOST_AUTO_TEST_CASE(lookup_devices_id_multiple) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "123456789");
+
+    for (int i = 0; i < 5; ++i) {
+        crypto::DH_Keypair kp1, kp2;
+        const auto sig = crypto::sign_key(kp1, kp2.get_public());
+        db.add_device("foobar@test.com", kp1.get_public(), kp2.get_public(), sig);
+    }
+
+    const auto data = db.lookup_devices({1, 2, 3, 4, 5});
+    BOOST_TEST(data.size() == 5);
+}
+
+BOOST_AUTO_TEST_CASE(lookup_devices_id_some) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "123456789");
+
+    for (int i = 0; i < 5; ++i) {
+        crypto::DH_Keypair kp1, kp2;
+        const auto sig = crypto::sign_key(kp1, kp2.get_public());
+        db.add_device("foobar@test.com", kp1.get_public(), kp2.get_public(), sig);
+    }
+
+    const auto data = db.lookup_devices({2, 4});
+    BOOST_TEST(data.size() == 2);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -103,8 +103,7 @@ void db::database::add_user(const std::string_view user_id, const std::string_vi
     std::copy(hash.begin(), hash.begin() + 24, trunc_hash.begin());
 
     //Store the first 24/32 bytes of the email hash
-    if (sqlite3_bind_blob(
-                users_insert, 2, trunc_hash.data(), trunc_hash.size(), SQLITE_TRANSIENT)
+    if (sqlite3_bind_blob(users_insert, 2, trunc_hash.data(), trunc_hash.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
         throw_db_error();
     }
@@ -355,6 +354,9 @@ std::vector<std::array<std::byte, 24>> db::database::contact_intersection(
     }
 
     const auto user_token = sqlite3_column_text(users_auth_select, 0);
+    if (!user_token) {
+        throw_db_error();
+    }
     const auto user_token_len = sqlite3_column_bytes(users_auth_select, 0);
 
     //Different size tokens cannot be equal
@@ -379,18 +381,27 @@ std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::sign
 
     int err;
     while ((err = sqlite3_step(devices_user_select)) == SQLITE_ROW) {
-        auto device_id = sqlite3_column_int(devices_user_select, 1);
+        auto device_id = sqlite3_column_int(devices_user_select, 0);
 
         crypto::public_key identity_key;
-        const auto idk = sqlite3_column_blob(devices_user_select, 2);
+        const auto idk = sqlite3_column_blob(devices_user_select, 1);
+        if (!idk) {
+            throw_db_error();
+        }
         memcpy(identity_key.data(), idk, identity_key.size());
 
         crypto::public_key pre_key;
-        const auto prk = sqlite3_column_blob(devices_user_select, 3);
+        const auto prk = sqlite3_column_blob(devices_user_select, 2);
+        if (!prk) {
+            throw_db_error();
+        }
         memcpy(pre_key.data(), prk, pre_key.size());
 
         crypto::signature pre_key_signature;
-        const auto pks = sqlite3_column_blob(devices_user_select, 4);
+        const auto pks = sqlite3_column_blob(devices_user_select, 3);
+        if (!pks) {
+            throw_db_error();
+        }
         memcpy(pre_key_signature.data(), pks, pre_key_signature.size());
 
         records.emplace_back(std::move(device_id), std::move(identity_key), std::move(pre_key),
@@ -398,7 +409,6 @@ std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::sign
     }
     if (err != SQLITE_DONE) {
         throw_db_error();
-        //return {};
     }
 
     return records;
@@ -414,29 +424,44 @@ std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::sign
     for (const auto id : device_ids) {
         if (sqlite3_bind_int(devices_id_select, 1, id) != SQLITE_OK) {
             throw_db_error();
-            //return {};
         }
 
         if (sqlite3_step(devices_id_select) != SQLITE_ROW) {
             throw_db_error();
-            //return {};
         }
-        auto device_id = sqlite3_column_int(devices_user_select, 1);
+        auto device_id = sqlite3_column_int(devices_id_select, 0);
+        if (device_id != id) {
+            throw_db_error();
+        }
 
         crypto::public_key identity_key;
-        const auto idk = sqlite3_column_blob(devices_user_select, 2);
+        const auto idk = sqlite3_column_blob(devices_id_select, 1);
+        if (!idk) {
+            throw_db_error();
+        }
         memcpy(identity_key.data(), idk, identity_key.size());
 
         crypto::public_key pre_key;
-        const auto prk = sqlite3_column_blob(devices_user_select, 3);
+        const auto prk = sqlite3_column_blob(devices_id_select, 2);
+        if (!prk) {
+            throw_db_error();
+        }
         memcpy(pre_key.data(), prk, pre_key.size());
 
         crypto::signature pre_key_signature;
-        const auto pks = sqlite3_column_blob(devices_user_select, 4);
+        const auto pks = sqlite3_column_blob(devices_id_select, 3);
+        if (!pks) {
+            throw_db_error();
+        }
         memcpy(pre_key_signature.data(), pks, pre_key_signature.size());
 
         records.emplace_back(std::move(device_id), std::move(identity_key), std::move(pre_key),
                 std::move(pre_key_signature));
+
+        //Make sure there aren't any more expected rows
+        if (sqlite3_step(devices_id_select) != SQLITE_DONE) {
+            throw_db_error();
+        }
 
         sqlite3_reset(devices_id_select);
         sqlite3_clear_bindings(devices_id_select);
@@ -450,19 +475,17 @@ std::tuple<int, crypto::public_key> db::database::get_one_time_key(const int dev
 
     if (sqlite3_bind_int(otpk_select, 1, device_id) != SQLITE_OK) {
         throw_db_error();
-        //return {};
     }
 
     if (sqlite3_step(otpk_select) != SQLITE_ROW) {
         throw_db_error();
-        //return {};
     }
 
     crypto::public_key output;
 
-    const auto key_id = sqlite3_column_int(otpk_select, 1);
+    const auto key_id = sqlite3_column_int(otpk_select, 0);
 
-    const auto tmp_key = sqlite3_column_blob(otpk_select, 2);
+    const auto tmp_key = sqlite3_column_blob(otpk_select, 1);
 
     memcpy(output.data(), tmp_key, output.size());
 
@@ -484,11 +507,11 @@ std::vector<std::tuple<int, int, std::string>> db::database::retrieve_messages(
 
     int err;
     while ((err = sqlite3_step(devices_user_select)) == SQLITE_ROW) {
-        const auto message_id = sqlite3_column_int(mailbox_select, 1);
-        const auto device_id = sqlite3_column_int(mailbox_select, 2);
+        const auto message_id = sqlite3_column_int(mailbox_select, 0);
+        const auto device_id = sqlite3_column_int(mailbox_select, 1);
 
-        const auto m_data = sqlite3_column_text(mailbox_select, 3);
-        const auto m_data_len = sqlite3_column_bytes(mailbox_select, 3);
+        const auto m_data = sqlite3_column_text(mailbox_select, 2);
+        const auto m_data_len = sqlite3_column_bytes(mailbox_select, 2);
 
         records.emplace_back(std::move(message_id), std::move(device_id),
                 std::string{reinterpret_cast<const char*>(m_data),
