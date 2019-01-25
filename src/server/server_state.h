@@ -106,6 +106,7 @@ namespace db {
            user_id    TEXT PRIMARY KEY,\
            trunc_hash BLOB NOT NULL UNIQUE,\
            auth_token TEXT NOT NULL UNIQUE\
+           CHECK(length(user_id) > 0 and length(auth_token) > 0 and length(trunc_hash) > 0)\
         ) WITHOUT ROWID;";
     constexpr auto create_devices = "\
         CREATE TABLE IF NOT EXISTS devices (\
@@ -115,6 +116,7 @@ namespace db {
            pre_key      BLOB    NOT NULL UNIQUE,\
            signature    BLOB    NOT NULL,\
            FOREIGN KEY (user_id) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE\
+           CHECK(length(identity_key) > 0 and length(pre_key) > 0 and length(signature) > 0)\
         );";
     constexpr auto create_one_time = "\
         CREATE TABLE IF NOT EXISTS otpk (\
@@ -122,6 +124,7 @@ namespace db {
            device_id    INTEGER NOT NULL,\
            key          BLOB    NOT NULL UNIQUE,\
            FOREIGN KEY (device_id) REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE\
+           CHECK(length(key) > 0)\
         );";
     constexpr auto create_mailboxes = "\
         CREATE TABLE IF NOT EXISTS mailbox (\
@@ -131,12 +134,14 @@ namespace db {
            contents     BLOB    NOT NULL,\
            FOREIGN KEY (device_id) REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE,\
            FOREIGN KEY (user_id) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE\
+           CHECK(length(contents) > 0)\
         );";
     constexpr auto create_registration_codes = "\
         CREATE TABLE IF NOT EXISTS registration_codes (\
            email        TEXT    PRIMARY KEY,\
            code         INTEGER NOT NULL UNIQUE,\
            expiration   TEXT    NOT NULL\
+           CHECK(length(email) > 0 and length(expiration) > 0)\
         );";
     constexpr auto insert_user = "INSERT INTO users VALUES (?1, ?2, ?3);";
     constexpr auto insert_device = "INSERT INTO devices(user_id, identity_key, pre_key, signature) \
