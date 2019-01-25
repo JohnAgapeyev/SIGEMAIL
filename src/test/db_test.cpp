@@ -386,4 +386,48 @@ BOOST_AUTO_TEST_CASE(contact_intersection_empty) {
     BOOST_TEST(intersection.size() == 0);
 }
 
+BOOST_AUTO_TEST_CASE(contact_intersection_empty_table) {
+    auto db = get_db();
+    std::vector<std::array<std::byte, 24>> hashes;
+    const auto intersection = db.contact_intersection(hashes);
+    BOOST_TEST(intersection.size() == 0);
+}
+
+BOOST_AUTO_TEST_CASE(confirm_auth) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "12345");
+    BOOST_TEST(db.confirm_auth_token("foobar@test.com", "12345"));
+}
+
+BOOST_AUTO_TEST_CASE(confirm_auth_bad) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "12345");
+    BOOST_TEST(!db.confirm_auth_token("foobar@test.com", "23456"));
+}
+
+BOOST_AUTO_TEST_CASE(confirm_auth_wrong) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "12345");
+    db.add_user("foobar2@test.com", "23456");
+    BOOST_TEST(!db.confirm_auth_token("foobar@test.com", "23456"));
+}
+
+BOOST_AUTO_TEST_CASE(confirm_auth_empty_user) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "12345");
+    BOOST_TEST(!db.confirm_auth_token("", "23456"));
+}
+
+BOOST_AUTO_TEST_CASE(confirm_auth_empty_token) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "12345");
+    BOOST_TEST(!db.confirm_auth_token("foobar@test.com", ""));
+}
+
+BOOST_AUTO_TEST_CASE(confirm_auth_truncated_token) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "123456789");
+    BOOST_TEST(!db.confirm_auth_token("foobar@test.com", "1234"));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
