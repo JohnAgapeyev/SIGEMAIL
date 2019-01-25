@@ -130,11 +130,11 @@ namespace db {
     constexpr auto create_mailboxes = "\
         CREATE TABLE IF NOT EXISTS mailbox (\
            message_id   INTEGER PRIMARY KEY,\
-           user_id      TEXT NOT NULL,\
+           user_id      TEXT    NOT NULL,\
            device_id    INTEGER NOT NULL,\
            contents     BLOB    NOT NULL,\
-           FOREIGN KEY (device_id) REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE,\
            FOREIGN KEY (user_id) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE\
+           FOREIGN KEY (device_id) REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE,\
            CHECK(length(contents) > 0)\
         );";
     constexpr auto create_registration_codes = "\
