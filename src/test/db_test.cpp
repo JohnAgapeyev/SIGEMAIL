@@ -523,4 +523,69 @@ BOOST_AUTO_TEST_CASE(lookup_devices_id_some) {
     BOOST_TEST(data.size() == 2);
 }
 
+BOOST_AUTO_TEST_CASE(get_one_time) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "abcde");
+    db.add_device("foobar@test.com", {}, {}, {});
+    db.add_one_time_key(1, {});
+
+    const auto key = db.get_one_time_key(1);
+}
+
+BOOST_AUTO_TEST_CASE(get_one_time_exhaust) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "abcde");
+    db.add_device("foobar@test.com", {}, {}, {});
+    db.add_one_time_key(1, {});
+
+    const auto key = db.get_one_time_key(1);
+    db.remove_one_time_key(1);
+    BOOST_REQUIRE_THROW(db.get_one_time_key(1), db_error);
+}
+
+BOOST_AUTO_TEST_CASE(get_one_time_bad_id) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "abcde");
+    db.add_device("foobar@test.com", {}, {}, {});
+    db.add_one_time_key(1, {});
+
+    BOOST_REQUIRE_THROW(db.get_one_time_key(-1), db_error);
+}
+
+BOOST_AUTO_TEST_CASE(get_one_time_multiple) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "abcde");
+    db.add_device("foobar@test.com", {}, {}, {});
+
+    crypto::DH_Keypair k1, k2;
+
+    db.add_one_time_key(1, k1.get_public());
+    db.add_one_time_key(1, k2.get_public());
+
+    const auto key = db.get_one_time_key(1);
+    const auto key2 = db.get_one_time_key(1);
+}
+
+BOOST_AUTO_TEST_CASE(get_one_time_different_devices) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "abcde");
+    db.add_device("foobar@test.com", {}, {}, {});
+
+    crypto::DH_Keypair t1, t2;
+
+    db.add_user("bar@test.com", "qwerty");
+    db.add_device("bar@test.com", t1.get_public(), t2.get_public(), crypto::sign_key(t1, t2.get_public()));
+
+    crypto::DH_Keypair k1, k2, k3, k4;
+
+    db.add_one_time_key(1, k1.get_public());
+    db.add_one_time_key(1, k2.get_public());
+
+    db.add_one_time_key(2, k3.get_public());
+    db.add_one_time_key(2, k4.get_public());
+
+    const auto key = db.get_one_time_key(1);
+    const auto key2 = db.get_one_time_key(2);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

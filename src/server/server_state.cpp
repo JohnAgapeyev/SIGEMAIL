@@ -486,6 +486,14 @@ std::tuple<int, crypto::public_key> db::database::get_one_time_key(const int dev
     const auto key_id = sqlite3_column_int(otpk_select, 0);
 
     const auto tmp_key = sqlite3_column_blob(otpk_select, 1);
+    if (!tmp_key) {
+        throw_db_error();
+    }
+
+    //Ensure the statement finishes and only has the one expected result
+    if (sqlite3_step(otpk_select) != SQLITE_DONE) {
+        throw_db_error();
+    }
 
     memcpy(output.data(), tmp_key, output.size());
 
