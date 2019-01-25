@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(many_sends) {
     session send_s{key, recv_pair.get_public()};
     session recv_s{key, recv_pair};
 
-    for (int i = 0; i < 100; ++i) {
+    for (int i = 0; i < 20; ++i) {
         const auto message = get_message();
         const auto aad = get_aad();
 
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(many_alternating) {
     session send_s{key, recv_pair.get_public()};
     session recv_s{key, recv_pair};
 
-    for (int i = 0; i < 100; ++i) {
+    for (int i = 0; i < 10; ++i) {
         const auto message_1 = get_message();
         const auto aad_1 = get_aad();
 
