@@ -490,12 +490,12 @@ std::tuple<int, crypto::public_key> db::database::get_one_time_key(const int dev
         throw_db_error();
     }
 
+    memcpy(output.data(), tmp_key, output.size());
+
     //Ensure the statement finishes and only has the one expected result
     if (sqlite3_step(otpk_select) != SQLITE_DONE) {
         throw_db_error();
     }
-
-    memcpy(output.data(), tmp_key, output.size());
 
     return {std::move(key_id), std::move(output)};
 }
