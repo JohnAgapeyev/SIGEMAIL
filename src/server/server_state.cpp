@@ -510,11 +510,10 @@ std::vector<std::tuple<int, int, std::string>> db::database::retrieve_messages(
     if (sqlite3_bind_text(mailbox_select, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
         throw_db_error();
-        //return {};
     }
 
     int err;
-    while ((err = sqlite3_step(devices_user_select)) == SQLITE_ROW) {
+    while ((err = sqlite3_step(mailbox_select)) == SQLITE_ROW) {
         const auto message_id = sqlite3_column_int(mailbox_select, 0);
         const auto device_id = sqlite3_column_int(mailbox_select, 1);
 
@@ -527,7 +526,6 @@ std::vector<std::tuple<int, int, std::string>> db::database::retrieve_messages(
     }
     if (err != SQLITE_DONE) {
         throw_db_error();
-        //return {};
     }
 
     return records;

@@ -588,4 +588,60 @@ BOOST_AUTO_TEST_CASE(get_one_time_different_devices) {
     const auto key2 = db.get_one_time_key(2);
 }
 
+BOOST_AUTO_TEST_CASE(retrieve_messages) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "abcde");
+    db.add_device("foobar@test.com", {}, {}, {});
+
+    std::vector<std::byte> m{18, std::byte{0xef}};
+    db.add_message("foobar@test.com", 1, m);
+
+    const auto messages = db.retrieve_messages("foobar@test.com");
+    BOOST_TEST(messages.size() == 1);
+}
+
+BOOST_AUTO_TEST_CASE(retrieve_message_empty) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "abcde");
+    db.add_device("foobar@test.com", {}, {}, {});
+
+    const auto messages = db.retrieve_messages("foobar@test.com");
+    BOOST_TEST(messages.size() == 0);
+}
+
+BOOST_AUTO_TEST_CASE(retrieve_message_bad_user) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "abcde");
+    db.add_device("foobar@test.com", {}, {}, {});
+
+    const auto messages = db.retrieve_messages("bar@test");
+    BOOST_TEST(messages.size() == 0);
+}
+
+BOOST_AUTO_TEST_CASE(retrieve_message_multiple) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "abcde");
+    db.add_device("foobar@test.com", {}, {}, {});
+
+    for (unsigned long i = 0; i < 20; ++i) {
+        std::vector<std::byte> m{18 + i, std::byte{static_cast<std::byte>(i)}};
+        db.add_message("foobar@test.com", 1, m);
+    }
+
+    const auto messages = db.retrieve_messages("foobar@test.com");
+    BOOST_TEST(messages.size() == 20);
+}
+
+BOOST_AUTO_TEST_CASE(retrieve_message_empty_user) {
+    auto db = get_db();
+    db.add_user("foobar@test.com", "abcde");
+    db.add_device("foobar@test.com", {}, {}, {});
+
+    std::vector<std::byte> m{18, std::byte{0xc8}};
+    db.add_message("foobar@test.com", 1, m);
+
+    const auto messages = db.retrieve_messages("");
+    BOOST_TEST(messages.size() == 0);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
