@@ -19,11 +19,7 @@ namespace http = boost::beast::http; // from <boost/beast/http.hpp>
 class client_network_session : public std::enable_shared_from_this<client_network_session> {
 public:
     // Resolver requires an io_context
-    client_network_session(
-            boost::asio::io_context& ioc, ssl::context& ctx) :
-            resolver(ioc),
-            stream(ioc, ctx) {}
-
+    client_network_session(boost::asio::io_context& ioc, ssl::context& ctx, const char *dest_host, const char *dest_port);
     ~client_network_session();
 
     void run(const char* dest_host, const char* dest_port);

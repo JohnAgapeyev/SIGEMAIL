@@ -14,6 +14,25 @@
 #include "client_network.h"
 #include "logging.h"
 
+//This will throw boost::system::system_error if any part of the connection fails
+client_network_session::client_network_session(boost::asio::io_context& ioc, ssl::context& ctx,
+        const char* dest_host, const char* dest_port) :
+        resolver(ioc),
+        stream(ioc, ctx), host(dest_host) {
+    // Set up an HTTP GET request message
+    req.method(http::verb::get);
+    req.target("/v1/accounts/email/code/foobar@test.com");
+    req.set(http::field::host, host);
+    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+
+    // Look up the domain name
+    const auto results = resolver.resolve(dest_host, dest_port);
+    //Connect to the domain
+    boost::asio::connect(stream.next_layer(), results.begin(), results.end());
+    // Perform the SSL handshake
+    stream.handshake(ssl::stream_base::client);
+}
+
 //This currently has some sort of error going on for stream shutdown, need to diagnose and handle
 client_network_session::~client_network_session() {
 #if 0
