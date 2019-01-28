@@ -33,6 +33,17 @@ void client_network_session::run(
                     std::placeholders::_1, std::placeholders::_2));
 }
 
+void client_network_session::test_request() {
+    req.method(http::verb::get);
+    req.target("foobar");
+    req.set(http::field::host, host);
+    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+
+    http::async_write(stream, req,
+            std::bind(&client_network_session::on_write, shared_from_this(), std::placeholders::_1,
+                    std::placeholders::_2));
+}
+
 void client_network_session::on_resolve(
         boost::system::error_code ec, tcp::resolver::results_type results) {
     if (ec) {
@@ -64,6 +75,8 @@ void client_network_session::on_handshake(boost::system::error_code ec) {
         return;
     }
 
+    stream.lowest_layer().set_option(boost::asio::socket_base::keep_alive{true});
+
     // Send the message
     http::async_write(stream, req,
             std::bind(&client_network_session::on_write, shared_from_this(), std::placeholders::_1,
@@ -77,6 +90,8 @@ void client_network_session::on_write(boost::system::error_code ec, std::size_t 
         //Write failed
         return;
     }
+
+    spdlog::debug("Request sent");
 
     // Read a message into our buffer
     http::async_read(stream, buffer, res,
@@ -92,9 +107,11 @@ void client_network_session::on_read(boost::system::error_code ec, std::size_t b
         return;
     }
 
+#if 0
     // Gracefully close the stream
     stream.async_shutdown(std::bind(
             &client_network_session::on_shutdown, shared_from_this(), std::placeholders::_1));
+#endif
 }
 
 void client_network_session::on_shutdown(boost::system::error_code ec) {

@@ -45,6 +45,7 @@ void http_session::on_handshake(boost::system::error_code ec) {
         spdlog::error("SSL Handshake failed");
         return;
     }
+    stream.lowest_layer().set_option(boost::asio::socket_base::keep_alive{true});
     do_read();
 }
 

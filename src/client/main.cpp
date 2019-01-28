@@ -5,10 +5,12 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <thread>
 
 #include "client_network.h"
 #include "crypto.h"
 #include "session.h"
+#include "logging.h"
 
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
 namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
@@ -24,6 +26,8 @@ int main(int argc, char** argv) {
     auto const host = argv[1];
     auto const port = argv[2];
     auto const text = argv[3];
+
+    spdlog::set_level(spdlog::level::debug);
 
     // The io_context is required for all I/O
     boost::asio::io_context ioc;
@@ -41,11 +45,30 @@ int main(int argc, char** argv) {
 #endif
 
     // Launch the asynchronous operation
-    std::make_shared<client_network_session>(ioc, ctx)->run(host, port, text);
+    const auto host_ref = std::make_shared<client_network_session>(ioc, ctx);
+    spdlog::debug("Pre run");
+    host_ref->run(host, port, text);
+    spdlog::debug("Post run");
+
+    std::thread t{[&host_ref](){
+        spdlog::debug("Pre sleep");
+        sleep(3);
+        spdlog::debug("Post sleep");
+        host_ref->test_request();
+        spdlog::debug("Post request");
+        sleep(2);
+    }};
+
+    std::thread t2{[&ioc](){
+        ioc.run();
+    }};
+
+    t.join();
+    t2.join();
 
     // Run the I/O service. The call will return when
     // the socket is closed.
-    ioc.run();
+    //ioc.run();
 
     return EXIT_SUCCESS;
 }

@@ -32,6 +32,8 @@ public:
     void on_read(boost::system::error_code ec, std::size_t bytes_transferred);
     void on_shutdown(boost::system::error_code ec);
 
+    void test_request();
+
 private:
     tcp::resolver resolver;
     ssl::stream<tcp::socket> stream;
