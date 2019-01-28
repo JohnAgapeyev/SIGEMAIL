@@ -19,12 +19,17 @@ namespace http = boost::beast::http; // from <boost/beast/http.hpp>
 class client_network_session : public std::enable_shared_from_this<client_network_session> {
 public:
     // Resolver requires an io_context
-    explicit client_network_session(
+    client_network_session(
             boost::asio::io_context& ioc, ssl::context& ctx) :
             resolver(ioc),
             stream(ioc, ctx) {}
 
-    void run(const char* dest_host, const char* dest_port, const char* mesg_text);
+    ~client_network_session();
+
+    void run(const char* dest_host, const char* dest_port);
+    void test_request();
+
+private:
     void on_resolve(boost::system::error_code ec, tcp::resolver::results_type results);
     void on_connect(boost::system::error_code ec);
     void on_handshake(boost::system::error_code ec);
@@ -32,9 +37,6 @@ public:
     void on_read(boost::system::error_code ec, std::size_t bytes_transferred);
     void on_shutdown(boost::system::error_code ec);
 
-    void test_request();
-
-private:
     tcp::resolver resolver;
     ssl::stream<tcp::socket> stream;
     boost::beast::flat_buffer buffer;

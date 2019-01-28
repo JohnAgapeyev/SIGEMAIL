@@ -137,6 +137,8 @@ int main(int argc, char* argv[]) {
     // This holds the self-signed certificate used by the server
     load_server_certificate(ctx);
 
+    spdlog::set_level(spdlog::level::trace);
+
     db::database server_db{"server_db"};
     // Create and launch a listening port
     std::make_shared<listener>(ioc, ctx, tcp::endpoint{tcp::v4(), port}, server_db)

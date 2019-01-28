@@ -14,16 +14,31 @@
 #include "client_network.h"
 #include "logging.h"
 
+//This currently has some sort of error going on for stream shutdown, need to diagnose and handle
+client_network_session::~client_network_session() {
+#if 0
+    boost::system::error_code ec;
+    stream.shutdown(ec);
+    if (ec == boost::asio::error::eof) {
+        // Rationale:
+        // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
+        ec.assign(0, ec.category());
+    } else {
+        spdlog::debug("Client shutdown error: {}", ec.message());
+    }
+    stream.lowest_layer().shutdown(boost::asio::socket_base::shutdown_both);
+    stream.lowest_layer().close();
+#endif
+}
+
 // Start the asynchronous operation
-void client_network_session::run(
-        const char* dest_host, const char* dest_port, const char* mesg_text) {
+void client_network_session::run(const char* dest_host, const char* dest_port) {
     // Save these for later
     host = dest_host;
-    text = mesg_text;
 
     // Set up an HTTP GET request message
     req.method(http::verb::get);
-    req.target("foobar");
+    req.target("/v1/accounts/email/code/foobar@test.com");
     req.set(http::field::host, host);
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
 
@@ -35,7 +50,7 @@ void client_network_session::run(
 
 void client_network_session::test_request() {
     req.method(http::verb::get);
-    req.target("foobar");
+    req.target("/v1/keys/foobar@test.com/123456");
     req.set(http::field::host, host);
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
 
@@ -48,6 +63,7 @@ void client_network_session::on_resolve(
         boost::system::error_code ec, tcp::resolver::results_type results) {
     if (ec) {
         //Resolve failed
+        spdlog::error("Resolve failed: {}", ec.message());
         return;
     }
 
@@ -60,6 +76,7 @@ void client_network_session::on_resolve(
 void client_network_session::on_connect(boost::system::error_code ec) {
     if (ec) {
         //Connect failed
+        spdlog::error("Connect failed: {}", ec.message());
         return;
     }
 
@@ -72,6 +89,7 @@ void client_network_session::on_connect(boost::system::error_code ec) {
 void client_network_session::on_handshake(boost::system::error_code ec) {
     if (ec) {
         //Handshake failed
+        spdlog::error("SSL Handshake failed: {}", ec.message());
         return;
     }
 
@@ -88,6 +106,7 @@ void client_network_session::on_write(boost::system::error_code ec, std::size_t 
 
     if (ec) {
         //Write failed
+        spdlog::error("Write failed: {}", ec.message());
         return;
     }
 
@@ -104,6 +123,7 @@ void client_network_session::on_read(boost::system::error_code ec, std::size_t b
 
     if (ec) {
         //Read failed
+        spdlog::error("Read failed: {}", ec.message());
         return;
     }
 
@@ -122,6 +142,7 @@ void client_network_session::on_shutdown(boost::system::error_code ec) {
     }
     if (ec) {
         //Shutdown failed
+        spdlog::error("Shutdown failed: {}", ec.message());
         return;
         //return fail(ec, "shutdown");
     }
