@@ -4,6 +4,7 @@
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl/stream.hpp>
+#include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <cstdlib>
@@ -26,15 +27,12 @@ public:
     void test_request();
 
 private:
-    void on_resolve(boost::system::error_code ec, tcp::resolver::results_type results);
-    void on_connect(boost::system::error_code ec);
-    void on_handshake(boost::system::error_code ec);
     void on_write(boost::system::error_code ec, std::size_t bytes_transferred);
     void on_read(boost::system::error_code ec, std::size_t bytes_transferred);
-    void on_shutdown(boost::system::error_code ec);
 
     tcp::resolver resolver;
     ssl::stream<tcp::socket> stream;
+    boost::asio::strand<boost::asio::io_context::executor_type> strand;
     boost::beast::flat_buffer buffer;
     http::request<http::string_body> req;
     http::response<http::string_body> res;
