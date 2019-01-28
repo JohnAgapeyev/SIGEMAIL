@@ -33,8 +33,12 @@ int main(int argc, char** argv) {
     ctx.set_default_verify_paths();
 
     // Verify the remote server's certificate
+#ifdef NO_SSL_VERIFY
+    ctx.set_verify_mode(ssl::verify_none);
+#else
     ctx.set_verify_mode(ssl::verify_peer);
     ctx.set_verify_callback(ssl::rfc2818_verification("localhost"));
+#endif
 
     // Launch the asynchronous operation
     std::make_shared<client_network_session>(ioc, ctx)->run(host, port, text);
