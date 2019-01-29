@@ -36,19 +36,18 @@ client_network_session::client_network_session(boost::asio::io_context& ioc, ssl
 
 //This currently has some sort of error going on for stream shutdown, need to diagnose and handle
 client_network_session::~client_network_session() {
-#if 0
     boost::system::error_code ec;
     stream.shutdown(ec);
     if (ec == boost::asio::error::eof) {
         // Rationale:
         // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
         ec.assign(0, ec.category());
-    } else {
-        spdlog::debug("Client shutdown error: {}", ec.message());
+    }
+    if (ec) {
+        spdlog::error("Client shutdown error: {}", ec.message());
     }
     stream.lowest_layer().shutdown(boost::asio::socket_base::shutdown_both);
     stream.lowest_layer().close();
-#endif
 }
 
 void client_network_session::test_request() {
