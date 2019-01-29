@@ -20,12 +20,6 @@ client_network_session::client_network_session(boost::asio::io_context& ioc, ssl
         const char* dest_host, const char* dest_port) :
         resolver(ioc),
         stream(ioc, ctx), strand(stream.get_executor()), host(dest_host) {
-    // Set up an HTTP GET request message
-    req.method(http::verb::get);
-    req.target("/v1/accounts/email/code/foobar@test.com");
-    req.set(http::field::host, host);
-    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-
     // Look up the domain name
     const auto results = resolver.resolve(dest_host, dest_port);
     //Connect to the domain
@@ -51,47 +45,12 @@ client_network_session::~client_network_session() {
 }
 
 void client_network_session::test_request() {
-    //req.method(http::verb::get);
-    //req.target("/v1/keys/foobar@test.com/123456");
-    //req.set(http::field::host, host);
-    //req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+    // Set up an HTTP GET request message
+    req.method(http::verb::get);
+    req.target("/v1/accounts/email/code/foobar@test.com");
+    req.set(http::field::host, host);
+    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
 
-    http::async_write(stream, req,
-            boost::asio::bind_executor(strand,
-                    std::bind(&client_network_session::on_write, shared_from_this(),
-                            std::placeholders::_1, std::placeholders::_2)));
-}
-
-void client_network_session::on_write(boost::system::error_code ec, std::size_t bytes_transferred) {
-    boost::ignore_unused(bytes_transferred);
-
-    if (ec) {
-        //Write failed
-        spdlog::error("Write failed: {}", ec.message());
-        return;
-    }
-
-    spdlog::debug("Request sent");
-
-    // Read a message into our buffer
-    http::async_read(stream, buffer, res,
-            boost::asio::bind_executor(strand,
-                    std::bind(&client_network_session::on_read, shared_from_this(),
-                            std::placeholders::_1, std::placeholders::_2)));
-}
-
-void client_network_session::on_read(boost::system::error_code ec, std::size_t bytes_transferred) {
-    boost::ignore_unused(bytes_transferred);
-
-    if (ec) {
-        //Read failed
-        spdlog::error("Read failed: {}", ec.message());
-        return;
-    }
-
-#if 0
-    // Gracefully close the stream
-    stream.async_shutdown(std::bind(
-            &client_network_session::on_shutdown, shared_from_this(), std::placeholders::_1));
-#endif
+    http::write(stream, req);
+    http::read(stream, buffer, res);
 }

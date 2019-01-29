@@ -23,13 +23,9 @@ public:
     client_network_session(boost::asio::io_context& ioc, ssl::context& ctx, const char *dest_host, const char *dest_port);
     ~client_network_session();
 
-    void run(const char* dest_host, const char* dest_port);
     void test_request();
 
 private:
-    void on_write(boost::system::error_code ec, std::size_t bytes_transferred);
-    void on_read(boost::system::error_code ec, std::size_t bytes_transferred);
-
     tcp::resolver resolver;
     ssl::stream<tcp::socket> stream;
     boost::asio::strand<boost::asio::io_context::executor_type> strand;

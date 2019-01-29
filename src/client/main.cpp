@@ -45,16 +45,6 @@ int main(int argc, char** argv) {
     ctx.set_verify_callback(ssl::rfc2818_verification("localhost"));
 #endif
 
-    // Construct a signal set registered for process termination.
-    boost::asio::signal_set signals(ioc, SIGINT, SIGTERM);
-
-    // Start an asynchronous wait for one of the signals to occur.
-    signals.async_wait([](const boost::system::error_code& error, int signal_number) {
-        //I'll use this if I need to have a global flag indicating whether to stop
-        boost::ignore_unused(error, signal_number);
-        spdlog::debug("Handler called");
-    });
-
     std::shared_ptr<client_network_session> host_ref;
     try {
         host_ref = std::make_shared<client_network_session>(ioc, ctx, host, port);
@@ -64,12 +54,13 @@ int main(int argc, char** argv) {
     }
 
     std::thread t{[&host_ref]() { host_ref->test_request(); }};
-
-    // Run the I/O service. The call will return when
-    // the socket is closed.
-    ioc.run();
+    std::thread t2{[&host_ref]() {
+        sleep(2);
+        host_ref->test_request();
+    }};
 
     t.join();
+    t2.join();
 
     spdlog::debug("Threads joined");
 

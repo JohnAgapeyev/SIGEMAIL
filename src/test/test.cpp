@@ -44,16 +44,17 @@ std::array<std::byte, 24> get_truncated_hash(const std::string_view data) {
     return out;
 }
 
-std::shared_ptr<Client_Fixture> get_client() {
+std::shared_ptr<client_network_session> get_client() {
+    boost::asio::io_context ioc;
     // The SSL context is required, and holds certificates
     ssl::context ctx{ssl::context::tls};
     ctx.set_default_verify_paths();
 
     ctx.set_verify_mode(ssl::verify_none);
 
-    std::shared_ptr<Client_Fixture> host_ref;
+    std::shared_ptr<client_network_session> host_ref;
     try {
-        host_ref = std::make_shared<Client_Fixture>(ctx, "localhost", "8443");
+        host_ref = std::make_shared<client_network_session>(ioc, ctx, "localhost", "8443");
     } catch (const boost::system::system_error& e) {
         spdlog::error("Client network session failed to establish: {}", e.what());
         throw;
@@ -63,17 +64,5 @@ std::shared_ptr<Client_Fixture> get_client() {
 }
 
 std::shared_ptr<Server_DB_Pair> get_server() {
-    // The SSL context is required, and holds certificates
-    ssl::context ctx{ssl::context::tls};
-
-    // This holds the self-signed certificate used by the server
-    load_server_certificate(ctx);
-
-    //Grab an in-memory db object
-    //auto db = get_db();
-
-    // Create and launch a listening port
-    auto handle = std::make_shared<Server_DB_Pair>(ctx, tcp::endpoint{tcp::v4(), 8443});
-
-    return handle;
+    return std::make_shared<Server_DB_Pair>(tcp::endpoint{tcp::v4(), 8443});
 }
