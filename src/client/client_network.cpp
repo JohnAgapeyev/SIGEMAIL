@@ -19,7 +19,7 @@
 client_network_session::client_network_session(boost::asio::io_context& ioc, ssl::context& ctx,
         const char* dest_host, const char* dest_port) :
         resolver(ioc),
-        stream(ioc, ctx), strand(stream.get_executor()), host(dest_host) {
+        stream(ioc, ctx), host(dest_host) {
     // Look up the domain name
     const auto results = resolver.resolve(dest_host, dest_port);
     //Connect to the domain

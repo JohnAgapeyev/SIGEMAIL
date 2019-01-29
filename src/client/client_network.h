@@ -28,7 +28,6 @@ public:
 private:
     tcp::resolver resolver;
     ssl::stream<tcp::socket> stream;
-    boost::asio::strand<boost::asio::io_context::executor_type> strand;
     boost::beast::flat_buffer buffer;
     http::request<http::string_body> req;
     http::response<http::string_body> res;
