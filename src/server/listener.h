@@ -14,6 +14,7 @@ namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
 class listener : public std::enable_shared_from_this<listener> {
 public:
     listener(boost::asio::io_context& ioc, ssl::context& ssl_ctx, tcp::endpoint endpoint, db::database& db);
+    ~listener() = default;
 
     // Start accepting incoming connections
     void run();
