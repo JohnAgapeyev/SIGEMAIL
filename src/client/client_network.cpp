@@ -19,7 +19,11 @@
 client_network_session::client_network_session(boost::asio::io_context& ioc, ssl::context& ctx,
         const char* dest_host, const char* dest_port) :
         resolver(ioc),
-        stream(ioc, ctx), host(dest_host) {
+        stream(ioc, ctx) {
+    //Set default fields that will always be present
+    req.set(http::field::host, dest_host);
+    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+
     // Look up the domain name
     const auto results = resolver.resolve(dest_host, dest_port);
     //Connect to the domain
@@ -44,12 +48,49 @@ client_network_session::~client_network_session() {
     stream.lowest_layer().close();
 }
 
-void client_network_session::test_request() {
-    // Set up an HTTP GET request message
+void client_network_session::request_verification_code() {
     req.method(http::verb::get);
     req.target("/v1/accounts/email/code/foobar@test.com");
-    req.set(http::field::host, host);
-    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+
+    http::write(stream, req);
+    http::read(stream, buffer, res);
+}
+
+void client_network_session::verify_verification_code() {
+    req.method(http::verb::put);
+    req.target("/v1/accounts/code/foobar@test.com");
+
+    http::write(stream, req);
+    http::read(stream, buffer, res);
+}
+
+void client_network_session::register_prekeys() {
+    req.method(http::verb::put);
+    req.target("/v1/keys/");
+
+    http::write(stream, req);
+    http::read(stream, buffer, res);
+}
+
+void client_network_session::lookup_prekey() {
+    req.method(http::verb::get);
+    req.target("/v1/keys/foobar@test.com/123");
+
+    http::write(stream, req);
+    http::read(stream, buffer, res);
+}
+
+void client_network_session::contact_intersection() {
+    req.method(http::verb::put);
+    req.target("/v1/directory/tokens");
+
+    http::write(stream, req);
+    http::read(stream, buffer, res);
+}
+
+void client_network_session::submit_message() {
+    req.method(http::verb::put);
+    req.target("/v1/messages/foobar@test.com");
 
     http::write(stream, req);
     http::read(stream, buffer, res);

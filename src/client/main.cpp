@@ -53,14 +53,16 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::thread t{[&host_ref]() { host_ref->test_request(); }};
-    std::thread t2{[&host_ref]() {
-        sleep(2);
-        host_ref->test_request();
+    std::thread t{[&host_ref]() {
+        host_ref->request_verification_code();
+        host_ref->verify_verification_code();
+        host_ref->contact_intersection();
+        host_ref->lookup_prekey();
+        host_ref->register_prekeys();
+        host_ref->submit_message();
     }};
 
     t.join();
-    t2.join();
 
     spdlog::debug("Threads joined");
 
