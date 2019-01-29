@@ -34,28 +34,22 @@ public:
     // request. The type of the response object depends on the
     // contents of the request, so the interface requires the
     // caller to pass a generic lambda for receiving the response.
-    template<typename Body, typename Allocator, typename Send>
-    void handle_request(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send);
+    template<typename Send>
+    void handle_request(http::request<http::string_body, http::fields>&& req, Send&& send);
 
 private:
-    template<typename Body>
     const http::response<http::string_body, http::fields> request_verification_code(
-            http::request<Body, http::fields>&& req) const;
-    template<typename Body>
+            http::request<http::string_body, http::fields>&& req) const;
     const http::response<http::string_body, http::fields> verify_verification_code(
-            http::request<Body, http::fields>&& req) const;
-    template<typename Body>
+            http::request<http::string_body, http::fields>&& req) const;
     const http::response<http::string_body, http::fields> register_prekeys(
-            http::request<Body, http::fields>&& req) const;
-    template<typename Body>
+            http::request<http::string_body, http::fields>&& req) const;
     const http::response<http::string_body, http::fields> lookup_prekey(
-            http::request<Body, http::fields>&& req) const;
-    template<typename Body>
+            http::request<http::string_body, http::fields>&& req) const;
     const http::response<http::string_body, http::fields> contact_intersection(
-            http::request<Body, http::fields>&& req) const;
-    template<typename Body>
+            http::request<http::string_body, http::fields>&& req) const;
     const http::response<http::string_body, http::fields> submit_message(
-            http::request<Body, http::fields>&& req) const;
+            http::request<http::string_body, http::fields>&& req) const;
 
     [[nodiscard]] bool confirm_authentication(std::string_view www_auth) const;
 

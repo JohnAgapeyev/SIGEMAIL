@@ -6,10 +6,13 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/version.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <cstdlib>
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <string>
 
 #include "client_network.h"
@@ -51,6 +54,28 @@ client_network_session::~client_network_session() {
 void client_network_session::request_verification_code() {
     req.method(http::verb::get);
     req.target("/v1/accounts/email/code/foobar@test.com");
+
+    boost::property_tree::ptree ptr;
+
+    ptr.put("foo", "abc");
+
+#if 0
+    ptr.put("foo.bar", "cde");
+
+    boost::property_tree::ptree child;
+
+    child.put_value("1");
+    child.put_value("2");
+    child.put_value("3");
+    child.put_value("4");
+    child.put_value("5");
+
+    ptr.add_child("foo.bar.baz", child);
+#endif
+
+    std::stringstream ss;
+    boost::property_tree::write_json(ss, ptr);
+    req.body() = ss.str();
 
     http::write(stream, req);
     http::read(stream, buffer, res);
