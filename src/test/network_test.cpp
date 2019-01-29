@@ -12,7 +12,7 @@ BOOST_AUTO_TEST_CASE(basic_request) {
     const auto server = get_server();
     const auto client = get_client();
 
-    client->test_request();
+    client->cns->test_request();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

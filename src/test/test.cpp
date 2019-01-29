@@ -44,30 +44,16 @@ std::array<std::byte, 24> get_truncated_hash(const std::string_view data) {
     return out;
 }
 
-std::shared_ptr<client_network_session> get_client() {
-    boost::asio::io_context ioc;
-
+std::shared_ptr<Client_Fixture> get_client() {
     // The SSL context is required, and holds certificates
     ssl::context ctx{ssl::context::tls};
     ctx.set_default_verify_paths();
 
     ctx.set_verify_mode(ssl::verify_none);
 
-    // Construct a signal set registered for process termination.
-    boost::asio::signal_set signals(ioc, SIGINT, SIGTERM);
-
-    // Start an asynchronous wait for one of the signals to occur.
-    signals.async_wait([](const boost::system::error_code& error, int signal_number) {
-        //I'll use this if I need to have a global flag indicating whether to stop
-        boost::ignore_unused(error, signal_number);
-        spdlog::debug("Handler called");
-    });
-
-    std::thread{[&ioc]() { ioc.run(); }}.detach();
-
-    std::shared_ptr<client_network_session> host_ref;
+    std::shared_ptr<Client_Fixture> host_ref;
     try {
-        host_ref = std::make_shared<client_network_session>(ioc, ctx, "localhost", "8443");
+        host_ref = std::make_shared<Client_Fixture>(ctx, "localhost", "8443");
     } catch (const boost::system::system_error& e) {
         spdlog::error("Client network session failed to establish: {}", e.what());
         throw;
@@ -77,8 +63,6 @@ std::shared_ptr<client_network_session> get_client() {
 }
 
 std::shared_ptr<Server_DB_Pair> get_server() {
-    boost::asio::io_context ioc;
-
     // The SSL context is required, and holds certificates
     ssl::context ctx{ssl::context::tls};
 
@@ -89,9 +73,7 @@ std::shared_ptr<Server_DB_Pair> get_server() {
     //auto db = get_db();
 
     // Create and launch a listening port
-    auto handle = std::make_shared<Server_DB_Pair>(ioc, ctx, tcp::endpoint{tcp::v4(), 8443});
-
-    std::thread{[&ioc]() { ioc.run(); }}.detach();
+    auto handle = std::make_shared<Server_DB_Pair>(ctx, tcp::endpoint{tcp::v4(), 8443});
 
     return handle;
 }
