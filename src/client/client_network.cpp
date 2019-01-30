@@ -55,13 +55,20 @@ void client_network_session::request_verification_code() {
     req.method(http::verb::get);
     req.target("/v1/accounts/email/code/foobar@test.com");
 
+    http::write(stream, req);
+    http::read(stream, buffer, res);
+}
+
+void client_network_session::verify_verification_code() {
+    req.method(http::verb::put);
+    req.target("/v1/accounts/code/foobar@test.com");
+
     boost::property_tree::ptree ptr;
 
-    ptr.put("foo", "abc");
+    ptr.add("foo.bar", "abc");
+    ptr.add("foo.baz", "cde");
 
 #if 0
-    ptr.put("foo.bar", "cde");
-
     boost::property_tree::ptree child;
 
     child.put_value("1");
@@ -75,15 +82,14 @@ void client_network_session::request_verification_code() {
 
     std::stringstream ss;
     boost::property_tree::write_json(ss, ptr);
+
+    spdlog::info("JSON output {}", ss.str());
+
     req.body() = ss.str();
 
-    http::write(stream, req);
-    http::read(stream, buffer, res);
-}
+    spdlog::info("Resulting body {}", req.body());
 
-void client_network_session::verify_verification_code() {
-    req.method(http::verb::put);
-    req.target("/v1/accounts/code/foobar@test.com");
+    req.content_length(req.body().size());
 
     http::write(stream, req);
     http::read(stream, buffer, res);
