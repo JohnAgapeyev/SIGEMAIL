@@ -36,32 +36,35 @@ public:
     // contents of the request, so the interface requires the
     // caller to pass a generic lambda for receiving the response.
     template<typename Send>
-    void handle_request(http::request<http::string_body, http::fields>&& req, Send&& send);
+    void handle_request(http::request<http::string_body>&& req, Send&& send);
 
 private:
-    const http::response<http::string_body, http::fields> request_verification_code(
-            http::request<http::string_body, http::fields>&& req) const;
-    const http::response<http::string_body, http::fields> verify_verification_code(
-            http::request<http::string_body, http::fields>&& req) const;
-    const http::response<http::string_body, http::fields> register_prekeys(
-            http::request<http::string_body, http::fields>&& req) const;
-    const http::response<http::string_body, http::fields> lookup_prekey(
-            http::request<http::string_body, http::fields>&& req) const;
-    const http::response<http::string_body, http::fields> contact_intersection(
-            http::request<http::string_body, http::fields>&& req) const;
-    const http::response<http::string_body, http::fields> submit_message(
-            http::request<http::string_body, http::fields>&& req) const;
+    const http::response<http::string_body> request_verification_code(
+            http::request<http::string_body>&& req) const;
+    const http::response<http::string_body> verify_verification_code(
+            http::request<http::string_body>&& req) const;
+    const http::response<http::string_body> register_prekeys(
+            http::request<http::string_body>&& req) const;
+    const http::response<http::string_body> lookup_prekey(
+            http::request<http::string_body>&& req) const;
+    const http::response<http::string_body> contact_intersection(
+            http::request<http::string_body>&& req) const;
+    const http::response<http::string_body> submit_message(
+            http::request<http::string_body>&& req) const;
 
     [[nodiscard]] bool confirm_authentication(std::string_view www_auth) const;
-
     std::optional<boost::property_tree::ptree> parse_json_request(const std::string& body) const;
+    const http::response<http::string_body> not_found(const std::string& target) const;
+    const http::response<http::string_body> server_error(const std::string& what) const;
+    const http::response<http::string_body> bad_request(const std::string& why) const;
+    const http::response<http::string_body> unauthorized() const;
+    const http::response<http::string_body> http_ok() const;
 
     ssl::stream<tcp::socket> stream;
     http::request<http::string_body> request;
     boost::asio::strand<boost::asio::io_context::executor_type> strand;
     boost::beast::flat_buffer buffer;
     std::shared_ptr<const void> result;
-
     db::database& server_db;
 };
 
