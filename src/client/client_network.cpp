@@ -68,17 +68,27 @@ void client_network_session::verify_verification_code() {
     ptr.add("foo.bar", "abc");
     ptr.add("foo.baz", "cde");
 
-#if 0
     boost::property_tree::ptree child;
 
-    child.put_value("1");
-    child.put_value("2");
-    child.put_value("3");
-    child.put_value("4");
-    child.put_value("5");
+    boost::property_tree::ptree child1;
+    boost::property_tree::ptree child2;
+    boost::property_tree::ptree child3;
+    boost::property_tree::ptree child4;
+    boost::property_tree::ptree child5;
 
-    ptr.add_child("foo.bar.baz", child);
-#endif
+    child1.put("", "1");
+    child2.put("", "2");
+    child3.put("", "3");
+    child4.put("", "4");
+    child5.put("", "5");
+
+    child.push_back(std::make_pair("", child1));
+    child.push_back(std::make_pair("", child2));
+    child.push_back(std::make_pair("", child3));
+    child.push_back(std::make_pair("", child4));
+    child.push_back(std::make_pair("", child5));
+
+    ptr.add_child("foo.foo", child);
 
     std::stringstream ss;
     boost::property_tree::write_json(ss, ptr);

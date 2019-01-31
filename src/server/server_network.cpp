@@ -310,15 +310,7 @@ void http_session::handle_request(
 //This functions does not need a verification confirmation, since it is how they are originally requested
 const http::response<http::string_body, http::fields> http_session::request_verification_code(
         http::request<http::string_body, http::fields>&& req) const {
-    try {
-        const std::string s = req.body();
-        spdlog::info("Received request contents {}", s);
-        boost::property_tree::ptree ptr;
-        boost::property_tree::read_json(s, ptr);
-    } catch (const boost::property_tree::json_parser_error& e) {
-        spdlog::error("Failed to convert JSON to Property Tree: {}", e.what());
-    }
-
+    const auto ptr = parse_json_request(req.body());
     http::response<http::string_body> res{http::status::ok, req.version()};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.set(http::field::content_type, "text/html");
@@ -330,14 +322,7 @@ const http::response<http::string_body, http::fields> http_session::request_veri
 
 const http::response<http::string_body, http::fields> http_session::verify_verification_code(
         http::request<http::string_body, http::fields>&& req) const {
-    try {
-        const std::string s = req.body();
-        spdlog::info("Received request contents {}", s);
-        boost::property_tree::ptree ptr;
-        boost::property_tree::read_json(s, ptr);
-    } catch (const boost::property_tree::json_parser_error& e) {
-        spdlog::error("Failed to convert JSON to Property Tree: {}", e.what());
-    }
+    const auto ptr = parse_json_request(req.body());
     if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
         http::response<http::string_body> res{http::status::unauthorized, req.version()};
@@ -359,14 +344,7 @@ const http::response<http::string_body, http::fields> http_session::verify_verif
 
 const http::response<http::string_body, http::fields> http_session::register_prekeys(
         http::request<http::string_body, http::fields>&& req) const {
-    try {
-        const std::string s = req.body();
-        boost::property_tree::ptree ptr;
-        boost::property_tree::read_json(s, ptr);
-        spdlog::info("Received request contents {}", s);
-    } catch (const boost::property_tree::json_parser_error& e) {
-        spdlog::error("Failed to convert JSON to Property Tree: {}", e.what());
-    }
+    const auto ptr = parse_json_request(req.body());
     if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
         http::response<http::string_body> res{http::status::unauthorized, req.version()};
@@ -388,13 +366,7 @@ const http::response<http::string_body, http::fields> http_session::register_pre
 
 const http::response<http::string_body, http::fields> http_session::lookup_prekey(
         http::request<http::string_body, http::fields>&& req) const {
-    try {
-        boost::property_tree::ptree ptr;
-        boost::property_tree::read_json(req.body(), ptr);
-        spdlog::info("Received request contents {}", req.body());
-    } catch (const boost::property_tree::json_parser_error& e) {
-        spdlog::error("Failed to convert JSON to Property Tree: {}", e.what());
-    }
+    const auto ptr = parse_json_request(req.body());
     if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
         http::response<http::string_body> res{http::status::unauthorized, req.version()};
@@ -416,13 +388,7 @@ const http::response<http::string_body, http::fields> http_session::lookup_preke
 
 const http::response<http::string_body, http::fields> http_session::contact_intersection(
         http::request<http::string_body, http::fields>&& req) const {
-    try {
-        boost::property_tree::ptree ptr;
-        boost::property_tree::read_json(req.body(), ptr);
-        spdlog::info("Received request contents {}", req.body());
-    } catch (const boost::property_tree::json_parser_error& e) {
-        spdlog::error("Failed to convert JSON to Property Tree: {}", e.what());
-    }
+    const auto ptr = parse_json_request(req.body());
     if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
         http::response<http::string_body> res{http::status::unauthorized, req.version()};
@@ -444,13 +410,7 @@ const http::response<http::string_body, http::fields> http_session::contact_inte
 
 const http::response<http::string_body, http::fields> http_session::submit_message(
         http::request<http::string_body, http::fields>&& req) const {
-    try {
-        boost::property_tree::ptree ptr;
-        boost::property_tree::read_json(req.body(), ptr);
-        spdlog::info("Received request contents {}", req.body());
-    } catch (const boost::property_tree::json_parser_error& e) {
-        spdlog::error("Failed to convert JSON to Property Tree: {}", e.what());
-    }
+    const auto ptr = parse_json_request(req.body());
     if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
         http::response<http::string_body> res{http::status::unauthorized, req.version()};
@@ -507,4 +467,18 @@ const http::response<http::string_body, http::fields> http_session::submit_messa
     const auto password = www_auth.substr(delim_loc + 1);
 
     return server_db.confirm_auth_token(user_id, password);
+}
+
+std::optional<boost::property_tree::ptree> http_session::parse_json_request(
+        const std::string& body) const {
+    try {
+        std::stringstream ss{body};
+        boost::property_tree::ptree ptr;
+        boost::property_tree::read_json(ss, ptr);
+        spdlog::debug("Received request contents {}", ss.str());
+        return ptr;
+    } catch (const boost::property_tree::json_parser_error& e) {
+        spdlog::error("Failed to convert JSON to Property Tree: {}", e.what());
+        return std::nullopt;
+    }
 }

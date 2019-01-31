@@ -6,6 +6,7 @@
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <string>
 #include <utility>
 
@@ -52,6 +53,8 @@ private:
             http::request<http::string_body, http::fields>&& req) const;
 
     [[nodiscard]] bool confirm_authentication(std::string_view www_auth) const;
+
+    std::optional<boost::property_tree::ptree> parse_json_request(const std::string& body) const;
 
     ssl::stream<tcp::socket> stream;
     http::request<http::string_body> request;
@@ -152,6 +155,5 @@ inline void load_server_certificate(boost::asio::ssl::context& ctx) {
 
     ctx.use_tmp_dh(boost::asio::buffer(dh.data(), dh.size()));
 }
-
 
 #endif /* end of include guard: SERVER_NETWORK_H */
