@@ -31,12 +31,7 @@ public:
     void on_write(boost::system::error_code ec, bool close);
     void do_close();
 
-    // This function produces an HTTP response for the given
-    // request. The type of the response object depends on the
-    // contents of the request, so the interface requires the
-    // caller to pass a generic lambda for receiving the response.
-    template<typename Send>
-    void handle_request(http::request<http::string_body>&& req, Send&& send);
+    const http::response<http::string_body> handle_request(http::request<http::string_body>&& req);
 
 private:
     const http::response<http::string_body> request_verification_code(

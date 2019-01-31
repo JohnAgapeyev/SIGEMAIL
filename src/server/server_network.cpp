@@ -79,22 +79,22 @@ void http_session::on_read(boost::system::error_code ec) {
     }
 
     // Send the response
-    handle_request(std::move(request), [this](auto&& msg) {
-        // The lifetime of the message has to extend
-        // for the duration of the async operation so
-        // we use a shared_ptr to manage it.
-        const auto sp = std::make_shared<std::remove_reference_t<decltype(msg)>>(std::move(msg));
+    const auto msg = handle_request(std::move(request));
 
-        // Store a type-erased version of the shared
-        // pointer in the class to keep it alive.
-        result = std::reinterpret_pointer_cast<const void>(sp);
+    // The lifetime of the message has to extend
+    // for the duration of the async operation so
+    // we use a shared_ptr to manage it.
+    const auto sp = std::make_shared<std::remove_reference_t<decltype(msg)>>(std::move(msg));
 
-        // Write the response
-        http::async_write(stream, *sp,
-                boost::asio::bind_executor(strand,
-                        std::bind(&http_session::on_write, shared_from_this(),
-                                std::placeholders::_1, sp->need_eof())));
-    });
+    // Store a type-erased version of the shared
+    // pointer in the class to keep it alive.
+    result = std::reinterpret_pointer_cast<const void>(sp);
+
+    // Write the response
+    http::async_write(stream, *sp,
+            boost::asio::bind_executor(strand,
+                    std::bind(&http_session::on_write, shared_from_this(), std::placeholders::_1,
+                            sp->need_eof())));
 }
 
 void http_session::on_write(boost::system::error_code ec, bool close) {
@@ -127,12 +127,8 @@ void http_session::do_close() {
     // At this point the connection is closed gracefully
 }
 
-// This function produces an HTTP response for the given
-// request. The type of the response object depends on the
-// contents of the request, so the interface requires the
-// caller to pass a generic lambda for receiving the response.
-template<class Send>
-void http_session::handle_request(http::request<http::string_body>&& req, Send&& send) {
+const http::response<http::string_body> http_session::handle_request(
+        http::request<http::string_body>&& req) {
     /**
      * List of endpoints:
      *
@@ -167,20 +163,20 @@ void http_session::handle_request(http::request<http::string_body>&& req, Send&&
 
     // Make sure we can handle the method
     if (req.method() != http::verb::get && req.method() != http::verb::put) {
-        return send(bad_request("Unknown HTTP-method"));
+        return bad_request("Unknown HTTP-method");
     }
 
     auto target = req.target();
 
     // Request path must be absolute and not contain "..".
     if (target.empty() || target[0] != '/' || target.find("..") != std::string_view::npos) {
-        return send(bad_request("Illegal request-target"));
+        return bad_request("Illegal request-target");
     }
 
     //Check that the request targets the correct version endpoint
     //I doubt I'll ever need a v2, but this ensures I have that flexibility
     if (target.substr(0, strlen(version_prefix)).compare(version_prefix) != 0) {
-        return send(not_found(std::string{req.target()}));
+        return not_found(std::string{req.target()});
     }
 
     //Move the view forward
@@ -188,7 +184,7 @@ void http_session::handle_request(http::request<http::string_body>&& req, Send&&
 
     //Ensure the target is large enough to hold the smallest valid target path
     if (target.size() < strlen(keys_prefix)) {
-        return send(not_found(std::string(req.target())));
+        return not_found(std::string(req.target()));
     }
 
     //Check the target for the accounts prefix
@@ -200,60 +196,60 @@ void http_session::handle_request(http::request<http::string_body>&& req, Send&&
         if (code_index == 0) {
             //Request verification code
             if (req.method() != http::verb::put) {
-                return send(bad_request("Wrong request method"));
+                return bad_request("Wrong request method");
             }
             spdlog::info("Confirm verification message");
-            return send(verify_verification_code(std::move(req)));
+            return verify_verification_code(std::move(req));
         } else if (code_index == 6) {
             if (target.substr(0, 6).compare("email/") != 0) {
                 //Malformed target
-                return send(not_found(std::string(req.target())));
+                return not_found(std::string(req.target()));
             }
             if (req.method() != http::verb::get) {
-                return send(bad_request("Wrong request method"));
+                return bad_request("Wrong request method");
             }
             //Confirm verification code
             spdlog::info("Request verification message");
-            return send(request_verification_code(std::move(req)));
+            return request_verification_code(std::move(req));
         } else {
             //"code/" was not found, therefore it is not a valid target
-            return send(not_found(std::string(req.target())));
+            return not_found(std::string(req.target()));
         }
         //Check for keys prefix
     } else if (target.substr(0, strlen(keys_prefix)).compare(keys_prefix) == 0) {
         target.remove_prefix(strlen(keys_prefix));
         if (target.empty()) {
             if (req.method() != http::verb::put) {
-                return send(bad_request("Wrong request method"));
+                return bad_request("Wrong request method");
             }
             //PreKey registration
             spdlog::info("Key registration message");
-            return send(register_prekeys(std::move(req)));
+            return register_prekeys(std::move(req));
         } else {
             if (req.method() != http::verb::get) {
-                return send(bad_request("Wrong request method"));
+                return bad_request("Wrong request method");
             }
             //Request contact PreKeys
             spdlog::info("Key lookup message");
-            return send(lookup_prekey(std::move(req)));
+            return lookup_prekey(std::move(req));
         }
         //Check for message prefix
     } else if (target.substr(0, strlen(message_prefix)).compare(message_prefix) == 0) {
         if (req.method() != http::verb::put) {
-            return send(bad_request("Wrong request method"));
+            return bad_request("Wrong request method");
         }
         spdlog::info("Message message");
-        return send(submit_message(std::move(req)));
+        return submit_message(std::move(req));
         //Check for contact intersection target
     } else if (target.compare(contact_intersection_target) == 0) {
         if (req.method() != http::verb::put) {
-            return send(bad_request("Wrong request method"));
+            return bad_request("Wrong request method");
         }
         //Handle contact intersection request
         spdlog::info("Contact intersection");
-        return send(contact_intersection(std::move(req)));
+        return contact_intersection(std::move(req));
     } else {
-        return send(not_found(std::string(req.target())));
+        return not_found(std::string(req.target()));
     }
 }
 
