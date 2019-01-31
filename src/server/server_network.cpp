@@ -127,34 +127,34 @@ void http_session::do_close() {
     // At this point the connection is closed gracefully
 }
 
+/**
+ * List of endpoints:
+ *
+ * Request verification code:
+ * GET /v1/accounts/email/code/{number}
+ *
+ * Confirm verification code:
+ * PUT /v1/accounts/code/{verification_code}
+ *
+ * Register Prekeys
+ * PUT /v1/keys/
+ *
+ * Contact Intersection
+ * PUT /v1/directory/tokens
+ *
+ * Get Contact PreKey
+ * GET /v1/keys/{number}/{device_id}
+ *
+ * Submit Message
+ * PUT /v1/messages/{destination_number}
+ *
+ * These are based on the examples given at:
+ * https://github.com/signalapp/Signal-Server/wiki/API-Protocol
+ *
+ * I will be modifying it slightly for my own needs, primarily in regards to the message formatting
+ */
 const http::response<http::string_body> http_session::handle_request(
         http::request<http::string_body>&& req) {
-    /**
-     * List of endpoints:
-     *
-     * Request verification code:
-     * GET /v1/accounts/email/code/{number}
-     *
-     * Confirm verification code:
-     * PUT /v1/accounts/code/{verification_code}
-     *
-     * Register Prekeys
-     * PUT /v1/keys/
-     *
-     * Contact Intersection
-     * PUT /v1/directory/tokens
-     *
-     * Get Contact PreKey
-     * GET /v1/keys/{number}/{device_id}
-     *
-     * Submit Message
-     * PUT /v1/messages/{destination_number}
-     *
-     * These are based on the examples given at:
-     * https://github.com/signalapp/Signal-Server/wiki/API-Protocol
-     *
-     * I will be modifying it slightly for my own needs, primarily in regards to the message formatting
-     */
     static constexpr auto version_prefix = "/v1/";
     static constexpr auto accounts_prefix = "accounts/";
     static constexpr auto keys_prefix = "keys/";
@@ -370,7 +370,7 @@ std::optional<boost::property_tree::ptree> http_session::parse_json_request(
 }
 
 const http::response<http::string_body> http_session::not_found(const std::string& target) const {
-    http::response<http::string_body> res{http::status::not_found, 11};
+    http::response<http::string_body> res{http::status::not_found, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.set(http::field::content_type, "text/html");
     res.keep_alive(true);
@@ -380,7 +380,7 @@ const http::response<http::string_body> http_session::not_found(const std::strin
 }
 
 const http::response<http::string_body> http_session::server_error(const std::string& what) const {
-    http::response<http::string_body> res{http::status::internal_server_error, 11};
+    http::response<http::string_body> res{http::status::internal_server_error, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.set(http::field::content_type, "text/html");
     res.keep_alive(true);
@@ -390,7 +390,7 @@ const http::response<http::string_body> http_session::server_error(const std::st
 }
 
 const http::response<http::string_body> http_session::bad_request(const std::string& why) const {
-    http::response<http::string_body> res{http::status::bad_request, 11};
+    http::response<http::string_body> res{http::status::bad_request, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.set(http::field::content_type, "text/html");
     res.keep_alive(true);
@@ -400,7 +400,7 @@ const http::response<http::string_body> http_session::bad_request(const std::str
 }
 
 const http::response<http::string_body> http_session::unauthorized() const {
-    http::response<http::string_body> res{http::status::unauthorized, 11};
+    http::response<http::string_body> res{http::status::unauthorized, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.set(http::field::content_type, "text/plain");
     res.keep_alive(true);
@@ -410,7 +410,7 @@ const http::response<http::string_body> http_session::unauthorized() const {
 }
 
 const http::response<http::string_body> http_session::http_ok() const {
-    http::response<http::string_body> res{http::status::ok, 11};
+    http::response<http::string_body> res{http::status::ok, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.set(http::field::content_type, "text/html");
     res.keep_alive(true);
