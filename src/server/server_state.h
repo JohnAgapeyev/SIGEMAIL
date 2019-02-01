@@ -153,7 +153,7 @@ namespace db {
     constexpr auto insert_one_time = "INSERT INTO otpk(device_id, key) VALUES (?1, ?2);";
     constexpr auto insert_message = "INSERT INTO mailbox(user_id, device_id, contents) VALUES (?1, ?2, ?3);";
     constexpr auto insert_registration
-            = "INSERT INTO registration_codes VALUES (?1, ?2, datetime('now', '+1 day'));";
+            = "INSERT INTO registration_codes VALUES (?1, ?2, strftime('%s', 'now', '+1 day'));";
 
     constexpr auto update_pre_key_stmt
             = "UPDATE devices SET pre_key = ?1, signature = ?2 WHERE device_id = ?3;";
