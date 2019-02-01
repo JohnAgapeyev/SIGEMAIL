@@ -257,9 +257,12 @@ const http::response<http::string_body> http_session::handle_request(
 const http::response<http::string_body> http_session::request_verification_code(
         http::request<http::string_body>&& req) const {
     const auto ptr = parse_json_request(req.body());
+    if (!ptr) {
+        return bad_json();
+    }
     http::response<http::string_body> res{http::status::ok, req.version()};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-    res.set(http::field::content_type, "text/html");
+    res.set(http::field::content_type, "text/plain");
     res.keep_alive(req.keep_alive());
     res.body() = "Foobar test string";
     res.prepare_payload();
@@ -269,6 +272,9 @@ const http::response<http::string_body> http_session::request_verification_code(
 const http::response<http::string_body> http_session::verify_verification_code(
         http::request<http::string_body>&& req) const {
     const auto ptr = parse_json_request(req.body());
+    if (!ptr) {
+        return bad_json();
+    }
     if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
         return unauthorized();
@@ -279,6 +285,9 @@ const http::response<http::string_body> http_session::verify_verification_code(
 const http::response<http::string_body> http_session::register_prekeys(
         http::request<http::string_body>&& req) const {
     const auto ptr = parse_json_request(req.body());
+    if (!ptr) {
+        return bad_json();
+    }
     if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
         return unauthorized();
@@ -289,6 +298,9 @@ const http::response<http::string_body> http_session::register_prekeys(
 const http::response<http::string_body> http_session::lookup_prekey(
         http::request<http::string_body>&& req) const {
     const auto ptr = parse_json_request(req.body());
+    if (!ptr) {
+        return bad_json();
+    }
     if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
         return unauthorized();
@@ -299,6 +311,9 @@ const http::response<http::string_body> http_session::lookup_prekey(
 const http::response<http::string_body> http_session::contact_intersection(
         http::request<http::string_body>&& req) const {
     const auto ptr = parse_json_request(req.body());
+    if (!ptr) {
+        return bad_json();
+    }
     if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
         return unauthorized();
@@ -309,6 +324,9 @@ const http::response<http::string_body> http_session::contact_intersection(
 const http::response<http::string_body> http_session::submit_message(
         http::request<http::string_body>&& req) const {
     const auto ptr = parse_json_request(req.body());
+    if (!ptr) {
+        return bad_json();
+    }
     if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
         return unauthorized();
@@ -372,7 +390,7 @@ std::optional<boost::property_tree::ptree> http_session::parse_json_request(
 const http::response<http::string_body> http_session::not_found(const std::string& target) const {
     http::response<http::string_body> res{http::status::not_found, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-    res.set(http::field::content_type, "text/html");
+    res.set(http::field::content_type, "text/plain");
     res.keep_alive(true);
     res.body() = "The resource '" + target + "' was not found.";
     res.prepare_payload();
@@ -382,7 +400,7 @@ const http::response<http::string_body> http_session::not_found(const std::strin
 const http::response<http::string_body> http_session::server_error(const std::string& what) const {
     http::response<http::string_body> res{http::status::internal_server_error, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-    res.set(http::field::content_type, "text/html");
+    res.set(http::field::content_type, "text/plain");
     res.keep_alive(true);
     res.body() = "An error occurred: '" + what + "'";
     res.prepare_payload();
@@ -392,7 +410,7 @@ const http::response<http::string_body> http_session::server_error(const std::st
 const http::response<http::string_body> http_session::bad_request(const std::string& why) const {
     http::response<http::string_body> res{http::status::bad_request, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-    res.set(http::field::content_type, "text/html");
+    res.set(http::field::content_type, "text/plain");
     res.keep_alive(true);
     res.body() = why;
     res.prepare_payload();
@@ -402,9 +420,7 @@ const http::response<http::string_body> http_session::bad_request(const std::str
 const http::response<http::string_body> http_session::unauthorized() const {
     http::response<http::string_body> res{http::status::unauthorized, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-    res.set(http::field::content_type, "text/plain");
     res.keep_alive(true);
-    res.body() = "Bad authentication code";
     res.prepare_payload();
     return res;
 }
@@ -412,7 +428,15 @@ const http::response<http::string_body> http_session::unauthorized() const {
 const http::response<http::string_body> http_session::http_ok() const {
     http::response<http::string_body> res{http::status::ok, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-    res.set(http::field::content_type, "text/html");
+    res.set(http::field::content_type, "text/plain");
+    res.keep_alive(true);
+    res.prepare_payload();
+    return res;
+}
+
+const http::response<http::string_body> http_session::bad_json() const {
+    http::response<http::string_body> res{http::status::unsupported_media_type, 10};
+    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.keep_alive(true);
     res.prepare_payload();
     return res;

@@ -54,6 +54,7 @@ private:
     const http::response<http::string_body> bad_request(const std::string& why) const;
     const http::response<http::string_body> unauthorized() const;
     const http::response<http::string_body> http_ok() const;
+    const http::response<http::string_body> bad_json() const;
 
     ssl::stream<tcp::socket> stream;
     http::request<http::string_body> request;
