@@ -120,12 +120,21 @@ void http_session::on_write(boost::system::error_code ec, bool close) {
 }
 
 void http_session::do_close() {
-    // Send a SSL+TCP shutdown
-    stream.shutdown();
-    stream.lowest_layer().shutdown(tcp::socket::shutdown_both);
+    boost::system::error_code ec;
+    stream.shutdown(ec);
+    if (ec == boost::asio::error::eof) {
+        // Rationale:
+        // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
+        ec.assign(0, ec.category());
+    }
+    if (ec) {
+        spdlog::error("Client shutdown error: {}", ec.message());
+    }
+    stream.lowest_layer().shutdown(boost::asio::socket_base::shutdown_both);
     stream.lowest_layer().close();
 
     // At this point the connection is closed gracefully
+    is_closed = true;
 }
 
 /**
@@ -424,7 +433,7 @@ const http::response<http::string_body> http_session::not_found(const std::strin
     http::response<http::string_body> res{http::status::not_found, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.set(http::field::content_type, "text/plain");
-    res.keep_alive(true);
+    res.keep_alive(false);
     res.body() = "The resource '" + target + "' was not found.";
     res.prepare_payload();
     return res;
@@ -434,7 +443,7 @@ const http::response<http::string_body> http_session::server_error(const std::st
     http::response<http::string_body> res{http::status::internal_server_error, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.set(http::field::content_type, "text/plain");
-    res.keep_alive(true);
+    res.keep_alive(false);
     res.body() = "An error occurred: '" + what + "'";
     res.prepare_payload();
     return res;
@@ -444,7 +453,7 @@ const http::response<http::string_body> http_session::bad_request(const std::str
     http::response<http::string_body> res{http::status::bad_request, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.set(http::field::content_type, "text/plain");
-    res.keep_alive(true);
+    res.keep_alive(false);
     res.body() = why;
     res.prepare_payload();
     return res;
@@ -453,7 +462,7 @@ const http::response<http::string_body> http_session::bad_request(const std::str
 const http::response<http::string_body> http_session::unauthorized() const {
     http::response<http::string_body> res{http::status::unauthorized, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-    res.keep_alive(true);
+    res.keep_alive(false);
     res.prepare_payload();
     return res;
 }
@@ -461,7 +470,7 @@ const http::response<http::string_body> http_session::unauthorized() const {
 const http::response<http::string_body> http_session::forbidden() const {
     http::response<http::string_body> res{http::status::forbidden, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-    res.keep_alive(true);
+    res.keep_alive(false);
     res.prepare_payload();
     return res;
 }
@@ -478,7 +487,7 @@ const http::response<http::string_body> http_session::http_ok() const {
 const http::response<http::string_body> http_session::bad_json() const {
     http::response<http::string_body> res{http::status::unsupported_media_type, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-    res.keep_alive(true);
+    res.keep_alive(false);
     res.prepare_payload();
     return res;
 }
@@ -486,7 +495,7 @@ const http::response<http::string_body> http_session::bad_json() const {
 const http::response<http::string_body> http_session::bad_method() const {
     http::response<http::string_body> res{http::status::method_not_allowed, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-    res.keep_alive(true);
+    res.keep_alive(false);
     res.prepare_payload();
     return res;
 }

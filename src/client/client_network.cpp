@@ -28,9 +28,9 @@ client_network_session::client_network_session(boost::asio::io_context& ioc, ssl
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
 
     // Look up the domain name
-    const auto results = resolver.resolve(dest_host, dest_port);
+    dns_results = resolver.resolve(dest_host, dest_port);
     //Connect to the domain
-    boost::asio::connect(stream.next_layer(), results.begin(), results.end());
+    boost::asio::connect(stream.next_layer(), dns_results.begin(), dns_results.end());
     // Perform the SSL handshake
     stream.handshake(ssl::stream_base::client);
 }

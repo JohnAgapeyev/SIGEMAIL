@@ -23,6 +23,12 @@ public:
     http_session(tcp::socket tcp_socket, ssl::context& ctx, db::database& db) :
             stream(std::move(tcp_socket), ctx), strand(stream.get_executor()), server_db(db) {}
 
+    ~http_session() {
+        if (!is_closed) {
+            do_close();
+        }
+    };
+
     // Start the asynchronous operation
     void run();
     void on_handshake(boost::system::error_code ec);
@@ -64,6 +70,7 @@ private:
     boost::beast::flat_buffer buffer;
     std::shared_ptr<const void> result;
     db::database& server_db;
+    bool is_closed = false;
 };
 
 /*  Load a signed certificate into the ssl context, and configure

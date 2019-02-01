@@ -37,6 +37,7 @@ private:
     boost::beast::flat_buffer buffer;
     http::request<http::string_body> req;
     http::response<http::string_body> res;
+    tcp::resolver::results_type dns_results;
 };
 
 #endif /* end of include guard: CLIENT_NETWORK_H */
