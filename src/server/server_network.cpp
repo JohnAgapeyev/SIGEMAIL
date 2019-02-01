@@ -199,7 +199,7 @@ const http::response<http::string_body> http_session::handle_request(
         if (code_index == 0) {
             //Request verification code
             if (req.method() != http::verb::put) {
-                return bad_request("Wrong request method");
+                return bad_method();
             }
             //Remaining target should be the code
             target.remove_prefix(strlen(code_str));
@@ -212,7 +212,7 @@ const http::response<http::string_body> http_session::handle_request(
                 return not_found(std::string(req.target()));
             }
             if (req.method() != http::verb::get) {
-                return bad_request("Wrong request method");
+                return bad_method();
             }
 
             //After this, the remaining target should only be the email address
@@ -230,14 +230,14 @@ const http::response<http::string_body> http_session::handle_request(
         target.remove_prefix(strlen(keys_prefix));
         if (target.empty()) {
             if (req.method() != http::verb::put) {
-                return bad_request("Wrong request method");
+                return bad_method();
             }
             //PreKey registration
             spdlog::info("Key registration message");
             return register_prekeys(std::move(req));
         } else {
             if (req.method() != http::verb::get) {
-                return bad_request("Wrong request method");
+                return bad_method();
             }
             //Request contact PreKeys
             spdlog::info("Key lookup message");
@@ -246,14 +246,14 @@ const http::response<http::string_body> http_session::handle_request(
         //Check for message prefix
     } else if (target.substr(0, strlen(message_prefix)).compare(message_prefix) == 0) {
         if (req.method() != http::verb::put) {
-            return bad_request("Wrong request method");
+            return bad_method();
         }
         spdlog::info("Message message");
         return submit_message(std::move(req));
         //Check for contact intersection target
     } else if (target.compare(contact_intersection_target) == 0) {
         if (req.method() != http::verb::put) {
-            return bad_request("Wrong request method");
+            return bad_method();
         }
         //Handle contact intersection request
         spdlog::info("Contact intersection");
@@ -300,12 +300,11 @@ const http::response<http::string_body> http_session::verify_verification_code(
         const auto email = server_db.confirm_registration_code(code);
         if (email.empty()) {
             //Code was bad
-            //This will need to change to be a 403 instead of 400
-            return bad_request("Bad or missing code");
+            return forbidden();
         }
     } catch (const db_error&) {
         //Bad request
-        return bad_request("Bad database lookup");
+        return server_error("Bad database lookup");
     } catch (const std::exception&) {
         //Bad request
         return bad_request("Code is not a number");
@@ -459,6 +458,14 @@ const http::response<http::string_body> http_session::unauthorized() const {
     return res;
 }
 
+const http::response<http::string_body> http_session::forbidden() const {
+    http::response<http::string_body> res{http::status::forbidden, 10};
+    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+    res.keep_alive(true);
+    res.prepare_payload();
+    return res;
+}
+
 const http::response<http::string_body> http_session::http_ok() const {
     http::response<http::string_body> res{http::status::ok, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
@@ -470,6 +477,14 @@ const http::response<http::string_body> http_session::http_ok() const {
 
 const http::response<http::string_body> http_session::bad_json() const {
     http::response<http::string_body> res{http::status::unsupported_media_type, 10};
+    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+    res.keep_alive(true);
+    res.prepare_payload();
+    return res;
+}
+
+const http::response<http::string_body> http_session::bad_method() const {
+    http::response<http::string_body> res{http::status::method_not_allowed, 10};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.keep_alive(true);
     res.prepare_payload();
