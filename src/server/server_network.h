@@ -35,9 +35,9 @@ public:
 
 private:
     const http::response<http::string_body> request_verification_code(
-            http::request<http::string_body>&& req) const;
+            http::request<http::string_body>&& req, const std::string_view email) const;
     const http::response<http::string_body> verify_verification_code(
-            http::request<http::string_body>&& req) const;
+            http::request<http::string_body>&& req, const std::string_view reg_code) const;
     const http::response<http::string_body> register_prekeys(
             http::request<http::string_body>&& req) const;
     const http::response<http::string_body> lookup_prekey(

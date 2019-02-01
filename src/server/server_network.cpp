@@ -18,6 +18,7 @@
 #include <thread>
 #include <vector>
 
+#include "error.h"
 #include "logging.h"
 #include "server_network.h"
 #include "server_state.h"
@@ -166,7 +167,7 @@ const http::response<http::string_body> http_session::handle_request(
         return bad_request("Unknown HTTP-method");
     }
 
-    auto target = req.target();
+    auto target = std::string_view{req.target().to_string()};
 
     // Request path must be absolute and not contain "..".
     if (target.empty() || target[0] != '/' || target.find("..") != std::string_view::npos) {
@@ -191,26 +192,35 @@ const http::response<http::string_body> http_session::handle_request(
     if (target.substr(0, strlen(accounts_prefix)).compare(accounts_prefix) == 0) {
         target.remove_prefix(strlen(accounts_prefix));
 
-        const auto code_index = target.find("code/");
+        const auto code_str = "code/";
+
+        const auto code_index = target.find(code_str);
 
         if (code_index == 0) {
             //Request verification code
             if (req.method() != http::verb::put) {
                 return bad_request("Wrong request method");
             }
+            //Remaining target should be the code
+            target.remove_prefix(strlen(code_str));
             spdlog::info("Confirm verification message");
-            return verify_verification_code(std::move(req));
+            return verify_verification_code(std::move(req), target);
         } else if (code_index == 6) {
-            if (target.substr(0, 6).compare("email/") != 0) {
+            const auto email_substr = "email/";
+            if (target.substr(0, 6).compare(email_substr) != 0) {
                 //Malformed target
                 return not_found(std::string(req.target()));
             }
             if (req.method() != http::verb::get) {
                 return bad_request("Wrong request method");
             }
+
+            //After this, the remaining target should only be the email address
+            target.remove_prefix(strlen(email_substr));
+
             //Confirm verification code
             spdlog::info("Request verification message");
-            return request_verification_code(std::move(req));
+            return request_verification_code(std::move(req), target);
         } else {
             //"code/" was not found, therefore it is not a valid target
             return not_found(std::string(req.target()));
@@ -255,30 +265,50 @@ const http::response<http::string_body> http_session::handle_request(
 
 //This functions does not need a verification confirmation, since it is how they are originally requested
 const http::response<http::string_body> http_session::request_verification_code(
-        http::request<http::string_body>&& req) const {
-    const auto ptr = parse_json_request(req.body());
-    if (!ptr) {
-        return bad_json();
+        http::request<http::string_body>&& req, const std::string_view email) const {
+    if (!req.body().empty()) {
+        //Expected an empty request, but received data
+        return bad_request("Expected an empty request body");
     }
-    http::response<http::string_body> res{http::status::ok, req.version()};
-    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-    res.set(http::field::content_type, "text/plain");
-    res.keep_alive(req.keep_alive());
-    res.body() = "Foobar test string";
-    res.prepare_payload();
-    return res;
+    //Email is not valid format
+    if (email.empty() || email.size() > 254 || email.find('@') == std::string_view::npos) {
+        return bad_request("Invalid email address format");
+    }
+
+    //This needs to be randomly generated, decently large, and sent via SMTP to the address
+    uint64_t registration_code = 1;
+
+    server_db.add_registration_code(email, registration_code);
+
+    return http_ok();
 }
 
 const http::response<http::string_body> http_session::verify_verification_code(
-        http::request<http::string_body>&& req) const {
-    const auto ptr = parse_json_request(req.body());
-    if (!ptr) {
-        return bad_json();
-    }
+        http::request<http::string_body>&& req, const std::string_view reg_code) const {
     if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
         return unauthorized();
     }
+
+    const auto ptr = parse_json_request(req.body());
+    if (!ptr) {
+        return bad_json();
+    }
+
+    try {
+        const auto email = server_db.confirm_registration_code(reg_code);
+        if (email.empty()) {
+            //Code was bad
+            //This will need to change to be a 403 instead of 400
+            return bad_request("Bad or missing code");
+        }
+    } catch (const db_error& e) {
+        //Bad request
+        return bad_request("Bad database lookup");
+    }
+
+    //Now parse the body contents
+
     return http_ok();
 }
 

@@ -70,6 +70,8 @@ namespace db {
 
         std::vector<std::tuple<int, int, std::string>> retrieve_messages(const std::string_view user_id);
 
+        [[nodiscard]] std::string confirm_registration_code(const std::string_view reg_code);
+
     private:
         sqlite3* db_conn;
 
@@ -94,6 +96,7 @@ namespace db {
         sqlite3_stmt* devices_id_select;
         sqlite3_stmt* otpk_select;
         sqlite3_stmt* mailbox_select;
+        sqlite3_stmt* registration_codes_select;
 
         void prepare_statement(const char *sql, sqlite3_stmt **stmt);
         void exec_statement(const char *sql);
@@ -167,6 +170,7 @@ namespace db {
     constexpr auto select_devices_device_id = "SELECT device_id, identity_key, pre_key, signature FROM devices WHERE device_id = ?1;";
     constexpr auto select_one_time = "SELECT key_id, key FROM otpk WHERE device_id = ?1 ORDER BY RANDOM() LIMIT 1;";
     constexpr auto select_message = "SELECT message_id, device_id, contents FROM mailbox WHERE user_id = ?1;";
+    constexpr auto select_registration = "SELECT email, expiration FROM registration_codes WHERE code = ?1;";
 } // namespace db
 
 #endif /* end of include guard: SERVER_STATE_H */

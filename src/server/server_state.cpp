@@ -66,6 +66,7 @@ db::database::database(const char* db_name) {
     prepare_statement(select_devices_device_id, &devices_id_select);
     prepare_statement(select_one_time, &otpk_select);
     prepare_statement(select_message, &mailbox_select);
+    prepare_statement(select_registration, &registration_codes_select);
 }
 
 db::database::~database() {
@@ -86,6 +87,7 @@ db::database::~database() {
     sqlite3_finalize(devices_user_select);
     sqlite3_finalize(otpk_select);
     sqlite3_finalize(mailbox_select);
+    sqlite3_finalize(registration_codes_select);
     sqlite3_close(db_conn);
 }
 
@@ -529,4 +531,59 @@ std::vector<std::tuple<int, int, std::string>> db::database::retrieve_messages(
     }
 
     return records;
+}
+
+[[nodiscard]] std::string db::database::confirm_registration_code(const std::string_view reg_code) {
+    sqlite3_reset(registration_codes_select);
+    sqlite3_clear_bindings(registration_codes_select);
+
+    if (sqlite3_bind_text(
+                registration_codes_select, 1, reg_code.data(), reg_code.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error();
+    }
+    int err;
+    if ((err = sqlite3_step(registration_codes_select)) != SQLITE_ROW) {
+        if (err == SQLITE_DONE) {
+            //No rows
+            return "";
+        }
+        throw_db_error();
+    }
+
+    const auto email = sqlite3_column_text(registration_codes_select, 0);
+    const auto email_len = sqlite3_column_bytes(registration_codes_select, 0);
+    if (!email) {
+        throw_db_error();
+    }
+
+    const auto date = sqlite3_column_text(registration_codes_select, 1);
+    const auto date_len = sqlite3_column_bytes(registration_codes_select, 1);
+    if (!date) {
+        throw_db_error();
+    }
+
+    const std::string date_str{
+            reinterpret_cast<const char*>(date), static_cast<unsigned long>(date_len)};
+
+    uint64_t date_int;
+    try {
+        date_int = std::stoi(date_str);
+    } catch (...) {
+        throw_db_error();
+    }
+    const uint64_t curr_time = std::time(nullptr);
+
+    if (date_int < curr_time) {
+        //Registration code has expired
+        remove_registration_code(std::string{
+                reinterpret_cast<const char*>(email), static_cast<unsigned long>(email_len)});
+        return "";
+    }
+
+    //Make sure there aren't any more expected rows
+    if (sqlite3_step(registration_codes_select) != SQLITE_DONE) {
+        throw_db_error();
+    }
+    return std::string{reinterpret_cast<const char*>(email), static_cast<unsigned long>(email_len)};
 }
