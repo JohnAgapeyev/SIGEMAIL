@@ -533,13 +533,11 @@ std::vector<std::tuple<int, int, std::string>> db::database::retrieve_messages(
     return records;
 }
 
-[[nodiscard]] std::string db::database::confirm_registration_code(const std::string_view reg_code) {
+[[nodiscard]] std::string db::database::confirm_registration_code(const int reg_code) {
     sqlite3_reset(registration_codes_select);
     sqlite3_clear_bindings(registration_codes_select);
 
-    if (sqlite3_bind_text(
-                registration_codes_select, 1, reg_code.data(), reg_code.size(), SQLITE_TRANSIENT)
-            != SQLITE_OK) {
+    if (sqlite3_bind_int(registration_codes_select, 1, reg_code) != SQLITE_OK) {
         throw_db_error();
     }
     int err;

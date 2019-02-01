@@ -296,15 +296,19 @@ const http::response<http::string_body> http_session::verify_verification_code(
     }
 
     try {
-        const auto email = server_db.confirm_registration_code(reg_code);
+        const int code = std::stoi(std::string{reg_code.data(), reg_code.size()});
+        const auto email = server_db.confirm_registration_code(code);
         if (email.empty()) {
             //Code was bad
             //This will need to change to be a 403 instead of 400
             return bad_request("Bad or missing code");
         }
-    } catch (const db_error& e) {
+    } catch (const db_error&) {
         //Bad request
         return bad_request("Bad database lookup");
+    } catch (const std::exception&) {
+        //Bad request
+        return bad_request("Code is not a number");
     }
 
     //Now parse the body contents

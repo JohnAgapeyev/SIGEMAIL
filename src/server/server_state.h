@@ -70,7 +70,7 @@ namespace db {
 
         std::vector<std::tuple<int, int, std::string>> retrieve_messages(const std::string_view user_id);
 
-        [[nodiscard]] std::string confirm_registration_code(const std::string_view reg_code);
+        [[nodiscard]] std::string confirm_registration_code(const int reg_code);
 
     private:
         sqlite3* db_conn;
