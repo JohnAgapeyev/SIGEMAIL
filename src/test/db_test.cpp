@@ -646,13 +646,13 @@ BOOST_AUTO_TEST_CASE(retrieve_message_empty_user) {
 
 BOOST_AUTO_TEST_CASE(confirm_registration_basic) {
     auto db = get_db();
-    db.add_registration_code("foobar@test.com", 1234);
+    db.add_registration_code("foobar@test.com", 12345);
     BOOST_TEST(!db.confirm_registration_code(12345).empty());
 }
 
 BOOST_AUTO_TEST_CASE(confirm_registration_bad) {
     auto db = get_db();
-    db.add_registration_code("foobar@test.com", 1234);
+    db.add_registration_code("foobar@test.com", 12345);
     BOOST_TEST(db.confirm_registration_code(23456).empty());
 }
 
