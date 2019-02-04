@@ -47,7 +47,7 @@ private:
     const http::response<http::string_body> register_prekeys(
             http::request<http::string_body>&& req) const;
     const http::response<http::string_body> lookup_prekey(
-            http::request<http::string_body>&& req) const;
+            http::request<http::string_body>&& req, const std::string_view email, const std::string_view device_id) const;
     const http::response<http::string_body> contact_intersection(
             http::request<http::string_body>&& req) const;
     const http::response<http::string_body> submit_message(

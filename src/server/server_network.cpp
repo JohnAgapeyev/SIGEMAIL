@@ -16,6 +16,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include "error.h"
@@ -250,7 +251,14 @@ const http::response<http::string_body> http_session::handle_request(
             }
             //Request contact PreKeys
             spdlog::info("Key lookup message");
-            return lookup_prekey(std::move(req));
+
+            const auto delim_loc = target.find_first_of('/');
+            if (delim_loc == 0 || delim_loc == std::string_view::npos || delim_loc == target.size()) {
+                //Bad delimeter location
+                return bad_request("Invalid target");
+            }
+
+            return lookup_prekey(std::move(req), target.substr(0, delim_loc - 1), target.substr(delim_loc));
         }
         //Check for message prefix
     } else if (target.substr(0, strlen(message_prefix)).compare(message_prefix) == 0) {
@@ -352,15 +360,36 @@ const http::response<http::string_body> http_session::register_prekeys(
 }
 
 const http::response<http::string_body> http_session::lookup_prekey(
-        http::request<http::string_body>&& req) const {
+        http::request<http::string_body>&& req, const std::string_view email,
+        const std::string_view device_id) const {
     if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
         return unauthorized();
     }
-    const auto ptr = parse_json_request(req.body());
-    if (!ptr) {
-        return bad_json();
+    if (!req.body().empty()) {
+        //Expected an empty request, but received data
+        return bad_request("Expected an empty request body");
     }
+
+    std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>>
+            device_data;
+    if (device_id.compare("*") == 0) {
+        //Grab all the devices for that user
+        device_data = server_db.lookup_devices(email);
+    } else {
+        int did;
+        try {
+            did = std::stoi(std::string{device_id.data(), device_id.size()});
+        } catch (...) {
+            return bad_request("Requested device id is not a number");
+        }
+        device_data = server_db.lookup_devices({did});
+    }
+
+    for (const auto& [device_id, identity, prekey, signature] : device_data) {
+        //Do something with these results
+    }
+
     return http_ok();
 }
 
