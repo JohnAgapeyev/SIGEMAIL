@@ -14,6 +14,8 @@
 #include <memory>
 #include <string>
 
+#include "message.h"
+
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
 namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
 namespace http = boost::beast::http; // from <boost/beast/http.hpp>
@@ -29,8 +31,8 @@ public:
     void verify_verification_code(const uint64_t code);
     void register_prekeys(const uint64_t key_count);
     void lookup_prekey(const std::string& user_id, const uint64_t device_id);
-    void contact_intersection();
-    void submit_message();
+    void contact_intersection(const std::vector<std::string>& contacts);
+    void submit_message(const std::string& user_id, const std::vector<std::pair<uint64_t, signal_message>>& messages);
 
 private:
     tcp::resolver resolver;

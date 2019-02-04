@@ -131,6 +131,7 @@ void client_network_session::register_prekeys(const uint64_t key_count) {
     req.target("/v1/keys/");
 
     boost::property_tree::ptree ptr;
+    boost::property_tree::ptree keys;
 
     for (uint64_t i = 0; i < key_count; ++i) {
         boost::property_tree::ptree child;
@@ -144,8 +145,9 @@ void client_network_session::register_prekeys(const uint64_t key_count) {
         arch << kp.get_public();
 
         child.add("", ss.str());
-        ptr.push_back(std::make_pair("", child));
+        keys.push_back(std::make_pair("", child));
     }
+    ptr.add_child("keys", keys);
 
     std::stringstream ss;
     boost::property_tree::write_json(ss, ptr);
@@ -157,6 +159,9 @@ void client_network_session::register_prekeys(const uint64_t key_count) {
     http::read(stream, buffer, res);
 }
 
+/*
+ * Request is empty
+ */
 void client_network_session::lookup_prekey(const std::string& user_id, const uint64_t device_id) {
     const auto target_str = [&user_id, device_id]() {
         const auto target_prefix = "/v1/keys/";
@@ -177,17 +182,101 @@ void client_network_session::lookup_prekey(const std::string& user_id, const uin
     http::read(stream, buffer, res);
 }
 
-void client_network_session::contact_intersection() {
+/*
+ * Request is as follows:
+ *  {
+ *   "contacts": [ "{token}", "{token}", ..., "{token}" ]
+ *  }
+ */
+void client_network_session::contact_intersection(const std::vector<std::string>& contacts) {
     req.method(http::verb::put);
     req.target("/v1/directory/tokens");
+
+    boost::property_tree::ptree ptr;
+    boost::property_tree::ptree contact_data;
+
+    for (const auto& email : contacts) {
+        boost::property_tree::ptree child;
+
+        const auto hash = crypto::hash_string(email);
+        std::array<std::byte, 24> trunc_hash;
+        std::copy(hash.begin(), hash.begin() + trunc_hash.size(), trunc_hash.begin());
+
+        std::stringstream ss;
+        boost::archive::text_oarchive arch{ss};
+
+        arch << trunc_hash;
+
+        child.add("", ss.str());
+        contact_data.push_back(std::make_pair("", child));
+    }
+
+    ptr.add_child("contacts", contact_data);
+
+    std::stringstream ss;
+    boost::property_tree::write_json(ss, ptr);
+
+    req.body() = ss.str();
+    req.prepare_payload();
 
     http::write(stream, req);
     http::read(stream, buffer, res);
 }
 
-void client_network_session::submit_message() {
+/*
+ * Request is as follows:
+ *
+ * {
+ *    message: [
+ *      {
+ *             dest_device: {destination_device_id},
+ *             contents: "{serialized message}",
+ *      },
+ *      ...
+ *    ]
+ * }
+ */
+void client_network_session::submit_message(const std::string& user_id,
+        const std::vector<std::pair<uint64_t, signal_message>>& messages) {
+    const auto target_str = [&user_id]() {
+        const auto target_prefix = "/v1/messages/";
+        std::stringstream ss;
+        ss << target_prefix;
+        ss << user_id;
+        return ss.str();
+    }();
+
     req.method(http::verb::put);
-    req.target("/v1/messages/foobar@test.com");
+    req.target(target_str);
+
+    boost::property_tree::ptree ptr;
+    boost::property_tree::ptree message_data;
+
+    for (const auto& [device_id, contents] : messages) {
+        boost::property_tree::ptree child;
+
+        std::stringstream ss;
+        ss << device_id;
+        child.add("dest_device", ss.str());
+
+        //Clear the stringstream
+        ss.str(std::string{});
+
+        boost::archive::text_oarchive arch{ss};
+
+        arch << contents;
+
+        child.add("contents", ss.str());
+        message_data.push_back(std::make_pair("", child));
+    }
+
+    ptr.add_child("message", message_data);
+
+    std::stringstream ss;
+    boost::property_tree::write_json(ss, ptr);
+
+    req.body() = ss.str();
+    req.prepare_payload();
 
     http::write(stream, req);
     http::read(stream, buffer, res);
