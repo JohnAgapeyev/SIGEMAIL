@@ -25,10 +25,10 @@ public:
             const char* dest_port);
     ~client_network_session();
 
-    void request_verification_code();
+    void request_verification_code(const std::string& email);
     void verify_verification_code(const uint64_t code);
-    void register_prekeys();
-    void lookup_prekey();
+    void register_prekeys(const uint64_t key_count);
+    void lookup_prekey(const std::string& user_id, const uint64_t device_id);
     void contact_intersection();
     void submit_message();
 

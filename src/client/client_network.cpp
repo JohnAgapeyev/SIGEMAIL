@@ -1,3 +1,5 @@
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 #include <boost/asio/bind_executor.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -8,6 +10,7 @@
 #include <boost/beast/version.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <cstdint>
 #include <cstdlib>
 #include <functional>
 #include <iostream>
@@ -16,6 +19,8 @@
 #include <string>
 
 #include "client_network.h"
+#include "crypto.h"
+#include "dh.h"
 #include "logging.h"
 
 //This will throw boost::system::system_error if any part of the connection fails
@@ -51,14 +56,35 @@ client_network_session::~client_network_session() {
     stream.lowest_layer().close();
 }
 
-void client_network_session::request_verification_code() {
+/*
+ * Request is empty
+ */
+void client_network_session::request_verification_code(const std::string& email) {
+    const auto target_str = [&email]() {
+        const auto target_prefix = "/v1/accounts/email/code/";
+        std::stringstream ss;
+        ss << target_prefix;
+        ss << email;
+        return ss.str();
+    }();
+
     req.method(http::verb::get);
-    req.target("/v1/accounts/email/code/foobar@test.com");
+    req.target(target_str);
+    req.prepare_payload();
 
     http::write(stream, req);
     http::read(stream, buffer, res);
 }
 
+/*
+ * Request is as follows:
+ * {
+ *   email: {email}
+ *   signature: "{signature}",
+ *   publicKey: "{public_key}",
+ *   identityKey: "{identity_key}"
+ * }
+ */
 void client_network_session::verify_verification_code(const uint64_t code) {
     const auto target_str = [code]() {
         const auto target_prefix = "/v1/accounts/code/";
@@ -73,30 +99,8 @@ void client_network_session::verify_verification_code(const uint64_t code) {
 
     boost::property_tree::ptree ptr;
 
-    ptr.add("foo.bar", "abc");
-    ptr.add("foo.baz", "cde");
-
-    boost::property_tree::ptree child;
-
-    boost::property_tree::ptree child1;
-    boost::property_tree::ptree child2;
-    boost::property_tree::ptree child3;
-    boost::property_tree::ptree child4;
-    boost::property_tree::ptree child5;
-
-    child1.put("", "1");
-    child2.put("", "2");
-    child3.put("", "3");
-    child4.put("", "4");
-    child5.put("", "5");
-
-    child.push_back(std::make_pair("", child1));
-    child.push_back(std::make_pair("", child2));
-    child.push_back(std::make_pair("", child3));
-    child.push_back(std::make_pair("", child4));
-    child.push_back(std::make_pair("", child5));
-
-    ptr.add_child("foo.foo", child);
+    //This email should be replaced when client database is online
+    ptr.add("email", "foobar@test.com");
 
     std::stringstream ss;
     boost::property_tree::write_json(ss, ptr);
@@ -113,17 +117,61 @@ void client_network_session::verify_verification_code(const uint64_t code) {
     http::read(stream, buffer, res);
 }
 
-void client_network_session::register_prekeys() {
+/*
+ * Request is as follows:
+ * {
+ *   //Keys is for one-time key update
+ *   keys: [
+ *        "" : "{public_key}",
+ *       ...]
+ * }
+ */
+void client_network_session::register_prekeys(const uint64_t key_count) {
     req.method(http::verb::put);
     req.target("/v1/keys/");
+
+    boost::property_tree::ptree ptr;
+
+    for (uint64_t i = 0; i < key_count; ++i) {
+        boost::property_tree::ptree child;
+
+        //Ephemeral key needs to be stored in client database here
+        crypto::DH_Keypair kp;
+
+        std::stringstream ss;
+        boost::archive::text_oarchive arch{ss};
+
+        arch << kp.get_public();
+
+        child.add("", ss.str());
+        ptr.push_back(std::make_pair("", child));
+    }
+
+    std::stringstream ss;
+    boost::property_tree::write_json(ss, ptr);
+
+    req.body() = ss.str();
+    req.prepare_payload();
 
     http::write(stream, req);
     http::read(stream, buffer, res);
 }
 
-void client_network_session::lookup_prekey() {
+void client_network_session::lookup_prekey(const std::string& user_id, const uint64_t device_id) {
+    const auto target_str = [&user_id, device_id]() {
+        const auto target_prefix = "/v1/keys/";
+        std::stringstream ss;
+        ss << target_prefix;
+        ss << user_id;
+        ss << '/';
+        ss << device_id;
+        return ss.str();
+    }();
+
     req.method(http::verb::get);
-    req.target("/v1/keys/foobar@test.com/123");
+    req.target(target_str);
+
+    req.prepare_payload();
 
     http::write(stream, req);
     http::read(stream, buffer, res);
