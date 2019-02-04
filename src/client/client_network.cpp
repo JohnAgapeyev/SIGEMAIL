@@ -59,9 +59,17 @@ void client_network_session::request_verification_code() {
     http::read(stream, buffer, res);
 }
 
-void client_network_session::verify_verification_code() {
+void client_network_session::verify_verification_code(const uint64_t code) {
+    const auto target_str = [code]() {
+        const auto target_prefix = "/v1/accounts/code/";
+        std::stringstream ss;
+        ss << target_prefix;
+        ss << code;
+        return ss.str();
+    }();
+
     req.method(http::verb::put);
-    req.target("/v1/accounts/code/foobar@test.com");
+    req.target(target_str);
 
     boost::property_tree::ptree ptr;
 
@@ -99,7 +107,7 @@ void client_network_session::verify_verification_code() {
 
     spdlog::info("Resulting body {}", req.body());
 
-    req.content_length(req.body().size());
+    req.prepare_payload();
 
     http::write(stream, req);
     http::read(stream, buffer, res);

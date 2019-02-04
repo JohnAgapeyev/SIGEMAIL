@@ -7,6 +7,7 @@
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
+#include <cstdint>
 #include <cstdlib>
 #include <functional>
 #include <iostream>
@@ -25,7 +26,7 @@ public:
     ~client_network_session();
 
     void request_verification_code();
-    void verify_verification_code();
+    void verify_verification_code(const uint64_t code);
     void register_prekeys();
     void lookup_prekey();
     void contact_intersection();
