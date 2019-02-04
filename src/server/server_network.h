@@ -54,6 +54,7 @@ private:
             http::request<http::string_body>&& req) const;
 
     [[nodiscard]] bool confirm_authentication(std::string_view www_auth) const;
+    [[nodiscard]] bool validate_auth(std::string_view www_auth) const;
     std::optional<boost::property_tree::ptree> parse_json_request(const std::string& body) const;
     const http::response<http::string_body> not_found(const std::string& target) const;
     const http::response<http::string_body> server_error(const std::string& what) const;

@@ -294,10 +294,21 @@ const http::response<http::string_body> http_session::request_verification_code(
 
 const http::response<http::string_body> http_session::verify_verification_code(
         http::request<http::string_body>&& req, const std::string_view reg_code) const {
-    if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
-        //Authentication code verification failed
+    auto www_auth = std::string_view{req[http::field::www_authenticate].to_string()};
+
+    if (!validate_auth(www_auth)) {
         return unauthorized();
     }
+
+    //None of these are checked because that is done in validate_auth
+    size_t delim_loc = www_auth.find_first_of(' ');
+    //Drop the auth type from the string
+    www_auth.remove_prefix(delim_loc);
+    //Get the location of the credential split
+    delim_loc = www_auth.find_first_of(':');
+
+    const auto user_id = www_auth.substr(0, delim_loc - 1);
+    const auto auth_token = www_auth.substr(delim_loc + 1);
 
     const auto ptr = parse_json_request(req.body());
     if (!ptr) {
@@ -321,62 +332,65 @@ const http::response<http::string_body> http_session::verify_verification_code(
 
     //Now parse the body contents
 
+    //Add the properly registered user to the database
+    server_db.add_user(user_id, auth_token);
+
     return http_ok();
 }
 
 const http::response<http::string_body> http_session::register_prekeys(
         http::request<http::string_body>&& req) const {
-    const auto ptr = parse_json_request(req.body());
-    if (!ptr) {
-        return bad_json();
-    }
     if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
         return unauthorized();
+    }
+    const auto ptr = parse_json_request(req.body());
+    if (!ptr) {
+        return bad_json();
     }
     return http_ok();
 }
 
 const http::response<http::string_body> http_session::lookup_prekey(
         http::request<http::string_body>&& req) const {
-    const auto ptr = parse_json_request(req.body());
-    if (!ptr) {
-        return bad_json();
-    }
     if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
         return unauthorized();
+    }
+    const auto ptr = parse_json_request(req.body());
+    if (!ptr) {
+        return bad_json();
     }
     return http_ok();
 }
 
 const http::response<http::string_body> http_session::contact_intersection(
         http::request<http::string_body>&& req) const {
-    const auto ptr = parse_json_request(req.body());
-    if (!ptr) {
-        return bad_json();
-    }
     if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
         return unauthorized();
+    }
+    const auto ptr = parse_json_request(req.body());
+    if (!ptr) {
+        return bad_json();
     }
     return http_ok();
 }
 
 const http::response<http::string_body> http_session::submit_message(
         http::request<http::string_body>&& req) const {
-    const auto ptr = parse_json_request(req.body());
-    if (!ptr) {
-        return bad_json();
-    }
     if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
         return unauthorized();
     }
+    const auto ptr = parse_json_request(req.body());
+    if (!ptr) {
+        return bad_json();
+    }
     return http_ok();
 }
 
-[[nodiscard]] bool http_session::confirm_authentication(std::string_view www_auth) const {
+[[nodiscard]] bool http_session::validate_auth(std::string_view www_auth) const {
     if (www_auth.empty()) {
         //No WWW-Authenticate header
         return false;
@@ -408,6 +422,20 @@ const http::response<http::string_body> http_session::submit_message(
         //Colon delimeter is in an unexpected spot
         return false;
     }
+    return true;
+}
+
+[[nodiscard]] bool http_session::confirm_authentication(std::string_view www_auth) const {
+    if (!validate_auth(www_auth)) {
+        return false;
+    }
+
+    //None of these are checked because that is done in validate_auth
+    size_t delim_loc = www_auth.find_first_of(' ');
+    //Drop the auth type from the string
+    www_auth.remove_prefix(delim_loc);
+    //Get the location of the credential split
+    delim_loc = www_auth.find_first_of(':');
 
     const auto user_id = www_auth.substr(0, delim_loc - 1);
     const auto password = www_auth.substr(delim_loc + 1);
