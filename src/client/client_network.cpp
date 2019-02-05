@@ -115,6 +115,11 @@ void client_network_session::verify_verification_code(const uint64_t code) {
 
     http::write(stream, req);
     http::read(stream, buffer, res);
+
+    //Clear the stringstream
+    ss.str(std::string{});
+    ss << res;
+    spdlog::debug("Got a server response:\n{}", ss.str());
 }
 
 /*
@@ -157,6 +162,11 @@ void client_network_session::register_prekeys(const uint64_t key_count) {
 
     http::write(stream, req);
     http::read(stream, buffer, res);
+
+    //Clear the stringstream
+    ss.str(std::string{});
+    ss << res;
+    spdlog::debug("Got a server response:\n{}", ss.str());
 }
 
 /*
@@ -180,6 +190,11 @@ void client_network_session::lookup_prekey(const std::string& user_id, const uin
 
     http::write(stream, req);
     http::read(stream, buffer, res);
+
+    //Clear the stringstream
+    std::stringstream ss;
+    ss << res;
+    spdlog::debug("Got a server response:\n{}", ss.str());
 }
 
 /*
@@ -221,6 +236,11 @@ void client_network_session::contact_intersection(const std::vector<std::string>
 
     http::write(stream, req);
     http::read(stream, buffer, res);
+
+    //Clear the stringstream
+    ss.str(std::string{});
+    ss << res;
+    spdlog::debug("Got a server response:\n{}", ss.str());
 }
 
 /*
@@ -280,4 +300,9 @@ void client_network_session::submit_message(const std::string& user_id,
 
     http::write(stream, req);
     http::read(stream, buffer, res);
+
+    //Clear the stringstream
+    ss.str(std::string{});
+    ss << res;
+    spdlog::debug("Got a server response:\n{}", ss.str());
 }
