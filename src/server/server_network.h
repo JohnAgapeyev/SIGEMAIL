@@ -31,6 +31,8 @@ public:
 
     // Start the asynchronous operation
     void run();
+
+private:
     void on_handshake(boost::system::error_code ec);
     void do_read();
     void on_read(boost::system::error_code ec);
@@ -38,16 +40,14 @@ public:
     void do_close();
 
     const http::response<http::string_body> handle_request(http::request<http::string_body>&& req);
-
-private:
     const http::response<http::string_body> request_verification_code(
             http::request<http::string_body>&& req, const std::string_view email) const;
     const http::response<http::string_body> verify_verification_code(
             http::request<http::string_body>&& req, const std::string_view reg_code) const;
     const http::response<http::string_body> register_prekeys(
             http::request<http::string_body>&& req) const;
-    const http::response<http::string_body> lookup_prekey(
-            http::request<http::string_body>&& req, const std::string_view email, const std::string_view device_id) const;
+    const http::response<http::string_body> lookup_prekey(http::request<http::string_body>&& req,
+            const std::string_view email, const std::string_view device_id) const;
     const http::response<http::string_body> contact_intersection(
             http::request<http::string_body>&& req) const;
     const http::response<http::string_body> submit_message(
