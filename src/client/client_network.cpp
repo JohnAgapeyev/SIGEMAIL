@@ -65,8 +65,10 @@ client_network_session::~client_network_session() {
         std::stringstream ss;
         ss << target_prefix;
         ss << email;
-        return ss.str();
+        return std::string{ss.str()};
     }();
+
+    spdlog::debug("Request target string {}", target_str);
 
     req.method(http::verb::get);
     req.target(target_str);

@@ -179,7 +179,9 @@ const http::response<http::string_body> http_session::handle_request(
         return bad_request("Unknown HTTP-method");
     }
 
-    auto target = std::string_view{req.target().to_string()};
+    std::string target{req.target().to_string()};
+
+    spdlog::debug("Incoming request target {}", target);
 
     // Request path must be absolute and not contain "..".
     if (target.empty() || target[0] != '/' || target.find("..") != std::string_view::npos) {
@@ -193,7 +195,7 @@ const http::response<http::string_body> http_session::handle_request(
     }
 
     //Move the view forward
-    target.remove_prefix(strlen(version_prefix));
+    target.erase(0, strlen(version_prefix));
 
     //Ensure the target is large enough to hold the smallest valid target path
     if (target.size() < strlen(keys_prefix)) {
@@ -202,7 +204,7 @@ const http::response<http::string_body> http_session::handle_request(
 
     //Check the target for the accounts prefix
     if (target.substr(0, strlen(accounts_prefix)).compare(accounts_prefix) == 0) {
-        target.remove_prefix(strlen(accounts_prefix));
+        target.erase(0, strlen(accounts_prefix));
 
         const auto code_str = "code/";
 
@@ -214,7 +216,7 @@ const http::response<http::string_body> http_session::handle_request(
                 return bad_method();
             }
             //Remaining target should be the code
-            target.remove_prefix(strlen(code_str));
+            target.erase(0, strlen(code_str));
             spdlog::info("Confirm verification message");
             return verify_verification_code(std::move(req), target);
         } else if (code_index == 6) {
@@ -228,7 +230,7 @@ const http::response<http::string_body> http_session::handle_request(
             }
 
             //After this, the remaining target should only be the email address
-            target.remove_prefix(strlen(email_substr));
+            target.erase(0, strlen(email_substr));
 
             //Confirm verification code
             spdlog::info("Request verification message");
@@ -239,7 +241,7 @@ const http::response<http::string_body> http_session::handle_request(
         }
         //Check for keys prefix
     } else if (target.substr(0, strlen(keys_prefix)).compare(keys_prefix) == 0) {
-        target.remove_prefix(strlen(keys_prefix));
+        target.erase(0, strlen(keys_prefix));
         if (target.empty()) {
             if (req.method() != http::verb::put) {
                 return bad_method();
@@ -268,12 +270,12 @@ const http::response<http::string_body> http_session::handle_request(
             return bad_method();
         }
 
-        target.remove_prefix(strlen(message_prefix));
+        target.erase(0, strlen(message_prefix));
         if (target[0] != '/') {
             //URL lacks an email token
             return bad_request("Invalid target");
         }
-        target.remove_prefix(1);
+        target.erase(0, 1);
 
         spdlog::info("Message message");
         return submit_message(std::move(req), target);

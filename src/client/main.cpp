@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
 
     std::thread t{[&host_ref]() {
         //host_ref->request_verification_code();
-        host_ref->verify_verification_code(12345);
+        //host_ref->verify_verification_code(12345);
         //host_ref->contact_intersection();
         //host_ref->lookup_prekey();
         //host_ref->register_prekeys();

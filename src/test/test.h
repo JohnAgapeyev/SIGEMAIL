@@ -34,7 +34,8 @@ struct Server_DB_Pair {
 struct DisableLogging {
     DisableLogging() {
         auto logger = spdlog::create<spdlog::sinks::null_sink_st>("null_logger");
-        spdlog::set_default_logger(logger);
+        spdlog::set_level(spdlog::level::debug);
+        //spdlog::set_default_logger(logger);
     }
     ~DisableLogging() = default;
 };
