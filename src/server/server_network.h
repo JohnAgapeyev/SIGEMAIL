@@ -51,7 +51,7 @@ private:
     const http::response<http::string_body> contact_intersection(
             http::request<http::string_body>&& req) const;
     const http::response<http::string_body> submit_message(
-            http::request<http::string_body>&& req) const;
+            http::request<http::string_body>&& req, const std::string_view email) const;
 
     [[nodiscard]] bool confirm_authentication(std::string_view www_auth) const;
     [[nodiscard]] bool validate_auth(std::string_view www_auth) const;

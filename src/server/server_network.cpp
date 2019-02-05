@@ -267,8 +267,16 @@ const http::response<http::string_body> http_session::handle_request(
         if (req.method() != http::verb::put) {
             return bad_method();
         }
+
+        target.remove_prefix(strlen(message_prefix));
+        if (target[0] != '/') {
+            //URL lacks an email token
+            return bad_request("Invalid target");
+        }
+        target.remove_prefix(1);
+
         spdlog::info("Message message");
-        return submit_message(std::move(req));
+        return submit_message(std::move(req), target);
         //Check for contact intersection target
     } else if (target.compare(contact_intersection_target) == 0) {
         if (req.method() != http::verb::put) {
@@ -507,7 +515,7 @@ const http::response<http::string_body> http_session::contact_intersection(
 }
 
 const http::response<http::string_body> http_session::submit_message(
-        http::request<http::string_body>&& req) const {
+        http::request<http::string_body>&& req, const std::string_view email) const {
     if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
         //Authentication code verification failed
         return unauthorized();
@@ -516,6 +524,41 @@ const http::response<http::string_body> http_session::submit_message(
     if (!ptr) {
         return bad_json();
     }
+
+    const auto messages = ptr->get_child_optional("messages");
+    if (!messages) {
+        return bad_json();
+    }
+
+    for (const auto& [key, value] : *messages) {
+        const auto message_child = value.get_child_optional("");
+        if (!message_child) {
+            return bad_json();
+        }
+        const auto device_id_str = message_child->get_child("device_id").get_value<std::string>();
+        const auto contents_str = message_child->get_child("contents").get_value<std::string>();
+
+        std::stringstream ss{device_id_str};
+
+        int device_id;
+
+        {
+            boost::archive::text_iarchive arch{ss};
+            arch >> device_id;
+        }
+
+        std::vector<std::byte> m;
+
+        ss.str(std::string{});
+
+        {
+            boost::archive::text_iarchive arch{ss};
+            arch >> m;
+        }
+
+        server_db.add_message(email, device_id, m);
+    }
+
     return http_ok();
 }
 
