@@ -63,6 +63,6 @@ std::shared_ptr<client_network_session> get_client() {
     return host_ref;
 }
 
-std::shared_ptr<Server_DB_Pair> get_server() {
-    return std::make_shared<Server_DB_Pair>(tcp::endpoint{tcp::v4(), 8443});
+std::shared_ptr<Server_DB_Pair> get_server(db::database& db) {
+    return std::make_shared<Server_DB_Pair>(tcp::endpoint{tcp::v4(), 8443}, db);
 }
