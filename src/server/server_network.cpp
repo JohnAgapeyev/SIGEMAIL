@@ -358,6 +358,25 @@ const http::response<http::string_body> http_session::register_prekeys(
     if (!ptr) {
         return bad_json();
     }
+
+    const auto keys = ptr->get_child_optional("keys");
+    if (!keys) {
+        return bad_json();
+    }
+
+    /*
+     * This whole block will need to be modified to accomodate device id in packet
+     */
+    for (const auto& [key, value] : *keys) {
+        std::stringstream ss{value.get_value<std::string>()};
+        boost::archive::text_iarchive arch{ss};
+
+        crypto::public_key pub_key;
+
+        arch >> pub_key;
+
+        server_db.add_one_time_key(1, pub_key);
+    }
     return http_ok();
 }
 
