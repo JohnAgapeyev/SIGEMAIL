@@ -13,7 +13,7 @@ namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
 // Accepts incoming connections and launches the websocket_sessions
 class listener : public std::enable_shared_from_this<listener> {
 public:
-    listener(boost::asio::io_context& ioc, ssl::context& ssl_ctx, tcp::endpoint endpoint, db::database& db);
+    listener(boost::asio::io_context& ioc, ssl::context& ssl_ctx, tcp::endpoint endpoint, server::db::database& db);
     ~listener() = default;
 
     // Start accepting incoming connections
@@ -26,7 +26,7 @@ private:
     tcp::acceptor acceptor;
     tcp::socket socket;
 
-    db::database& server_db;
+    server::db::database& server_db;
 };
 
 #endif /* end of include guard: LISTENER_H */

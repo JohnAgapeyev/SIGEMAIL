@@ -20,7 +20,7 @@ namespace http = boost::beast::http; // from <boost/beast/http.hpp>
 class http_session : public std::enable_shared_from_this<http_session> {
 public:
     // Take ownership of the socket
-    http_session(tcp::socket tcp_socket, ssl::context& ctx, db::database& db) :
+    http_session(tcp::socket tcp_socket, ssl::context& ctx, server::db::database& db) :
             stream(std::move(tcp_socket), ctx), strand(stream.get_executor()), server_db(db) {}
 
     ~http_session() {
@@ -71,7 +71,7 @@ private:
     boost::asio::strand<boost::asio::io_context::executor_type> strand;
     boost::beast::flat_buffer buffer;
     std::shared_ptr<const void> result;
-    db::database& server_db;
+    server::db::database& server_db;
     bool is_closed = false;
 };
 

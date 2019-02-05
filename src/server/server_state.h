@@ -32,7 +32,7 @@
  *      Code (BLOB)
  *      Expiration Timestamp (TEXT)
  */
-namespace db {
+namespace server::db {
     class database {
     public:
         database(const char *db_name);

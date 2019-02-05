@@ -33,8 +33,8 @@ session get_session() {
     return s;
 }
 
-db::database get_db() {
-    return db::database{db::IN_MEMORY_DB};
+server::db::database get_db() {
+    return server::db::database{server::db::IN_MEMORY_DB};
 }
 
 std::array<std::byte, 24> get_truncated_hash(const std::string_view data) {
@@ -63,6 +63,6 @@ std::shared_ptr<client_network_session> get_client() {
     return host_ref;
 }
 
-std::shared_ptr<Server_DB_Pair> get_server(db::database& db) {
+std::shared_ptr<Server_DB_Pair> get_server(server::db::database& db) {
     return std::make_shared<Server_DB_Pair>(tcp::endpoint{tcp::v4(), 8443}, db);
 }
