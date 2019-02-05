@@ -63,6 +63,7 @@ private:
     const http::response<http::string_body> forbidden() const;
     const http::response<http::string_body> bad_json() const;
     const http::response<http::string_body> bad_method() const;
+    const http::response<http::string_body> http_ok(const std::string& response) const;
     const http::response<http::string_body> http_ok() const;
 
     ssl::stream<tcp::socket> stream;

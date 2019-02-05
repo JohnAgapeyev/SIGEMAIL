@@ -1,4 +1,6 @@
 #define BOOST_TEST_DYN_LINK
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 #include <boost/test/unit_test.hpp>
 
 #include "crypto.h"
@@ -75,6 +77,32 @@ BOOST_AUTO_TEST_CASE(corrupted_deserialization) {
     }
 
     BOOST_REQUIRE_THROW(deserialize_message(mesg_str), std::runtime_error);
+}
+
+BOOST_AUTO_TEST_CASE(clear_serialization) {
+    auto session = get_session();
+    const auto message = session.ratchet_encrypt(get_message(), get_aad());
+
+    std::stringstream ss;
+    {
+        boost::archive::text_oarchive arch{ss};
+        arch << message;
+    }
+
+    const auto deser = deserialize_message(ss.str());
+
+    BOOST_TEST((message == deser));
+
+    ss.str(std::string{});
+
+    {
+        boost::archive::text_oarchive arch{ss};
+        arch << message;
+    }
+
+    const auto deser2 = deserialize_message(ss.str());
+
+    BOOST_TEST((message == deser2));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

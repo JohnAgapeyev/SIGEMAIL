@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <boost/asio/bind_executor.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/asio/ssl/stream.hpp>
@@ -386,11 +388,51 @@ const http::response<http::string_body> http_session::lookup_prekey(
         device_data = server_db.lookup_devices({did});
     }
 
-    for (const auto& [device_id, identity, prekey, signature] : device_data) {
-        //Do something with these results
-    }
+    boost::property_tree::ptree ptr;
+    boost::property_tree::ptree child;
 
-    return http_ok();
+    for (const auto& [device_id, identity, prekey, signature] : device_data) {
+        boost::property_tree::ptree element;
+
+        element.add("device_id", device_id);
+
+        std::stringstream ss;
+
+        {
+            boost::archive::text_oarchive arch{ss};
+            arch << identity;
+        }
+
+        element.add("identity", ss.str());
+
+        //Clear the stringstream
+        ss.str(std::string{});
+
+        {
+            boost::archive::text_oarchive arch{ss};
+            arch << prekey;
+        }
+
+        element.add("prekey", ss.str());
+
+        //Clear the stringstream
+        ss.str(std::string{});
+
+        {
+            boost::archive::text_oarchive arch{ss};
+            arch << signature;
+        }
+
+        element.add("signature", ss.str());
+
+        child.push_back(std::make_pair("", element));
+    }
+    ptr.add_child("keys", child);
+
+    std::stringstream ss;
+    boost::property_tree::write_json(ss, ptr);
+
+    return http_ok(ss.str());
 }
 
 const http::response<http::string_body> http_session::contact_intersection(
@@ -403,7 +445,46 @@ const http::response<http::string_body> http_session::contact_intersection(
     if (!ptr) {
         return bad_json();
     }
-    return http_ok();
+
+    const auto contacts = ptr->get_child_optional("contacts");
+    if (!contacts) {
+        return bad_json();
+    }
+
+    std::vector<std::array<std::byte, 24>> contact_hashes;
+    for (const auto& [key, value] : *contacts) {
+        std::stringstream ss{value.get_value<std::string>()};
+        boost::archive::text_iarchive arch{ss};
+
+        std::array<std::byte, 24> trunc_hash;
+        arch >> trunc_hash;
+
+        contact_hashes.emplace_back(std::move(trunc_hash));
+    }
+
+    const auto intersection = server_db.contact_intersection(contact_hashes);
+
+    boost::property_tree::ptree out_ptr;
+    boost::property_tree::ptree contact_data;
+
+    for (const auto& token : intersection) {
+        boost::property_tree::ptree child;
+
+        std::stringstream ss;
+        boost::archive::text_oarchive arch{ss};
+
+        arch << token;
+
+        child.add("", ss.str());
+        contact_data.push_back(std::make_pair("", child));
+    }
+
+    out_ptr.add_child("contacts", contact_data);
+
+    std::stringstream ss;
+    boost::property_tree::write_json(ss, out_ptr);
+
+    return http_ok(ss.str());
 }
 
 const http::response<http::string_body> http_session::submit_message(
@@ -537,6 +618,16 @@ const http::response<http::string_body> http_session::http_ok() const {
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.set(http::field::content_type, "text/plain");
     res.keep_alive(true);
+    res.prepare_payload();
+    return res;
+}
+
+const http::response<http::string_body> http_session::http_ok(const std::string& response) const {
+    http::response<http::string_body> res{http::status::ok, 10};
+    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+    res.set(http::field::content_type, "text/plain");
+    res.keep_alive(true);
+    res.body() = response;
     res.prepare_payload();
     return res;
 }
