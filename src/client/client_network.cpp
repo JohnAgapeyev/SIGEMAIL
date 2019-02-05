@@ -59,7 +59,7 @@ client_network_session::~client_network_session() {
 /*
  * Request is empty
  */
-void client_network_session::request_verification_code(const std::string& email) {
+[[nodiscard]] bool client_network_session::request_verification_code(const std::string& email) {
     const auto target_str = [&email]() {
         const auto target_prefix = "/v1/accounts/email/code/";
         std::stringstream ss;
@@ -74,6 +74,8 @@ void client_network_session::request_verification_code(const std::string& email)
 
     http::write(stream, req);
     http::read(stream, buffer, res);
+
+    return res.result() == http::status::ok;
 }
 
 /*
@@ -85,7 +87,7 @@ void client_network_session::request_verification_code(const std::string& email)
  *   identityKey: "{identity_key}"
  * }
  */
-void client_network_session::verify_verification_code(const uint64_t code) {
+[[nodiscard]] bool client_network_session::verify_verification_code(const uint64_t code) {
     const auto target_str = [code]() {
         const auto target_prefix = "/v1/accounts/code/";
         std::stringstream ss;
@@ -120,6 +122,8 @@ void client_network_session::verify_verification_code(const uint64_t code) {
     ss.str(std::string{});
     ss << res;
     spdlog::debug("Got a server response:\n{}", ss.str());
+
+    return res.result() == http::status::ok;
 }
 
 /*
@@ -131,7 +135,7 @@ void client_network_session::verify_verification_code(const uint64_t code) {
  *       ...]
  * }
  */
-void client_network_session::register_prekeys(const uint64_t key_count) {
+[[nodiscard]] bool client_network_session::register_prekeys(const uint64_t key_count) {
     req.method(http::verb::put);
     req.target("/v1/keys/");
 
@@ -167,12 +171,14 @@ void client_network_session::register_prekeys(const uint64_t key_count) {
     ss.str(std::string{});
     ss << res;
     spdlog::debug("Got a server response:\n{}", ss.str());
+
+    return res.result() == http::status::ok;
 }
 
 /*
  * Request is empty
  */
-void client_network_session::lookup_prekey(const std::string& user_id, const uint64_t device_id) {
+[[nodiscard]] bool client_network_session::lookup_prekey(const std::string& user_id, const uint64_t device_id) {
     const auto target_str = [&user_id, device_id]() {
         const auto target_prefix = "/v1/keys/";
         std::stringstream ss;
@@ -195,6 +201,8 @@ void client_network_session::lookup_prekey(const std::string& user_id, const uin
     std::stringstream ss;
     ss << res;
     spdlog::debug("Got a server response:\n{}", ss.str());
+
+    return res.result() == http::status::ok;
 }
 
 /*
@@ -203,7 +211,7 @@ void client_network_session::lookup_prekey(const std::string& user_id, const uin
  *   "contacts": [ "{token}", "{token}", ..., "{token}" ]
  *  }
  */
-void client_network_session::contact_intersection(const std::vector<std::string>& contacts) {
+[[nodiscard]] bool client_network_session::contact_intersection(const std::vector<std::string>& contacts) {
     req.method(http::verb::put);
     req.target("/v1/directory/tokens");
 
@@ -241,6 +249,8 @@ void client_network_session::contact_intersection(const std::vector<std::string>
     ss.str(std::string{});
     ss << res;
     spdlog::debug("Got a server response:\n{}", ss.str());
+
+    return res.result() == http::status::ok;
 }
 
 /*
@@ -256,7 +266,7 @@ void client_network_session::contact_intersection(const std::vector<std::string>
  *    ]
  * }
  */
-void client_network_session::submit_message(const std::string& user_id,
+[[nodiscard]] bool client_network_session::submit_message(const std::string& user_id,
         const std::vector<std::pair<uint64_t, signal_message>>& messages) {
     const auto target_str = [&user_id]() {
         const auto target_prefix = "/v1/messages/";
@@ -305,4 +315,5 @@ void client_network_session::submit_message(const std::string& user_id,
     ss.str(std::string{});
     ss << res;
     spdlog::debug("Got a server response:\n{}", ss.str());
+    return res.result() == http::status::ok;
 }
