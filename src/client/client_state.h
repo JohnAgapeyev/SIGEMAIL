@@ -10,27 +10,28 @@
 /**
  * DATABASE SCHEMA
  * Need the following tables:
- *  Users
- *      User ID (email address aka TEXT) PRIMARY KEY
- *      Truncated hash (BLOB for contact intersection)
- *  Devices
- *      User ID (email address aka TEXT) PRIMARY KEY FOREIGN KEY
- *      Device ID (uint64_t) PRIMARY KEY
- *      Identity Public Key (BLOB)
- *      Pre Key (BLOB)
- *      Pre Key Signature (BLOB)
- *  One Time Pre Keys
- *      User ID (email address aka TEXT) PRIMARY KEY FOREIGN KEY
- *      Device ID (uint64_t) PRIMARY KEY FOREIGN KEY
- *      One Time Public Key (BLOB)
- *  Messages
- *      User ID (email address) PRMIARY KEY FOREIGN KEY
- *      Device ID (uint64_t) PRIMARY KEY FOREIGN KEY
- *      Message Contents (BLOB)
- *  Registration Codes
- *      Email address PRIMARY KEY
- *      Code (BLOB)
- *      Expiration Timestamp (TEXT)
+ * Self
+ *      User ID (TEXT) PRIMARY KEY
+ *      Device ID (INTEGER)
+ *      Auth Token (TEXT)
+ *      Identity Keypair (BLOB)
+ *      Pre Key Keypair (BLOB)
+ * One Time
+ *      Keypair (BLOB) PRIMARY KEY
+ * Users
+ *      User ID (TEXT) PRIMARY KEY
+ *      stale (INTEGER)
+ * Devices
+ *      Device ID (INTEGER) PRIMARY KEY
+ *      User ID (TEXT) FOREIGN KEY
+ *      stale (INTEGER)
+ * Sessions
+ *      Session ID (INTEGER) PRIMARY KEY
+ *      User ID (TEXT) FOREIGN KEY
+ *      Device ID (INTEGER) FOREIGN KEY
+ *      Contents (BLOB)
+ *      Public Key (BLOB)
+ *      stale (INTEGER)
  */
 namespace client::db {
     class database {
