@@ -5,7 +5,7 @@
 #include "server_state.h"
 #include "test.h"
 
-BOOST_AUTO_TEST_SUITE(db_tests)
+BOOST_AUTO_TEST_SUITE(server_db_tests)
 
 //Literally just test that the db creation doesn't error and throw
 BOOST_AUTO_TEST_CASE(db_creation) {

@@ -92,6 +92,7 @@ set(SIGEMAIL_SOURCES
 
 set(CLIENT_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/client/client_network.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/client/client_state.cpp
 )
 
 set(SERVER_SOURCES
@@ -108,7 +109,7 @@ set(TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/session_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/hash_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/message_serialize_test.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/test/db_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/test/server_db_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/network_test.cpp
 )
 
@@ -159,7 +160,7 @@ target_compile_options(${SERVER_LIBRARY}
 target_compile_definitions(${SERVER_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
 target_include_directories(${SERVER_LIBRARY} PUBLIC ${INCLUDE_DIRS})
 
-add_executable(${PROJECT_NAME} ${CLIENT_MAIN_SOURCE} $<TARGET_OBJECTS:${SOURCE_LIBRARY}> $<TARGET_OBJECTS:${CLIENT_LIBRARY}>)
+add_executable(${PROJECT_NAME} ${CLIENT_MAIN_SOURCE} $<TARGET_OBJECTS:${SOURCE_LIBRARY}> $<TARGET_OBJECTS:${CLIENT_LIBRARY}> $<TARGET_OBJECTS:sqlite3>)
 target_compile_options(${PROJECT_NAME}
     PRIVATE ${WARNINGS}
     PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>" "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
@@ -192,7 +193,7 @@ add_test(NAME hash_tests COMMAND test_binary -t hash_tests)
 add_test(NAME protocol_tests COMMAND test_binary -t protocol_tests)
 add_test(NAME session_tests COMMAND test_binary -t session_tests)
 add_test(NAME serialization_tests COMMAND test_binary -t serialization_tests)
-add_test(NAME db_tests COMMAND test_binary -t db_tests)
+add_test(NAME server_db_tests COMMAND test_binary -t server_db_tests)
 add_test(NAME network_tests COMMAND test_binary -t network_tests)
 
 target_link_libraries(test_binary PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES} Boost::unit_test_framework Boost::serialization spdlog)
