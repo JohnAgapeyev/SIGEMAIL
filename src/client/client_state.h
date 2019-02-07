@@ -48,14 +48,14 @@ namespace client::db {
                 const std::string& auth_token, const crypto::DH_Keypair& identity_keypair,
                 const crypto::DH_Keypair& pre_keypair);
 
-        void insert_one_time(const crypto::DH_Keypair& one_time);
-        void insert_user_record(const std::string& email);
-        void insert_device_record(const std::string& email, const int device_id);
-        void insert_session(const std::string& email, const int device_index, const session& s);
+        void add_one_time(const crypto::DH_Keypair& one_time);
+        void add_user_record(const std::string& email);
+        void add_device_record(const std::string& email, const int device_id);
+        void add_session(const std::string& email, const int device_index, const session& s);
 
-        void delete_user_record(const std::string& email);
-        void delete_device_record(const std::string& email, const int device_index);
-        void delete_session(const std::string& email, const int device_index, const session& s);
+        void remove_user_record(const std::string& email);
+        void remove_device_record(const std::string& email, const int device_index);
+        void remove_session(const std::string& email, const int device_index, const session& s);
 
         void activate_session(const std::string& email, const int device_index, const session& s);
 
@@ -71,6 +71,8 @@ namespace client::db {
         sqlite3_stmt* one_time_insert;
         sqlite3_stmt* sessions_insert;
 
+        sqlite3_stmt* users_update;
+        sqlite3_stmt* devices_update;
         sqlite3_stmt* one_time_update;
         sqlite3_stmt* sessions_update;
 
@@ -115,28 +117,32 @@ namespace client::db {
            CHECK(length(user_id) > 0 and stale >= 0 and stale <= 1)\
         );";
     constexpr auto create_sessions = "\
-        CREATE TABLE IF NOT EXISTS devices (\
+        CREATE TABLE IF NOT EXISTS sessions (\
            session_id   INTEGER PRIMARY KEY,\
            user_id      TEXT    NOT NULL,\
            device_id    INTEGER NOT NULL,\
            contents     BLOB    NOT NULL UNIQUE,\
            public_key   BLOB    NOT NULL,\
-           stale        INTEGER NOT NULL,\
            FOREIGN KEY(user_id) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE,\
            FOREIGN KEY(device_id) REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE,\
            CHECK(length(identity_key) > 0 and length(pre_key) > 0 and length(signature) > 0)\
         );";
 
-    constexpr auto insert_device = "INSERT INTO devices(user_id, identity_key, pre_key, signature) \
-                                    VALUES (?1, ?2, ?3, ?4);";
+    constexpr auto insert_self = "INSERT INTO self VALUES (?1, ?2, ?3, ?4 ?5);";
+    constexpr auto insert_one_time = "INSERT INTO one_time VALUES (?1, 0);";
+    constexpr auto insert_users = "INSERT INTO users VALUES (?1, 0);";
+    constexpr auto insert_devices = "INSERT INTO devices(user_id, stale) VALUES (?1, 0);";
+    constexpr auto insert_sessions = "INSERT INTO sessions(user_id, device_id, contents, "
+                                     "public_key, stale) VALUES (?1, ?2, ?3, ?4);";
 
-    constexpr auto update_pre_key_stmt
-            = "UPDATE devices SET pre_key = ?1, signature = ?2 WHERE device_id = ?3;";
+    constexpr auto update_users = "UPDATE users SET stale = 1 WHERE user_id = ?1;";
+    constexpr auto update_devices = "UPDATE devices SET stale = 1 WHERE device_id = ?1;";
 
-    constexpr auto delete_user = "DELETE FROM users WHERE user_id = ?1;";
-
-    constexpr auto select_devices_user_id
-            = "SELECT device_id, identity_key, pre_key, signature FROM devices WHERE user_id = ?1;";
+    constexpr auto delete_users = "DELETE FROM users WHERE user_id = ?1;";
+    constexpr auto delete_users_stale = "DELETE FROM users WHERE stale = 1;";
+    constexpr auto delete_devices = "DELETE FROM devices WHERE device_id = ?1;";
+    constexpr auto delete_devices_stale = "DELETE FROM devices WHERE stale = 1;";
+    constexpr auto delete_one_time = "DELETE FROM one_time WHERE key_pair = ?1;";
 } // namespace client::db
 
 #endif /* end of include guard: SERVER_STATE_H */
