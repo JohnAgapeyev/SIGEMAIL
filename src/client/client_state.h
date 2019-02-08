@@ -59,7 +59,7 @@ namespace client::db {
         void activate_session(const std::string& email, const int device_index, const session& s);
 
         void mark_user_stale(const std::string& email);
-        void mark_device_stale(const std::string& email, const int device_index);
+        void mark_device_stale(const int device_index);
 
     private:
         sqlite3* db_conn;

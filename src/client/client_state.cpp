@@ -52,6 +52,9 @@ client::db::database::database(const char* db_name) {
     prepare_statement(insert_one_time, &one_time_insert);
     prepare_statement(insert_sessions, &sessions_insert);
 
+    prepare_statement(update_users, &users_update);
+    prepare_statement(update_devices, &devices_update);
+
 #if 0
     prepare_statement(insert_user, &users_insert);
     prepare_statement(insert_device, &devices_insert);
@@ -83,6 +86,8 @@ client::db::database::~database() {
     sqlite3_finalize(devices_insert);
     sqlite3_finalize(one_time_insert);
     sqlite3_finalize(sessions_insert);
+    sqlite3_finalize(users_update);
+    sqlite3_finalize(devices_update);
 #if 0
     sqlite3_finalize(users_insert);
     sqlite3_finalize(devices_insert);
@@ -221,6 +226,29 @@ void client::db::database::add_session(
     }
 
     if (sqlite3_step(sessions_insert) != SQLITE_OK) {
+        throw_db_error();
+    }
+}
+
+void client::db::database::mark_user_stale(const std::string& email) {
+    sqlite3_reset(users_update);
+    sqlite3_clear_bindings(users_update);
+    if (sqlite3_bind_text(users_update, 1, email.c_str(), email.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error();
+    }
+    if (sqlite3_step(users_update) != SQLITE_OK) {
+        throw_db_error();
+    }
+}
+
+void client::db::database::mark_device_stale(const int device_index) {
+    sqlite3_reset(devices_update);
+    sqlite3_clear_bindings(devices_update);
+    if (sqlite3_bind_int(devices_update, 1, device_index) != SQLITE_OK) {
+        throw_db_error();
+    }
+    if (sqlite3_step(devices_update) != SQLITE_OK) {
         throw_db_error();
     }
 }
