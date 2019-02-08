@@ -56,6 +56,7 @@ namespace client::db {
         void remove_user_record(const std::string& email);
         void remove_device_record(const int device_index);
         void remove_session(const int session_id);
+        void remove_one_time(const crypto::public_key& public_key);
 
         void activate_session(const int device_index, const int session_id);
 
@@ -65,6 +66,7 @@ namespace client::db {
         void purge_stale_records();
 
         std::tuple<std::string, int, std::string, crypto::DH_Keypair, crypto::DH_Keypair> get_self_data();
+        crypto::DH_Keypair get_one_time_key(const crypto::public_key& public_key);
 
     private:
         sqlite3* db_conn;
@@ -87,6 +89,7 @@ namespace client::db {
         sqlite3_stmt* sessions_delete;
 
         sqlite3_stmt* self_select;
+        sqlite3_stmt* one_time_select;
 
         void prepare_statement(const char* sql, sqlite3_stmt** stmt);
         void exec_statement(const char* sql);
@@ -106,7 +109,8 @@ namespace client::db {
         );";
     constexpr auto create_one_time = "\
         CREATE TABLE IF NOT EXISTS one_time (\
-           key_pair     BLOB PRIMARY KEY,\
+           public_key     BLOB PRIMARY KEY,\
+           contents       BLOB NOT NULL UNIQUE,\
            CHECK(length(key_pair) > 0)\
         );";
     constexpr auto create_users = "\
@@ -137,7 +141,7 @@ namespace client::db {
         );";
 
     constexpr auto insert_self = "INSERT INTO self VALUES (?1, ?2, ?3, ?4 ?5);";
-    constexpr auto insert_one_time = "INSERT INTO one_time VALUES (?1, 0);";
+    constexpr auto insert_one_time = "INSERT INTO one_time VALUES (?1, ?2);";
     constexpr auto insert_users = "INSERT INTO users VALUES (?1, 0);";
     constexpr auto insert_devices = "INSERT INTO devices(user_id, active_session, stale) VALUES (?1, NULL, 0);";
     constexpr auto insert_sessions = "INSERT INTO sessions(user_id, device_id, contents, "
@@ -151,10 +155,11 @@ namespace client::db {
     constexpr auto delete_users_stale = "DELETE FROM users WHERE stale = 1;";
     constexpr auto delete_devices = "DELETE FROM devices WHERE device_id = ?1;";
     constexpr auto delete_devices_stale = "DELETE FROM devices WHERE stale = 1;";
-    constexpr auto delete_one_time = "DELETE FROM one_time WHERE key_pair = ?1;";
+    constexpr auto delete_one_time = "DELETE FROM one_time WHERE public_key = ?1;";
     constexpr auto delete_sessions = "DELETE FROM sessions WHERE session_id = ?1;";
 
     constexpr auto select_self = "SELECT * from self;";
+    constexpr auto select_one_time = "SELECT contents from one_time WHERE public_key = ?1;";
 } // namespace client::db
 
 #endif /* end of include guard: SERVER_STATE_H */

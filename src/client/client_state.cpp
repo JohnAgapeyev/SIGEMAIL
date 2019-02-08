@@ -57,7 +57,12 @@ client::db::database::database(const char* db_name) {
     prepare_statement(update_devices_active, &devices_update_active);
 
     prepare_statement(delete_sessions, &sessions_delete);
+    prepare_statement(delete_users, &users_delete);
+    prepare_statement(delete_one_time, &one_time_delete);
+    prepare_statement(delete_devices, &devices_delete);
+
     prepare_statement(select_self, &self_select);
+    prepare_statement(select_one_time, &one_time_select);
 }
 
 client::db::database::~database() {
@@ -66,11 +71,19 @@ client::db::database::~database() {
     sqlite3_finalize(devices_insert);
     sqlite3_finalize(one_time_insert);
     sqlite3_finalize(sessions_insert);
+
     sqlite3_finalize(users_update);
     sqlite3_finalize(devices_update);
     sqlite3_finalize(devices_update_active);
+
     sqlite3_finalize(sessions_delete);
+    sqlite3_finalize(devices_delete);
+    sqlite3_finalize(users_delete);
+    sqlite3_finalize(one_time_delete);
+
     sqlite3_finalize(self_select);
+    sqlite3_finalize(one_time_select);
+
     sqlite3_close(db_conn);
 }
 
@@ -124,11 +137,20 @@ void client::db::database::add_one_time(const crypto::DH_Keypair& one_time) {
     std::stringstream ss;
     {
         boost::archive::text_oarchive arch{ss};
-        arch << one_time;
+        arch << one_time.get_public();
     }
     auto serialized = ss.str();
-
     if (sqlite3_bind_blob(self_insert, 1, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error();
+    }
+    ss.str(std::string{});
+    {
+        boost::archive::text_oarchive arch{ss};
+        arch << one_time;
+    }
+    serialized = ss.str();
+    if (sqlite3_bind_blob(self_insert, 2, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
         throw_db_error();
     }
@@ -258,6 +280,30 @@ void client::db::database::remove_session(const int session_id) {
     }
 }
 
+void client::db::database::remove_one_time(const crypto::public_key& public_key) {
+    sqlite3_reset(one_time_delete);
+    sqlite3_clear_bindings(one_time_delete);
+
+    std::stringstream ss;
+
+    {
+        boost::archive::text_oarchive arch{ss};
+        arch << public_key;
+    }
+
+    auto serialized = ss.str();
+
+    if (sqlite3_bind_blob(
+                one_time_delete, 1, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error();
+    }
+
+    if (sqlite3_step(one_time_delete) != SQLITE_DONE) {
+        throw_db_error();
+    }
+}
+
 void client::db::database::activate_session(const int device_index, const int session_id) {
     sqlite3_reset(devices_update_active);
     sqlite3_clear_bindings(devices_update_active);
@@ -344,4 +390,37 @@ std::tuple<std::string, int, std::string, crypto::DH_Keypair, crypto::DH_Keypair
     }
 
     return {user_id, device_id, auth_token, identity_keypair, prekey_keypair};
+}
+
+crypto::DH_Keypair client::db::database::get_one_time_key(const crypto::public_key& public_key) {
+    sqlite3_reset(one_time_select);
+    sqlite3_clear_bindings(one_time_select);
+
+    if (sqlite3_bind_blob(
+                one_time_select, 1, public_key.data(), public_key.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error();
+    }
+
+    if (sqlite3_step(one_time_select) != SQLITE_ROW) {
+        throw_db_error();
+    }
+
+    const auto serialized_str = sqlite3_column_text(self_select, 0);
+    if (!serialized_str) {
+        throw_db_error();
+    }
+    const auto serialized_len = sqlite3_column_bytes(self_select, 0);
+
+    std::stringstream ss{std::string{reinterpret_cast<const char*>(serialized_str),
+            static_cast<unsigned long>(serialized_len)}};
+
+    crypto::DH_Keypair one_time_keypair;
+
+    {
+        boost::archive::text_iarchive arch{ss};
+        arch >> one_time_keypair;
+    }
+
+    return one_time_keypair;
 }
