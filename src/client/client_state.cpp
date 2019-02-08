@@ -8,10 +8,10 @@
 #include <string>
 #include <utility>
 
+#include "client_state.h"
 #include "crypto.h"
 #include "error.h"
 #include "logging.h"
-#include "client_state.h"
 
 void client::db::database::prepare_statement(const char* sql, sqlite3_stmt** stmt) {
     if (sqlite3_prepare_v2(db_conn, sql, strlen(sql) + 1, stmt, nullptr) != SQLITE_OK) {
@@ -46,6 +46,12 @@ client::db::database::database(const char* db_name) {
     exec_statement(create_one_time);
     exec_statement(create_sessions);
 
+    prepare_statement(insert_self, &self_insert);
+    prepare_statement(insert_users, &users_insert);
+    prepare_statement(insert_devices, &devices_insert);
+    prepare_statement(insert_one_time, &one_time_insert);
+    prepare_statement(insert_sessions, &sessions_insert);
+
 #if 0
     prepare_statement(insert_user, &users_insert);
     prepare_statement(insert_device, &devices_insert);
@@ -72,6 +78,11 @@ client::db::database::database(const char* db_name) {
 }
 
 client::db::database::~database() {
+    sqlite3_finalize(self_insert);
+    sqlite3_finalize(users_insert);
+    sqlite3_finalize(devices_insert);
+    sqlite3_finalize(one_time_insert);
+    sqlite3_finalize(sessions_insert);
 #if 0
     sqlite3_finalize(users_insert);
     sqlite3_finalize(devices_insert);
@@ -95,3 +106,121 @@ client::db::database::~database() {
     sqlite3_close(db_conn);
 }
 
+void client::db::database::save_registration(const std::string& email, const int device_id,
+        const std::string& auth_token, const crypto::DH_Keypair& identity_keypair,
+        const crypto::DH_Keypair& pre_keypair) {
+    sqlite3_reset(self_insert);
+    sqlite3_clear_bindings(self_insert);
+
+    if (sqlite3_bind_text(self_insert, 1, email.c_str(), email.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error();
+    }
+    if (sqlite3_bind_int(self_insert, 2, device_id) != SQLITE_OK) {
+        throw_db_error();
+    }
+    if (sqlite3_bind_text(self_insert, 3, auth_token.c_str(), auth_token.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error();
+    }
+    std::stringstream ss;
+    {
+        boost::archive::text_oarchive arch{ss};
+        arch << identity_keypair;
+    }
+    auto serialized = ss.str();
+    if (sqlite3_bind_blob(self_insert, 4, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error();
+    }
+    ss.str(std::string{});
+    {
+        boost::archive::text_oarchive arch{ss};
+        arch << pre_keypair;
+    }
+    serialized = ss.str();
+    if (sqlite3_bind_blob(self_insert, 5, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error();
+    }
+
+    if (sqlite3_step(self_insert) != SQLITE_OK) {
+        throw_db_error();
+    }
+}
+
+void client::db::database::add_one_time(const crypto::DH_Keypair& one_time) {
+    sqlite3_reset(one_time_insert);
+    sqlite3_clear_bindings(one_time_insert);
+
+    std::stringstream ss;
+    {
+        boost::archive::text_oarchive arch{ss};
+        arch << one_time;
+    }
+    auto serialized = ss.str();
+
+    if (sqlite3_bind_blob(self_insert, 1, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error();
+    }
+    if (sqlite3_step(one_time_insert) != SQLITE_OK) {
+        throw_db_error();
+    }
+}
+
+void client::db::database::add_user_record(const std::string& email) {
+    sqlite3_reset(users_insert);
+    sqlite3_clear_bindings(users_insert);
+
+    if (sqlite3_bind_text(users_insert, 1, email.c_str(), email.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error();
+    }
+    if (sqlite3_step(users_insert) != SQLITE_OK) {
+        throw_db_error();
+    }
+}
+
+void client::db::database::add_device_record(const std::string& email) {
+    sqlite3_reset(devices_insert);
+    sqlite3_clear_bindings(devices_insert);
+
+    if (sqlite3_bind_text(devices_insert, 1, email.c_str(), email.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error();
+    }
+    if (sqlite3_step(devices_insert) != SQLITE_OK) {
+        throw_db_error();
+    }
+}
+
+void client::db::database::add_session(
+        const std::string& email, const int device_index, const session& s) {
+    sqlite3_reset(sessions_insert);
+    sqlite3_clear_bindings(sessions_insert);
+
+    if (sqlite3_bind_text(sessions_insert, 1, email.c_str(), email.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error();
+    }
+    if (sqlite3_bind_int(sessions_insert, 2, device_index) != SQLITE_OK) {
+        throw_db_error();
+    }
+
+    std::stringstream ss;
+    {
+        boost::archive::text_oarchive arch{ss};
+        arch << s;
+    }
+    auto serialized = ss.str();
+    if (sqlite3_bind_text(
+                sessions_insert, 3, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error();
+    }
+
+    if (sqlite3_step(sessions_insert) != SQLITE_OK) {
+        throw_db_error();
+    }
+}

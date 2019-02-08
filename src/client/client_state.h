@@ -31,7 +31,6 @@
  *      User ID (TEXT) FOREIGN KEY
  *      Device ID (INTEGER) FOREIGN KEY
  *      Contents (BLOB)
- *      Public Key (BLOB)
  *      stale (INTEGER)
  */
 namespace client::db {
@@ -50,7 +49,7 @@ namespace client::db {
 
         void add_one_time(const crypto::DH_Keypair& one_time);
         void add_user_record(const std::string& email);
-        void add_device_record(const std::string& email, const int device_id);
+        void add_device_record(const std::string& email);
         void add_session(const std::string& email, const int device_index, const session& s);
 
         void remove_user_record(const std::string& email);
@@ -122,7 +121,6 @@ namespace client::db {
            user_id      TEXT    NOT NULL,\
            device_id    INTEGER NOT NULL,\
            contents     BLOB    NOT NULL UNIQUE,\
-           public_key   BLOB    NOT NULL,\
            FOREIGN KEY(user_id) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE,\
            FOREIGN KEY(device_id) REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE,\
            CHECK(length(identity_key) > 0 and length(pre_key) > 0 and length(signature) > 0)\
@@ -133,7 +131,7 @@ namespace client::db {
     constexpr auto insert_users = "INSERT INTO users VALUES (?1, 0);";
     constexpr auto insert_devices = "INSERT INTO devices(user_id, stale) VALUES (?1, 0);";
     constexpr auto insert_sessions = "INSERT INTO sessions(user_id, device_id, contents, "
-                                     "public_key, stale) VALUES (?1, ?2, ?3, ?4);";
+                                     ") VALUES (?1, ?2, ?3);";
 
     constexpr auto update_users = "UPDATE users SET stale = 1 WHERE user_id = ?1;";
     constexpr auto update_devices = "UPDATE devices SET stale = 1 WHERE device_id = ?1;";

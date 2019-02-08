@@ -17,9 +17,7 @@ public:
     bool operator==(const DH_Keypair& other) const {
         return private_key == other.private_key && public_key == other.public_key;
     }
-    bool operator!=(const DH_Keypair& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const DH_Keypair& other) const { return !(*this == other); }
 
     const crypto::shared_key generate_shared_secret(const crypto::public_key& remote_public) const
             noexcept;
@@ -28,6 +26,14 @@ public:
 
     friend const crypto::signature crypto::sign_key(
             const DH_Keypair& signing_keypair, const crypto::public_key& key_to_sign);
+
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive& ar, const unsigned int version) {
+        boost::ignore_unused_variable_warning(version);
+        ar& private_key;
+        ar& public_key;
+    }
 };
 
 #endif

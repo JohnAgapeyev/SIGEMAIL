@@ -1,12 +1,19 @@
 #ifndef PROTOCOL_STATE_H
 #define PROTOCOL_STATE_H
 
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/array.hpp>
+#include <boost/serialization/optional.hpp>
+#include <boost/serialization/unordered_map.hpp>
+#include <boost/serialization/variant.hpp>
+#include <boost/serialization/vector.hpp>
 #include <cstdint>
 #include <optional>
 
 #include "crypto.h"
 #include "dh.h"
 #include "key_pack.h"
+#include "logging.h"
 #include "message.h"
 
 extern const uint64_t MAX_SKIP;
@@ -50,6 +57,52 @@ private:
 
     crypto::secure_unordered_map<std::pair<crypto::public_key, uint64_t>, crypto::shared_key>
             skipped_keys;
+
+    friend class boost::serialization::access;
+    template<class Archive>
+    void save(Archive& ar, const unsigned int version) const {
+        boost::ignore_unused_variable_warning(version);
+        ar& self_keypair;
+        ar& remote_public_key;
+        ar& root_key;
+        ar& send_chain_key;
+        ar& receive_chain_key;
+        ar& send_message_num;
+        ar& receive_message_num;
+        ar& previous_send_chain_size;
+
+        std::unordered_map<std::pair<crypto::public_key, uint64_t>, crypto::shared_key,
+                boost::hash<std::pair<crypto::public_key, uint64_t>>>
+                tmp;
+
+        for (auto [key, value] : skipped_keys) {
+            tmp.emplace(std::move(key), std::move(value));
+        }
+
+        ar& tmp;
+    }
+    template<class Archive>
+    void load(Archive& ar, const unsigned int version) {
+        boost::ignore_unused_variable_warning(version);
+        ar& self_keypair;
+        ar& remote_public_key;
+        ar& root_key;
+        ar& send_chain_key;
+        ar& receive_chain_key;
+        ar& send_message_num;
+        ar& receive_message_num;
+        ar& previous_send_chain_size;
+
+        std::unordered_map<std::pair<crypto::public_key, uint64_t>, crypto::shared_key,
+                boost::hash<std::pair<crypto::public_key, uint64_t>>>
+                tmp;
+        ar& tmp;
+
+        for (auto [key, value] : tmp) {
+            skipped_keys.emplace(std::move(key), std::move(value));
+        }
+    }
+    BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
 
 std::pair<session, crypto::secure_vector<std::byte>> decrypt_initial_message(
