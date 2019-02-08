@@ -63,6 +63,8 @@ client::db::database::database(const char* db_name) {
 
     prepare_statement(select_self, &self_select);
     prepare_statement(select_one_time, &one_time_select);
+    prepare_statement(select_device_ids, &devices_select);
+    prepare_statement(select_sessions, &sessions_select);
 }
 
 client::db::database::~database() {
@@ -83,6 +85,8 @@ client::db::database::~database() {
 
     sqlite3_finalize(self_select);
     sqlite3_finalize(one_time_select);
+    sqlite3_finalize(devices_select);
+    sqlite3_finalize(sessions_select);
 
     sqlite3_close(db_conn);
 }
@@ -423,4 +427,97 @@ crypto::DH_Keypair client::db::database::get_one_time_key(const crypto::public_k
     }
 
     return one_time_keypair;
+}
+
+std::vector<int> client::db::database::get_device_ids(const std::string& email) {
+    sqlite3_reset(devices_select);
+    sqlite3_clear_bindings(devices_select);
+
+    if (sqlite3_bind_text(devices_select, 1, email.c_str(), email.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error();
+    }
+
+    std::vector<int> id_list;
+
+    int err;
+    while ((err = sqlite3_step(devices_select)) == SQLITE_ROW) {
+        const int id = sqlite3_column_int(devices_select, 0);
+        id_list.emplace_back(id);
+    }
+    if (err != SQLITE_DONE) {
+        throw_db_error();
+    }
+    return id_list;
+}
+
+std::vector<std::pair<int, session>> client::db::database::get_sessions_by_device(
+        const int device_id) {
+    sqlite3_reset(sessions_select);
+    sqlite3_clear_bindings(sessions_select);
+
+    if (sqlite3_bind_int(sessions_select, 1, device_id) != SQLITE_OK) {
+        throw_db_error();
+    }
+
+    std::vector<std::pair<int, session>> session_list;
+
+    int err;
+    while ((err = sqlite3_step(sessions_select)) == SQLITE_ROW) {
+        const int id = sqlite3_column_int(sessions_select, 0);
+        const auto serialized_str = sqlite3_column_text(self_select, 1);
+        if (!serialized_str) {
+            throw_db_error();
+        }
+        const auto serialized_len = sqlite3_column_bytes(self_select, 1);
+
+        std::stringstream ss{std::string{reinterpret_cast<const char*>(serialized_str),
+                static_cast<unsigned long>(serialized_len)}};
+
+        //This is annoying but I have to do this for deserialization
+        session s{crypto::public_key{}, crypto::DH_Keypair{}};
+        {
+            boost::archive::text_iarchive arch{ss};
+            arch >> s;
+        }
+        session_list.emplace_back(id, std::move(s));
+    }
+    if (err != SQLITE_DONE) {
+        throw_db_error();
+    }
+    return session_list;
+}
+
+session client::db::database::get_active_session(const int device_id) {
+    sqlite3_reset(active_select);
+    sqlite3_clear_bindings(active_select);
+
+    if (sqlite3_bind_int(active_select, 1, device_id) != SQLITE_OK) {
+        throw_db_error();
+    }
+
+    if (sqlite3_step(active_select) != SQLITE_ROW) {
+        throw_db_error();
+    }
+
+    const auto serialized_str = sqlite3_column_text(self_select, 0);
+    if (!serialized_str) {
+        throw_db_error();
+    }
+    const auto serialized_len = sqlite3_column_bytes(self_select, 0);
+
+    std::stringstream ss{std::string{reinterpret_cast<const char*>(serialized_str),
+            static_cast<unsigned long>(serialized_len)}};
+
+    //This is annoying but I have to do this for deserialization
+    session s{crypto::public_key{}, crypto::DH_Keypair{}};
+    {
+        boost::archive::text_iarchive arch{ss};
+        arch >> s;
+    }
+
+    if (sqlite3_step(active_select) != SQLITE_DONE) {
+        throw_db_error();
+    }
+    return s;
 }

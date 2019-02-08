@@ -65,8 +65,15 @@ namespace client::db {
 
         void purge_stale_records();
 
-        std::tuple<std::string, int, std::string, crypto::DH_Keypair, crypto::DH_Keypair> get_self_data();
+        std::tuple<std::string, int, std::string, crypto::DH_Keypair, crypto::DH_Keypair>
+                get_self_data();
         crypto::DH_Keypair get_one_time_key(const crypto::public_key& public_key);
+
+        std::vector<int> get_device_ids(const std::string& email);
+
+        std::vector<std::pair<int, session>> get_sessions_by_device(const int device_id);
+
+        session get_active_session(const int device_id);
 
     private:
         sqlite3* db_conn;
@@ -90,6 +97,9 @@ namespace client::db {
 
         sqlite3_stmt* self_select;
         sqlite3_stmt* one_time_select;
+        sqlite3_stmt* devices_select;
+        sqlite3_stmt* sessions_select;
+        sqlite3_stmt* active_select;
 
         void prepare_statement(const char* sql, sqlite3_stmt** stmt);
         void exec_statement(const char* sql);
@@ -143,13 +153,15 @@ namespace client::db {
     constexpr auto insert_self = "INSERT INTO self VALUES (?1, ?2, ?3, ?4 ?5);";
     constexpr auto insert_one_time = "INSERT INTO one_time VALUES (?1, ?2);";
     constexpr auto insert_users = "INSERT INTO users VALUES (?1, 0);";
-    constexpr auto insert_devices = "INSERT INTO devices(user_id, active_session, stale) VALUES (?1, NULL, 0);";
+    constexpr auto insert_devices
+            = "INSERT INTO devices(user_id, active_session, stale) VALUES (?1, NULL, 0);";
     constexpr auto insert_sessions = "INSERT INTO sessions(user_id, device_id, contents, "
                                      ") VALUES (?1, ?2, ?3);";
 
     constexpr auto update_users = "UPDATE users SET stale = 1 WHERE user_id = ?1;";
     constexpr auto update_devices = "UPDATE devices SET stale = 1 WHERE device_id = ?1;";
-    constexpr auto update_devices_active = "UPDATE devices SET active_session = ?2 WHERE device_id = ?1;";
+    constexpr auto update_devices_active
+            = "UPDATE devices SET active_session = ?2 WHERE device_id = ?1;";
 
     constexpr auto delete_users = "DELETE FROM users WHERE user_id = ?1;";
     constexpr auto delete_users_stale = "DELETE FROM users WHERE stale = 1;";
@@ -158,8 +170,15 @@ namespace client::db {
     constexpr auto delete_one_time = "DELETE FROM one_time WHERE public_key = ?1;";
     constexpr auto delete_sessions = "DELETE FROM sessions WHERE session_id = ?1;";
 
-    constexpr auto select_self = "SELECT * from self;";
-    constexpr auto select_one_time = "SELECT contents from one_time WHERE public_key = ?1;";
+    constexpr auto select_self = "SELECT * FROM self;";
+    constexpr auto select_one_time = "SELECT contents FROM one_time WHERE public_key = ?1;";
+    constexpr auto select_device_ids = "SELECT device_id FROM devices WHERE user_id = ?1;";
+    constexpr auto select_sessions
+            = "SELECT session_id, contents FROM sessions WHERE device_id = ?1;";
+
+    constexpr auto select_active
+            = "SELECT contents FROM sessions INNER JOIN devices ON devices.active_session = "
+              "sessions.session_id WHERE device_id = ?1;";
 } // namespace client::db
 
 #endif /* end of include guard: SERVER_STATE_H */
