@@ -54,30 +54,9 @@ client::db::database::database(const char* db_name) {
 
     prepare_statement(update_users, &users_update);
     prepare_statement(update_devices, &devices_update);
+    prepare_statement(update_devices_active, &devices_update_active);
 
-#if 0
-    prepare_statement(insert_user, &users_insert);
-    prepare_statement(insert_device, &devices_insert);
-    prepare_statement(insert_one_time, &otpk_insert);
-    prepare_statement(insert_message, &mailbox_insert);
-    prepare_statement(insert_registration, &registration_codes_insert);
-
-    prepare_statement(update_pre_key_stmt, &devices_update);
-
-    prepare_statement(delete_user, &users_delete);
-    prepare_statement(delete_device, &devices_delete);
-    prepare_statement(delete_one_time, &otpk_delete);
-    prepare_statement(delete_message, &mailbox_delete);
-    prepare_statement(delete_registration_code, &registration_codes_delete);
-
-    prepare_statement(select_trunc_hash, &users_hash_select);
-    prepare_statement(select_user_auth_token, &users_auth_select);
-    prepare_statement(select_devices_user_id, &devices_user_select);
-    prepare_statement(select_devices_device_id, &devices_id_select);
-    prepare_statement(select_one_time, &otpk_select);
-    prepare_statement(select_message, &mailbox_select);
-    prepare_statement(select_registration, &registration_codes_select);
-#endif
+    prepare_statement(delete_sessions, &sessions_delete);
 }
 
 client::db::database::~database() {
@@ -88,26 +67,8 @@ client::db::database::~database() {
     sqlite3_finalize(sessions_insert);
     sqlite3_finalize(users_update);
     sqlite3_finalize(devices_update);
-#if 0
-    sqlite3_finalize(users_insert);
-    sqlite3_finalize(devices_insert);
-    sqlite3_finalize(otpk_insert);
-    sqlite3_finalize(mailbox_insert);
-    sqlite3_finalize(registration_codes_insert);
-    sqlite3_finalize(devices_update);
-    sqlite3_finalize(users_delete);
-    sqlite3_finalize(devices_delete);
-    sqlite3_finalize(otpk_delete);
-    sqlite3_finalize(mailbox_delete);
-    sqlite3_finalize(registration_codes_delete);
-    sqlite3_finalize(users_hash_select);
-    sqlite3_finalize(users_auth_select);
-    sqlite3_finalize(devices_id_select);
-    sqlite3_finalize(devices_user_select);
-    sqlite3_finalize(otpk_select);
-    sqlite3_finalize(mailbox_select);
-    sqlite3_finalize(registration_codes_select);
-#endif
+    sqlite3_finalize(devices_update_active);
+    sqlite3_finalize(sessions_delete);
     sqlite3_close(db_conn);
 }
 
@@ -283,9 +244,29 @@ void client::db::database::remove_device_record(const int device_index) {
     }
 }
 
-#if 0
-void client::db::database::remove_session(
-        const std::string& email, const int device_index, const session& s) {
-    //
+void client::db::database::remove_session(const int session_id) {
+    sqlite3_reset(sessions_delete);
+    sqlite3_clear_bindings(sessions_delete);
+
+    if (sqlite3_bind_int(sessions_delete, 1, session_id) != SQLITE_OK) {
+        throw_db_error();
+    }
+    if (sqlite3_step(sessions_delete) != SQLITE_OK) {
+        throw_db_error();
+    }
 }
-#endif
+
+void client::db::database::activate_session(const int device_index, const int session_id) {
+    sqlite3_reset(devices_update_active);
+    sqlite3_clear_bindings(devices_update_active);
+
+    if (sqlite3_bind_int(devices_update_active, 1, device_index) != SQLITE_OK) {
+        throw_db_error();
+    }
+    if (sqlite3_bind_int(devices_update_active, 2, session_id) != SQLITE_OK) {
+        throw_db_error();
+    }
+    if (sqlite3_step(sessions_delete) != SQLITE_OK) {
+        throw_db_error();
+    }
+}
