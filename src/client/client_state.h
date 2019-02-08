@@ -53,7 +53,8 @@ namespace client::db {
         void add_session(const std::string& email, const int device_index, const session& s);
 
         void remove_user_record(const std::string& email);
-        void remove_device_record(const std::string& email, const int device_index);
+        void remove_device_record(const int device_index);
+
         void remove_session(const std::string& email, const int device_index, const session& s);
 
         void activate_session(const std::string& email, const int device_index, const session& s);

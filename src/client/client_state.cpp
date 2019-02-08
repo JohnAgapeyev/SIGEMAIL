@@ -257,3 +257,35 @@ void client::db::database::purge_stale_records() {
     exec_statement(delete_users_stale);
     exec_statement(delete_devices_stale);
 }
+
+void client::db::database::remove_user_record(const std::string& email) {
+    sqlite3_reset(users_delete);
+    sqlite3_clear_bindings(users_delete);
+
+    if (sqlite3_bind_text(users_delete, 1, email.c_str(), email.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error();
+    }
+    if (sqlite3_step(users_delete) != SQLITE_OK) {
+        throw_db_error();
+    }
+}
+
+void client::db::database::remove_device_record(const int device_index) {
+    sqlite3_reset(devices_delete);
+    sqlite3_clear_bindings(devices_delete);
+
+    if (sqlite3_bind_int(devices_delete, 1, device_index) != SQLITE_OK) {
+        throw_db_error();
+    }
+    if (sqlite3_step(devices_delete) != SQLITE_OK) {
+        throw_db_error();
+    }
+}
+
+#if 0
+void client::db::database::remove_session(
+        const std::string& email, const int device_index, const session& s) {
+    //
+}
+#endif
