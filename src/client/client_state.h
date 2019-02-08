@@ -61,6 +61,8 @@ namespace client::db {
         void mark_user_stale(const std::string& email);
         void mark_device_stale(const int device_index);
 
+        void purge_stale_records();
+
     private:
         sqlite3* db_conn;
 

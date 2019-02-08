@@ -252,3 +252,8 @@ void client::db::database::mark_device_stale(const int device_index) {
         throw_db_error();
     }
 }
+
+void client::db::database::purge_stale_records() {
+    exec_statement(delete_users_stale);
+    exec_statement(delete_devices_stale);
+}
