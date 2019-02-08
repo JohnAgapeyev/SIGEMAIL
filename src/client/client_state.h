@@ -55,7 +55,6 @@ namespace client::db {
 
         void remove_user_record(const std::string& email);
         void remove_device_record(const int device_index);
-
         void remove_session(const int session_id);
 
         void activate_session(const int device_index, const int session_id);
@@ -64,6 +63,8 @@ namespace client::db {
         void mark_device_stale(const int device_index);
 
         void purge_stale_records();
+
+        std::tuple<std::string, int, std::string, crypto::DH_Keypair, crypto::DH_Keypair> get_self_data();
 
     private:
         sqlite3* db_conn;
@@ -84,6 +85,8 @@ namespace client::db {
         sqlite3_stmt* devices_delete;
         sqlite3_stmt* one_time_delete;
         sqlite3_stmt* sessions_delete;
+
+        sqlite3_stmt* self_select;
 
         void prepare_statement(const char* sql, sqlite3_stmt** stmt);
         void exec_statement(const char* sql);
@@ -150,6 +153,8 @@ namespace client::db {
     constexpr auto delete_devices_stale = "DELETE FROM devices WHERE stale = 1;";
     constexpr auto delete_one_time = "DELETE FROM one_time WHERE key_pair = ?1;";
     constexpr auto delete_sessions = "DELETE FROM sessions WHERE session_id = ?1;";
+
+    constexpr auto select_self = "SELECT * from self;";
 } // namespace client::db
 
 #endif /* end of include guard: SERVER_STATE_H */

@@ -57,6 +57,7 @@ client::db::database::database(const char* db_name) {
     prepare_statement(update_devices_active, &devices_update_active);
 
     prepare_statement(delete_sessions, &sessions_delete);
+    prepare_statement(select_self, &self_select);
 }
 
 client::db::database::~database() {
@@ -69,6 +70,7 @@ client::db::database::~database() {
     sqlite3_finalize(devices_update);
     sqlite3_finalize(devices_update_active);
     sqlite3_finalize(sessions_delete);
+    sqlite3_finalize(self_select);
     sqlite3_close(db_conn);
 }
 
@@ -110,7 +112,7 @@ void client::db::database::save_registration(const std::string& email, const int
         throw_db_error();
     }
 
-    if (sqlite3_step(self_insert) != SQLITE_OK) {
+    if (sqlite3_step(self_insert) != SQLITE_DONE) {
         throw_db_error();
     }
 }
@@ -130,7 +132,7 @@ void client::db::database::add_one_time(const crypto::DH_Keypair& one_time) {
             != SQLITE_OK) {
         throw_db_error();
     }
-    if (sqlite3_step(one_time_insert) != SQLITE_OK) {
+    if (sqlite3_step(one_time_insert) != SQLITE_DONE) {
         throw_db_error();
     }
 }
@@ -143,7 +145,7 @@ void client::db::database::add_user_record(const std::string& email) {
             != SQLITE_OK) {
         throw_db_error();
     }
-    if (sqlite3_step(users_insert) != SQLITE_OK) {
+    if (sqlite3_step(users_insert) != SQLITE_DONE) {
         throw_db_error();
     }
 }
@@ -156,7 +158,7 @@ void client::db::database::add_device_record(const std::string& email) {
             != SQLITE_OK) {
         throw_db_error();
     }
-    if (sqlite3_step(devices_insert) != SQLITE_OK) {
+    if (sqlite3_step(devices_insert) != SQLITE_DONE) {
         throw_db_error();
     }
 }
@@ -186,7 +188,7 @@ void client::db::database::add_session(
         throw_db_error();
     }
 
-    if (sqlite3_step(sessions_insert) != SQLITE_OK) {
+    if (sqlite3_step(sessions_insert) != SQLITE_DONE) {
         throw_db_error();
     }
 }
@@ -198,7 +200,7 @@ void client::db::database::mark_user_stale(const std::string& email) {
             != SQLITE_OK) {
         throw_db_error();
     }
-    if (sqlite3_step(users_update) != SQLITE_OK) {
+    if (sqlite3_step(users_update) != SQLITE_DONE) {
         throw_db_error();
     }
 }
@@ -209,7 +211,7 @@ void client::db::database::mark_device_stale(const int device_index) {
     if (sqlite3_bind_int(devices_update, 1, device_index) != SQLITE_OK) {
         throw_db_error();
     }
-    if (sqlite3_step(devices_update) != SQLITE_OK) {
+    if (sqlite3_step(devices_update) != SQLITE_DONE) {
         throw_db_error();
     }
 }
@@ -227,7 +229,7 @@ void client::db::database::remove_user_record(const std::string& email) {
             != SQLITE_OK) {
         throw_db_error();
     }
-    if (sqlite3_step(users_delete) != SQLITE_OK) {
+    if (sqlite3_step(users_delete) != SQLITE_DONE) {
         throw_db_error();
     }
 }
@@ -239,7 +241,7 @@ void client::db::database::remove_device_record(const int device_index) {
     if (sqlite3_bind_int(devices_delete, 1, device_index) != SQLITE_OK) {
         throw_db_error();
     }
-    if (sqlite3_step(devices_delete) != SQLITE_OK) {
+    if (sqlite3_step(devices_delete) != SQLITE_DONE) {
         throw_db_error();
     }
 }
@@ -251,7 +253,7 @@ void client::db::database::remove_session(const int session_id) {
     if (sqlite3_bind_int(sessions_delete, 1, session_id) != SQLITE_OK) {
         throw_db_error();
     }
-    if (sqlite3_step(sessions_delete) != SQLITE_OK) {
+    if (sqlite3_step(sessions_delete) != SQLITE_DONE) {
         throw_db_error();
     }
 }
@@ -266,7 +268,80 @@ void client::db::database::activate_session(const int device_index, const int se
     if (sqlite3_bind_int(devices_update_active, 2, session_id) != SQLITE_OK) {
         throw_db_error();
     }
-    if (sqlite3_step(sessions_delete) != SQLITE_OK) {
+    if (sqlite3_step(devices_update_active) != SQLITE_DONE) {
         throw_db_error();
     }
+}
+
+std::tuple<std::string, int, std::string, crypto::DH_Keypair, crypto::DH_Keypair>
+        client::db::database::get_self_data() {
+    sqlite3_reset(self_select);
+    sqlite3_clear_bindings(self_select);
+
+    if (sqlite3_step(self_select) != SQLITE_ROW) {
+        throw_db_error();
+    }
+
+    const auto user_id_str = sqlite3_column_text(self_select, 0);
+    if (!user_id_str) {
+        throw_db_error();
+    }
+
+    const int user_id_len = sqlite3_column_bytes(self_select, 0);
+
+    std::string user_id{
+            reinterpret_cast<const char*>(user_id_str), static_cast<unsigned long>(user_id_len)};
+
+    const int device_id = sqlite3_column_int(self_select, 1);
+
+    const auto auth_token_str = sqlite3_column_int(self_select, 2);
+    if (!auth_token_str) {
+        throw_db_error();
+    }
+
+    const int auth_token_len = sqlite3_column_bytes(self_select, 2);
+
+    std::string auth_token{reinterpret_cast<const char*>(auth_token_str),
+            static_cast<unsigned long>(auth_token_len)};
+
+    const auto identity_str = sqlite3_column_int(self_select, 3);
+    if (!identity_str) {
+        throw_db_error();
+    }
+
+    const int identity_str_len = sqlite3_column_bytes(self_select, 3);
+
+    std::string identity{reinterpret_cast<const char*>(identity_str),
+            static_cast<unsigned long>(identity_str_len)};
+
+    const auto prekey_str = sqlite3_column_int(self_select, 3);
+    if (!prekey_str) {
+        throw_db_error();
+    }
+
+    const int prekey_str_len = sqlite3_column_bytes(self_select, 3);
+
+    std::string prekey{
+            reinterpret_cast<const char*>(prekey_str), static_cast<unsigned long>(prekey_str_len)};
+
+    std::stringstream ss{identity};
+
+    crypto::DH_Keypair identity_keypair;
+    crypto::DH_Keypair prekey_keypair;
+
+    {
+        boost::archive::text_iarchive arch{ss};
+        arch >> identity_keypair;
+    }
+    ss.str(prekey);
+    {
+        boost::archive::text_iarchive arch{ss};
+        arch >> prekey_keypair;
+    }
+
+    if (sqlite3_step(self_select) != SQLITE_DONE) {
+        throw_db_error();
+    }
+
+    return {user_id, device_id, auth_token, identity_keypair, prekey_keypair};
 }
