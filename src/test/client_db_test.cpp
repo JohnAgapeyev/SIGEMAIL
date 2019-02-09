@@ -200,4 +200,127 @@ BOOST_AUTO_TEST_CASE(remove_session_empty_table) {
     db.remove_session(-1);
 }
 
+BOOST_AUTO_TEST_CASE(activate_session) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.add_session("foobar@test.com", 1, get_session());
+    db.activate_session(1, 1);
+}
+
+BOOST_AUTO_TEST_CASE(activate_session_existing) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.add_session("foobar@test.com", 1, get_session());
+    db.activate_session(1, 1);
+    db.activate_session(1, 1);
+}
+
+BOOST_AUTO_TEST_CASE(activate_session_bad_session) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.add_session("foobar@test.com", 1, get_session());
+    BOOST_REQUIRE_THROW(db.activate_session(1, -1), db_error);
+}
+
+BOOST_AUTO_TEST_CASE(activate_session_bad_device) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.add_session("foobar@test.com", 1, get_session());
+    db.activate_session(-1, 1);
+}
+
+BOOST_AUTO_TEST_CASE(activate_session_empty_sessions) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    BOOST_REQUIRE_THROW(db.activate_session(1, 1), db_error);
+}
+
+BOOST_AUTO_TEST_CASE(activate_session_two) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.add_session("foobar@test.com", 1, get_session());
+    db.add_session("foobar@test.com", 1, get_session());
+    db.activate_session(1, 1);
+    db.activate_session(1, 2);
+}
+
+BOOST_AUTO_TEST_CASE(mark_user_stale) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.mark_user_stale("foobar@test.com");
+}
+
+BOOST_AUTO_TEST_CASE(mark_user_stale_bad) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.mark_user_stale("foobar@fdoobar.com");
+}
+
+BOOST_AUTO_TEST_CASE(mark_user_stale_empty) {
+    auto db = get_client_db();
+    db.mark_user_stale("foobar@test.com");
+}
+
+BOOST_AUTO_TEST_CASE(mark_device_stale) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.mark_device_stale(1);
+}
+
+BOOST_AUTO_TEST_CASE(mark_device_stale_bad) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.mark_device_stale(-1);
+}
+
+BOOST_AUTO_TEST_CASE(mark_device_stale_empty_table) {
+    auto db = get_client_db();
+    db.mark_device_stale(-1);
+}
+
+BOOST_AUTO_TEST_CASE(mark_user_device_stale) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.mark_device_stale(1);
+    db.mark_user_stale("foobar@test.com");
+}
+
+BOOST_AUTO_TEST_CASE(purge_nothing) {
+    auto db = get_client_db();
+    db.purge_stale_records();
+}
+
+BOOST_AUTO_TEST_CASE(purge_stale_user) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.mark_user_stale("foobar@test.com");
+    db.purge_stale_records();
+}
+
+BOOST_AUTO_TEST_CASE(purge_stale_device) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.mark_device_stale(1);
+    db.purge_stale_records();
+}
+
+BOOST_AUTO_TEST_CASE(purge_stale_both) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.mark_device_stale(1);
+    db.mark_user_stale("foobar@test.com");
+    db.purge_stale_records();
+}
+
 BOOST_AUTO_TEST_SUITE_END()
