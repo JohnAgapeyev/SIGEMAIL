@@ -110,6 +110,7 @@ set(TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/hash_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/message_serialize_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/server_db_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/test/client_db_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/network_test.cpp
 )
 
@@ -194,6 +195,7 @@ add_test(NAME protocol_tests COMMAND test_binary -t protocol_tests)
 add_test(NAME session_tests COMMAND test_binary -t session_tests)
 add_test(NAME serialization_tests COMMAND test_binary -t serialization_tests)
 add_test(NAME server_db_tests COMMAND test_binary -t server_db_tests)
+add_test(NAME client_db_tests COMMAND test_binary -t client_db_tests)
 add_test(NAME network_tests COMMAND test_binary -t network_tests)
 
 target_link_libraries(test_binary PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES} Boost::unit_test_framework Boost::serialization spdlog)
