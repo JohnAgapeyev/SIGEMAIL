@@ -366,4 +366,45 @@ BOOST_AUTO_TEST_CASE(get_device_ids_empty_user) {
     BOOST_TEST(ids.size() == 0);
 }
 
+BOOST_AUTO_TEST_CASE(get_one_time) {
+    auto db = get_client_db();
+    crypto::DH_Keypair k;
+    db.add_one_time(k);
+    const auto k2 = db.get_one_time_key(k.get_public());
+    BOOST_TEST((k == k2));
+}
+
+BOOST_AUTO_TEST_CASE(get_one_time_multiple) {
+    auto db = get_client_db();
+    crypto::DH_Keypair k1;
+    db.add_one_time(k1);
+    crypto::DH_Keypair k2;
+    db.add_one_time(k2);
+    crypto::DH_Keypair k3;
+    db.add_one_time(k3);
+    crypto::DH_Keypair k4;
+    db.add_one_time(k4);
+    crypto::DH_Keypair k5;
+    db.add_one_time(k5);
+
+    BOOST_TEST((db.get_one_time_key(k1.get_public()) == k1));
+    BOOST_TEST((db.get_one_time_key(k2.get_public()) == k2));
+    BOOST_TEST((db.get_one_time_key(k3.get_public()) == k3));
+    BOOST_TEST((db.get_one_time_key(k4.get_public()) == k4));
+    BOOST_TEST((db.get_one_time_key(k5.get_public()) == k5));
+}
+
+BOOST_AUTO_TEST_CASE(get_one_time_bad) {
+    auto db = get_client_db();
+    crypto::DH_Keypair k;
+    db.add_one_time(k);
+    crypto::DH_Keypair k2;
+    BOOST_REQUIRE_THROW(const auto k3 = db.get_one_time_key(k2.get_public()), db_error);
+}
+
+BOOST_AUTO_TEST_CASE(get_one_time_empty_table) {
+    auto db = get_client_db();
+    BOOST_REQUIRE_THROW(db.get_one_time_key({}), db_error);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

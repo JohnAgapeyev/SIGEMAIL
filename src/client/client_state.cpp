@@ -144,7 +144,8 @@ void client::database::add_one_time(const crypto::DH_Keypair& one_time) {
         arch << one_time.get_public();
     }
     auto serialized = ss.str();
-    if (sqlite3_bind_blob(one_time_insert, 1, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
+    if (sqlite3_bind_blob(
+                one_time_insert, 1, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
         throw_db_error();
     }
@@ -154,7 +155,8 @@ void client::database::add_one_time(const crypto::DH_Keypair& one_time) {
         arch << one_time;
     }
     serialized = ss.str();
-    if (sqlite3_bind_blob(one_time_insert, 2, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
+    if (sqlite3_bind_blob(
+                one_time_insert, 2, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
         throw_db_error();
     }
@@ -400,8 +402,17 @@ crypto::DH_Keypair client::database::get_one_time_key(const crypto::public_key& 
     sqlite3_reset(one_time_select);
     sqlite3_clear_bindings(one_time_select);
 
+    std::stringstream ss;
+
+    {
+        boost::archive::text_oarchive arch{ss};
+        arch << public_key;
+    }
+
+    auto serialized = ss.str();
+
     if (sqlite3_bind_blob(
-                one_time_select, 1, public_key.data(), public_key.size(), SQLITE_TRANSIENT)
+                one_time_select, 1, serialized.data(), serialized.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
         throw_db_error();
     }
@@ -410,20 +421,24 @@ crypto::DH_Keypair client::database::get_one_time_key(const crypto::public_key& 
         throw_db_error();
     }
 
-    const auto serialized_str = sqlite3_column_text(self_select, 0);
+    const auto serialized_str = sqlite3_column_text(one_time_select, 0);
     if (!serialized_str) {
         throw_db_error();
     }
-    const auto serialized_len = sqlite3_column_bytes(self_select, 0);
+    const auto serialized_len = sqlite3_column_bytes(one_time_select, 0);
 
-    std::stringstream ss{std::string{reinterpret_cast<const char*>(serialized_str),
-            static_cast<unsigned long>(serialized_len)}};
+    ss.str(std::string{reinterpret_cast<const char*>(serialized_str),
+            static_cast<unsigned long>(serialized_len)});
 
     crypto::DH_Keypair one_time_keypair;
 
     {
         boost::archive::text_iarchive arch{ss};
         arch >> one_time_keypair;
+    }
+
+    if (sqlite3_step(one_time_select) != SQLITE_DONE) {
+        throw_db_error();
     }
 
     return one_time_keypair;
@@ -451,8 +466,7 @@ std::vector<int> client::database::get_device_ids(const std::string& email) {
     return id_list;
 }
 
-std::vector<std::pair<int, session>> client::database::get_sessions_by_device(
-        const int device_id) {
+std::vector<std::pair<int, session>> client::database::get_sessions_by_device(const int device_id) {
     sqlite3_reset(sessions_select);
     sqlite3_clear_bindings(sessions_select);
 
