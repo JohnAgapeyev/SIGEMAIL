@@ -167,7 +167,7 @@ namespace client {
         static constexpr auto delete_one_time = "DELETE FROM one_time WHERE public_key = ?1;";
         static constexpr auto delete_sessions = "DELETE FROM sessions WHERE session_id = ?1;";
 
-        static constexpr auto select_self = "SELECT * FROM self;";
+        static constexpr auto select_self = "SELECT * FROM self LIMIT 1;";
         static constexpr auto select_one_time
                 = "SELECT contents FROM one_time WHERE public_key = ?1;";
         static constexpr auto select_device_ids

@@ -323,4 +323,47 @@ BOOST_AUTO_TEST_CASE(purge_stale_both) {
     db.purge_stale_records();
 }
 
+BOOST_AUTO_TEST_CASE(get_self) {
+    auto db = get_client_db();
+    db.save_registration("foobar@test.com", 1, "testauth", {}, {});
+    db.get_self_data();
+}
+
+BOOST_AUTO_TEST_CASE(get_self_no_data) {
+    auto db = get_client_db();
+    BOOST_REQUIRE_THROW(db.get_self_data(), db_error);
+}
+
+BOOST_AUTO_TEST_CASE(get_device_ids) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    const auto ids = db.get_device_ids("foobar@test.com");
+    BOOST_TEST(ids.size() == 1);
+}
+
+BOOST_AUTO_TEST_CASE(get_device_ids_multiple) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    const auto ids = db.get_device_ids("foobar@test.com");
+    BOOST_TEST(ids.size() == 5);
+}
+
+BOOST_AUTO_TEST_CASE(get_device_ids_empty) {
+    auto db = get_client_db();
+    const auto ids = db.get_device_ids("foobar@test.com");
+    BOOST_TEST(ids.size() == 0);
+}
+
+BOOST_AUTO_TEST_CASE(get_device_ids_empty_user) {
+    auto db = get_client_db();
+    const auto ids = db.get_device_ids("");
+    BOOST_TEST(ids.size() == 0);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

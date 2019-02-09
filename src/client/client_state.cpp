@@ -344,7 +344,7 @@ std::tuple<std::string, int, std::string, crypto::DH_Keypair, crypto::DH_Keypair
 
     const int device_id = sqlite3_column_int(self_select, 1);
 
-    const auto auth_token_str = sqlite3_column_int(self_select, 2);
+    const auto auth_token_str = sqlite3_column_text(self_select, 2);
     if (!auth_token_str) {
         throw_db_error();
     }
@@ -354,7 +354,7 @@ std::tuple<std::string, int, std::string, crypto::DH_Keypair, crypto::DH_Keypair
     std::string auth_token{reinterpret_cast<const char*>(auth_token_str),
             static_cast<unsigned long>(auth_token_len)};
 
-    const auto identity_str = sqlite3_column_int(self_select, 3);
+    const auto identity_str = sqlite3_column_text(self_select, 3);
     if (!identity_str) {
         throw_db_error();
     }
@@ -364,7 +364,7 @@ std::tuple<std::string, int, std::string, crypto::DH_Keypair, crypto::DH_Keypair
     std::string identity{reinterpret_cast<const char*>(identity_str),
             static_cast<unsigned long>(identity_str_len)};
 
-    const auto prekey_str = sqlite3_column_int(self_select, 3);
+    const auto prekey_str = sqlite3_column_text(self_select, 3);
     if (!prekey_str) {
         throw_db_error();
     }
