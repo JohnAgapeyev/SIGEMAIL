@@ -144,7 +144,7 @@ void client::database::add_one_time(const crypto::DH_Keypair& one_time) {
         arch << one_time.get_public();
     }
     auto serialized = ss.str();
-    if (sqlite3_bind_blob(self_insert, 1, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
+    if (sqlite3_bind_blob(one_time_insert, 1, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
         throw_db_error();
     }
@@ -154,7 +154,7 @@ void client::database::add_one_time(const crypto::DH_Keypair& one_time) {
         arch << one_time;
     }
     serialized = ss.str();
-    if (sqlite3_bind_blob(self_insert, 2, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
+    if (sqlite3_bind_blob(one_time_insert, 2, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
         throw_db_error();
     }

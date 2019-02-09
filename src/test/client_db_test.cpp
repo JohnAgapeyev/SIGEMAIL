@@ -70,4 +70,75 @@ BOOST_AUTO_TEST_CASE(add_device_no_user) {
     BOOST_REQUIRE_THROW(db.add_device_record("foobar@foobar.com"), db_error);
 }
 
+BOOST_AUTO_TEST_CASE(add_one_time) {
+    auto db = get_client_db();
+    crypto::DH_Keypair k;
+    db.add_one_time(k);
+}
+
+BOOST_AUTO_TEST_CASE(add_one_time_duplicate) {
+    auto db = get_client_db();
+    crypto::DH_Keypair k;
+    db.add_one_time(k);
+    BOOST_REQUIRE_THROW(db.add_one_time(k), db_error);
+}
+
+BOOST_AUTO_TEST_CASE(add_session) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.add_session("foobar@test.com", 1, get_session());
+}
+
+BOOST_AUTO_TEST_CASE(add_session_bad_device) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    BOOST_REQUIRE_THROW(db.add_session("foobar@test.com", -1, get_session()), db_error);
+}
+
+BOOST_AUTO_TEST_CASE(add_session_bad_user) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    BOOST_REQUIRE_THROW(db.add_session("foobar@foobar.com", 1, get_session()), db_error);
+}
+
+BOOST_AUTO_TEST_CASE(add_session_empty_user) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    BOOST_REQUIRE_THROW(db.add_session("", 1, get_session()), db_error);
+}
+
+BOOST_AUTO_TEST_CASE(add_session_duplicate) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    const auto s = get_session();
+    db.add_session("foobar@test.com", 1, s);
+    BOOST_REQUIRE_THROW(db.add_session("foobar@test.com", 1, s), db_error);
+}
+
+BOOST_AUTO_TEST_CASE(remove_user_record) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.remove_user_record("foobar@test.com");
+}
+
+BOOST_AUTO_TEST_CASE(remove_user_record_bad_email) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.remove_user_record("foobar@foobar.com");
+}
+
+BOOST_AUTO_TEST_CASE(remove_user_record_empty_table) {
+    auto db = get_client_db();
+    db.remove_user_record("foobar@foobar.com");
+}
+
+BOOST_AUTO_TEST_CASE(remove_user_record_empty_email) {
+    auto db = get_client_db();
+    db.remove_user_record("");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
