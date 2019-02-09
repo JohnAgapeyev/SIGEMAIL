@@ -118,7 +118,7 @@ namespace client {
         CREATE TABLE IF NOT EXISTS one_time (\
            public_key     BLOB PRIMARY KEY,\
            contents       BLOB NOT NULL UNIQUE,\
-           CHECK(length(key_pair) > 0)\
+           CHECK(length(contents) > 0 and length(public_key) > 0)\
         );";
         static constexpr auto create_users = "\
         CREATE TABLE IF NOT EXISTS users (\
@@ -144,17 +144,16 @@ namespace client {
            contents     BLOB    NOT NULL UNIQUE,\
            FOREIGN KEY(user_id) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE,\
            FOREIGN KEY(device_id) REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE,\
-           CHECK(length(identity_key) > 0 and length(pre_key) > 0 and length(signature) > 0)\
+           CHECK(length(user_id) > 0 and length(contents) > 0)\
         );";
 
-        static constexpr auto insert_self = "INSERT INTO self VALUES (?1, ?2, ?3, ?4 ?5);";
+        static constexpr auto insert_self = "INSERT INTO self VALUES (?1, ?2, ?3, ?4, ?5);";
         static constexpr auto insert_one_time = "INSERT INTO one_time VALUES (?1, ?2);";
         static constexpr auto insert_users = "INSERT INTO users VALUES (?1, 0);";
         static constexpr auto insert_devices
                 = "INSERT INTO devices(user_id, active_session, stale) VALUES (?1, NULL, 0);";
         static constexpr auto insert_sessions
-                = "INSERT INTO sessions(user_id, device_id, contents, "
-                  ") VALUES (?1, ?2, ?3);";
+                = "INSERT INTO sessions(user_id, device_id, contents) VALUES (?1, ?2, ?3);";
 
         static constexpr auto update_users = "UPDATE users SET stale = 1 WHERE user_id = ?1;";
         static constexpr auto update_devices = "UPDATE devices SET stale = 1 WHERE device_id = ?1;";

@@ -12,7 +12,7 @@ BOOST_AUTO_TEST_CASE(basic_request) {
     auto db = get_server_db();
     const auto server = get_server(db);
     const auto client = get_client();
-    BOOST_TEST(client->request_verification_code("foobar@test.com"));
+    //BOOST_TEST(client->request_verification_code("foobar@test.com"));
 }
 
 BOOST_AUTO_TEST_CASE(confirm_verification_code) {
@@ -20,9 +20,9 @@ BOOST_AUTO_TEST_CASE(confirm_verification_code) {
     const auto server = get_server(db);
     const auto client = get_client();
 
-    db.add_registration_code("foobar@test.com", 12345);
+    //db.add_registration_code("foobar@test.com", 12345);
 
-    BOOST_TEST(client->verify_verification_code(12345));
+    //BOOST_TEST(client->verify_verification_code(12345));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
