@@ -1,5 +1,5 @@
-#ifndef SERVER_STATE_H
-#define SERVER_STATE_H
+#ifndef CLIENT_STATE_H
+#define CLIENT_STATE_H
 
 #include <sqlite3.h>
 #include <string>
@@ -34,7 +34,7 @@
  *      Contents (BLOB)
  *      stale (INTEGER)
  */
-namespace client::db {
+namespace client {
     class database {
     public:
         database(const char* db_name);
@@ -104,11 +104,8 @@ namespace client::db {
         void prepare_statement(const char* sql, sqlite3_stmt** stmt);
         void exec_statement(const char* sql);
         void throw_db_error();
-    };
 
-    constexpr auto IN_MEMORY_DB = ":memory:";
-
-    constexpr auto create_self = "\
+        static constexpr auto create_self = "\
         CREATE TABLE IF NOT EXISTS self (\
            user_id      TEXT    PRIMARY KEY,\
            device_id    INTEGER NOT NULL,\
@@ -117,19 +114,19 @@ namespace client::db {
            pre_key      BLOB    NOT NULL,\
            CHECK(length(user_id) > 0 and length(auth_token) > 0 and device_id > 0)\
         );";
-    constexpr auto create_one_time = "\
+        static constexpr auto create_one_time = "\
         CREATE TABLE IF NOT EXISTS one_time (\
            public_key     BLOB PRIMARY KEY,\
            contents       BLOB NOT NULL UNIQUE,\
            CHECK(length(key_pair) > 0)\
         );";
-    constexpr auto create_users = "\
+        static constexpr auto create_users = "\
         CREATE TABLE IF NOT EXISTS users (\
            user_id      TEXT     PRIMARY KEY,\
            stale        INTEGER  NOT NULL,\
            CHECK(length(user_id) > 0 and stale >= 0 and stale <= 1)\
         );";
-    constexpr auto create_devices = "\
+        static constexpr auto create_devices = "\
         CREATE TABLE IF NOT EXISTS devices (\
            device_id      INTEGER PRIMARY KEY,\
            user_id        TEXT    NOT NULL,\
@@ -139,7 +136,7 @@ namespace client::db {
            FOREIGN KEY(active_session) REFERENCES sessions(session_id) ON UPDATE CASCADE ON DELETE CASCADE,\
            CHECK(length(user_id) > 0 and stale >= 0 and stale <= 1)\
         );";
-    constexpr auto create_sessions = "\
+        static constexpr auto create_sessions = "\
         CREATE TABLE IF NOT EXISTS sessions (\
            session_id   INTEGER PRIMARY KEY,\
            user_id      TEXT    NOT NULL,\
@@ -150,35 +147,41 @@ namespace client::db {
            CHECK(length(identity_key) > 0 and length(pre_key) > 0 and length(signature) > 0)\
         );";
 
-    constexpr auto insert_self = "INSERT INTO self VALUES (?1, ?2, ?3, ?4 ?5);";
-    constexpr auto insert_one_time = "INSERT INTO one_time VALUES (?1, ?2);";
-    constexpr auto insert_users = "INSERT INTO users VALUES (?1, 0);";
-    constexpr auto insert_devices
-            = "INSERT INTO devices(user_id, active_session, stale) VALUES (?1, NULL, 0);";
-    constexpr auto insert_sessions = "INSERT INTO sessions(user_id, device_id, contents, "
-                                     ") VALUES (?1, ?2, ?3);";
+        static constexpr auto insert_self = "INSERT INTO self VALUES (?1, ?2, ?3, ?4 ?5);";
+        static constexpr auto insert_one_time = "INSERT INTO one_time VALUES (?1, ?2);";
+        static constexpr auto insert_users = "INSERT INTO users VALUES (?1, 0);";
+        static constexpr auto insert_devices
+                = "INSERT INTO devices(user_id, active_session, stale) VALUES (?1, NULL, 0);";
+        static constexpr auto insert_sessions
+                = "INSERT INTO sessions(user_id, device_id, contents, "
+                  ") VALUES (?1, ?2, ?3);";
 
-    constexpr auto update_users = "UPDATE users SET stale = 1 WHERE user_id = ?1;";
-    constexpr auto update_devices = "UPDATE devices SET stale = 1 WHERE device_id = ?1;";
-    constexpr auto update_devices_active
-            = "UPDATE devices SET active_session = ?2 WHERE device_id = ?1;";
+        static constexpr auto update_users = "UPDATE users SET stale = 1 WHERE user_id = ?1;";
+        static constexpr auto update_devices = "UPDATE devices SET stale = 1 WHERE device_id = ?1;";
+        static constexpr auto update_devices_active
+                = "UPDATE devices SET active_session = ?2 WHERE device_id = ?1;";
 
-    constexpr auto delete_users = "DELETE FROM users WHERE user_id = ?1;";
-    constexpr auto delete_users_stale = "DELETE FROM users WHERE stale = 1;";
-    constexpr auto delete_devices = "DELETE FROM devices WHERE device_id = ?1;";
-    constexpr auto delete_devices_stale = "DELETE FROM devices WHERE stale = 1;";
-    constexpr auto delete_one_time = "DELETE FROM one_time WHERE public_key = ?1;";
-    constexpr auto delete_sessions = "DELETE FROM sessions WHERE session_id = ?1;";
+        static constexpr auto delete_users = "DELETE FROM users WHERE user_id = ?1;";
+        static constexpr auto delete_users_stale = "DELETE FROM users WHERE stale = 1;";
+        static constexpr auto delete_devices = "DELETE FROM devices WHERE device_id = ?1;";
+        static constexpr auto delete_devices_stale = "DELETE FROM devices WHERE stale = 1;";
+        static constexpr auto delete_one_time = "DELETE FROM one_time WHERE public_key = ?1;";
+        static constexpr auto delete_sessions = "DELETE FROM sessions WHERE session_id = ?1;";
 
-    constexpr auto select_self = "SELECT * FROM self;";
-    constexpr auto select_one_time = "SELECT contents FROM one_time WHERE public_key = ?1;";
-    constexpr auto select_device_ids = "SELECT device_id FROM devices WHERE user_id = ?1;";
-    constexpr auto select_sessions
-            = "SELECT session_id, contents FROM sessions WHERE device_id = ?1;";
+        static constexpr auto select_self = "SELECT * FROM self;";
+        static constexpr auto select_one_time
+                = "SELECT contents FROM one_time WHERE public_key = ?1;";
+        static constexpr auto select_device_ids
+                = "SELECT device_id FROM devices WHERE user_id = ?1;";
+        static constexpr auto select_sessions
+                = "SELECT session_id, contents FROM sessions WHERE device_id = ?1;";
 
-    constexpr auto select_active
-            = "SELECT contents FROM sessions INNER JOIN devices ON devices.active_session = "
-              "sessions.session_id WHERE device_id = ?1;";
-} // namespace client::db
+        static constexpr auto select_active
+                = "SELECT contents FROM sessions INNER JOIN devices ON devices.active_session = "
+                  "sessions.session_id WHERE device_id = ?1;";
+    };
 
-#endif /* end of include guard: SERVER_STATE_H */
+    static constexpr auto IN_MEMORY_DB = ":memory:";
+} // namespace client
+
+#endif /* end of include guard: CLIENT_STATE_H */

@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
 
     spdlog::set_level(spdlog::level::trace);
 
-    server::db::database server_db{"server_db"};
+    server::database server_db{"server_db"};
     // Create and launch a listening port
     std::make_shared<listener>(ioc, ctx, tcp::endpoint{tcp::v4(), port}, server_db)->run();
 

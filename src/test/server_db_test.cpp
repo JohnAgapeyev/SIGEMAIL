@@ -9,70 +9,70 @@ BOOST_AUTO_TEST_SUITE(server_db_tests)
 
 //Literally just test that the db creation doesn't error and throw
 BOOST_AUTO_TEST_CASE(db_creation) {
-    auto db = get_db();
+    auto db = get_server_db();
 }
 
 BOOST_AUTO_TEST_CASE(add_user) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
 }
 
 BOOST_AUTO_TEST_CASE(add_user_duplicate) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     BOOST_REQUIRE_THROW(db.add_user("foobar@test.com", "12345"), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(add_user_empty_auth) {
-    auto db = get_db();
+    auto db = get_server_db();
     BOOST_REQUIRE_THROW(db.add_user("foobar@test.com", ""), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(add_user_dup_auth) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     BOOST_REQUIRE_THROW(db.add_user("test@test.com", "abcde"), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(add_empty_user) {
-    auto db = get_db();
+    auto db = get_server_db();
     BOOST_REQUIRE_THROW(db.add_user("", "abcde"), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(add_device) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
 }
 
 BOOST_AUTO_TEST_CASE(add_device_bad_user) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     BOOST_REQUIRE_THROW(db.add_device("foo@com", {}, {}, {}), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(add_device_empty_user) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     BOOST_REQUIRE_THROW(db.add_device("", {}, {}, {}), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(add_one_time_key) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     db.add_one_time_key(1, {});
 }
 
 BOOST_AUTO_TEST_CASE(add_one_time_key_bad_index) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     BOOST_REQUIRE_THROW(db.add_one_time_key(-1, {}), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(add_message) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
 
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(add_message) {
 }
 
 BOOST_AUTO_TEST_CASE(add_message_bad_device_id) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     std::vector<std::byte> m{18, std::byte{0xef}};
@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE(add_message_bad_device_id) {
 }
 
 BOOST_AUTO_TEST_CASE(add_message_bad_user_id) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     std::vector<std::byte> m{18, std::byte{0xef}};
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(add_message_bad_user_id) {
 }
 
 BOOST_AUTO_TEST_CASE(add_message_empty_user) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     std::vector<std::byte> m{18, std::byte{0xef}};
@@ -106,36 +106,36 @@ BOOST_AUTO_TEST_CASE(add_message_empty_user) {
 }
 
 BOOST_AUTO_TEST_CASE(add_message_empty_message) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     BOOST_REQUIRE_THROW(db.add_message("foobar@test.com", 1, {}), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(add_registration_code) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_registration_code("foobar@test.com", 12345);
 }
 
 BOOST_AUTO_TEST_CASE(add_registration_code_empty_email) {
-    auto db = get_db();
+    auto db = get_server_db();
     BOOST_REQUIRE_THROW(db.add_registration_code("", 12345), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(add_registration_code_duplicate_email) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_registration_code("foobar@test.com", 12345);
     BOOST_REQUIRE_THROW(db.add_registration_code("foobar@test.com", 23456), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(add_registration_code_duplicate_code) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_registration_code("foobar@test.com", 12345);
     BOOST_REQUIRE_THROW(db.add_registration_code("foo@test", 12345), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(update_pre_key) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     db.update_pre_key(1, {}, {});
@@ -143,27 +143,27 @@ BOOST_AUTO_TEST_CASE(update_pre_key) {
 
 //Bad ID is ignored by implementation, so it should be a nop
 BOOST_AUTO_TEST_CASE(update_pre_key_bad_id) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     db.update_pre_key(-1, {}, {});
 }
 
 BOOST_AUTO_TEST_CASE(remove_user) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.remove_user("foobar@test.com");
 }
 
 BOOST_AUTO_TEST_CASE(remove_user_and_device) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     db.remove_user("foobar@test.com");
 }
 
 BOOST_AUTO_TEST_CASE(remove_user_and_device_and_one_time) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     db.add_one_time_key(1, {});
@@ -171,43 +171,43 @@ BOOST_AUTO_TEST_CASE(remove_user_and_device_and_one_time) {
 }
 
 BOOST_AUTO_TEST_CASE(remove_missing_user) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.remove_user("foo@test");
 }
 
 BOOST_AUTO_TEST_CASE(remove_empty_user) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.remove_user("");
 }
 
 BOOST_AUTO_TEST_CASE(remove_user_empty_table) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.remove_user("foobar@test.com");
 }
 
 BOOST_AUTO_TEST_CASE(remove_device) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     db.remove_device(1);
 }
 
 BOOST_AUTO_TEST_CASE(remove_device_bad_id) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     db.remove_device(-1);
 }
 
 BOOST_AUTO_TEST_CASE(remove_device_empty_table) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.remove_device(-1);
 }
 
 BOOST_AUTO_TEST_CASE(remove_one_time) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     db.add_one_time_key(1, {});
@@ -215,7 +215,7 @@ BOOST_AUTO_TEST_CASE(remove_one_time) {
 }
 
 BOOST_AUTO_TEST_CASE(remove_one_time_bad_id) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     db.add_one_time_key(1, {});
@@ -223,12 +223,12 @@ BOOST_AUTO_TEST_CASE(remove_one_time_bad_id) {
 }
 
 BOOST_AUTO_TEST_CASE(remove_one_time_empty_table) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.remove_one_time_key(-1);
 }
 
 BOOST_AUTO_TEST_CASE(remove_message) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
 
@@ -239,7 +239,7 @@ BOOST_AUTO_TEST_CASE(remove_message) {
 }
 
 BOOST_AUTO_TEST_CASE(remove_message_bad_id) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
 
@@ -250,35 +250,35 @@ BOOST_AUTO_TEST_CASE(remove_message_bad_id) {
 }
 
 BOOST_AUTO_TEST_CASE(remove_message_empty_table) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.remove_message(-1);
 }
 
 BOOST_AUTO_TEST_CASE(remove_registration_code) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_registration_code("foobar@test.com", 12345);
     db.remove_registration_code("foobar@test.com");
 }
 
 BOOST_AUTO_TEST_CASE(remove_registration_code_bad_email) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_registration_code("foobar@test.com", 12345);
     db.remove_registration_code("foobar@com");
 }
 
 BOOST_AUTO_TEST_CASE(remove_registration_code_empty_email) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_registration_code("foobar@test.com", 12345);
     db.remove_registration_code("");
 }
 
 BOOST_AUTO_TEST_CASE(remove_registration_code_empty_table) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.remove_registration_code("foobar@test.com");
 }
 
 BOOST_AUTO_TEST_CASE(contact_intersection_single) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "12345");
 
     std::vector<std::array<std::byte, 24>> hashes;
@@ -291,7 +291,7 @@ BOOST_AUTO_TEST_CASE(contact_intersection_single) {
 }
 
 BOOST_AUTO_TEST_CASE(contact_intersection_multiple) {
-    auto db = get_db();
+    auto db = get_server_db();
 
     std::vector<std::string_view> users;
     users.emplace_back("foobar1@test.com");
@@ -318,7 +318,7 @@ BOOST_AUTO_TEST_CASE(contact_intersection_multiple) {
 }
 
 BOOST_AUTO_TEST_CASE(contact_intersection_not_all) {
-    auto db = get_db();
+    auto db = get_server_db();
 
     std::vector<std::string_view> users;
     users.emplace_back("foobar1@test.com");
@@ -342,7 +342,7 @@ BOOST_AUTO_TEST_CASE(contact_intersection_not_all) {
 }
 
 BOOST_AUTO_TEST_CASE(contact_intersection_none) {
-    auto db = get_db();
+    auto db = get_server_db();
 
     std::vector<std::string_view> users;
     users.emplace_back("foobar1@test.com");
@@ -366,7 +366,7 @@ BOOST_AUTO_TEST_CASE(contact_intersection_none) {
 }
 
 BOOST_AUTO_TEST_CASE(contact_intersection_empty) {
-    auto db = get_db();
+    auto db = get_server_db();
 
     std::vector<std::string_view> users;
     users.emplace_back("foobar1@test.com");
@@ -387,51 +387,51 @@ BOOST_AUTO_TEST_CASE(contact_intersection_empty) {
 }
 
 BOOST_AUTO_TEST_CASE(contact_intersection_empty_table) {
-    auto db = get_db();
+    auto db = get_server_db();
     std::vector<std::array<std::byte, 24>> hashes;
     const auto intersection = db.contact_intersection(hashes);
     BOOST_TEST(intersection.size() == 0);
 }
 
 BOOST_AUTO_TEST_CASE(confirm_auth) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "12345");
     BOOST_TEST(db.confirm_auth_token("foobar@test.com", "12345"));
 }
 
 BOOST_AUTO_TEST_CASE(confirm_auth_bad) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "12345");
     BOOST_TEST(!db.confirm_auth_token("foobar@test.com", "23456"));
 }
 
 BOOST_AUTO_TEST_CASE(confirm_auth_wrong) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "12345");
     db.add_user("foobar2@test.com", "23456");
     BOOST_TEST(!db.confirm_auth_token("foobar@test.com", "23456"));
 }
 
 BOOST_AUTO_TEST_CASE(confirm_auth_empty_user) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "12345");
     BOOST_TEST(!db.confirm_auth_token("", "23456"));
 }
 
 BOOST_AUTO_TEST_CASE(confirm_auth_empty_token) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "12345");
     BOOST_TEST(!db.confirm_auth_token("foobar@test.com", ""));
 }
 
 BOOST_AUTO_TEST_CASE(confirm_auth_truncated_token) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "123456789");
     BOOST_TEST(!db.confirm_auth_token("foobar@test.com", "1234"));
 }
 
 BOOST_AUTO_TEST_CASE(lookup_devices_single) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "123456789");
     db.add_device("foobar@test.com", {}, {}, {});
 
@@ -440,7 +440,7 @@ BOOST_AUTO_TEST_CASE(lookup_devices_single) {
 }
 
 BOOST_AUTO_TEST_CASE(lookup_devices_multiple) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "123456789");
 
     for (int i = 0; i < 5; ++i) {
@@ -454,7 +454,7 @@ BOOST_AUTO_TEST_CASE(lookup_devices_multiple) {
 }
 
 BOOST_AUTO_TEST_CASE(lookup_devices_wrong_user) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "123456789");
 
     for (int i = 0; i < 5; ++i) {
@@ -468,7 +468,7 @@ BOOST_AUTO_TEST_CASE(lookup_devices_wrong_user) {
 }
 
 BOOST_AUTO_TEST_CASE(lookup_devices_empty_user) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "123456789");
 
     for (int i = 0; i < 5; ++i) {
@@ -482,7 +482,7 @@ BOOST_AUTO_TEST_CASE(lookup_devices_empty_user) {
 }
 
 BOOST_AUTO_TEST_CASE(lookup_devices_id) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "123456789");
 
     for (int i = 0; i < 5; ++i) {
@@ -496,7 +496,7 @@ BOOST_AUTO_TEST_CASE(lookup_devices_id) {
 }
 
 BOOST_AUTO_TEST_CASE(lookup_devices_id_multiple) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "123456789");
 
     for (int i = 0; i < 5; ++i) {
@@ -510,7 +510,7 @@ BOOST_AUTO_TEST_CASE(lookup_devices_id_multiple) {
 }
 
 BOOST_AUTO_TEST_CASE(lookup_devices_id_some) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "123456789");
 
     for (int i = 0; i < 5; ++i) {
@@ -524,7 +524,7 @@ BOOST_AUTO_TEST_CASE(lookup_devices_id_some) {
 }
 
 BOOST_AUTO_TEST_CASE(get_one_time) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     db.add_one_time_key(1, {});
@@ -533,7 +533,7 @@ BOOST_AUTO_TEST_CASE(get_one_time) {
 }
 
 BOOST_AUTO_TEST_CASE(get_one_time_exhaust) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     db.add_one_time_key(1, {});
@@ -544,7 +544,7 @@ BOOST_AUTO_TEST_CASE(get_one_time_exhaust) {
 }
 
 BOOST_AUTO_TEST_CASE(get_one_time_bad_id) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     db.add_one_time_key(1, {});
@@ -553,7 +553,7 @@ BOOST_AUTO_TEST_CASE(get_one_time_bad_id) {
 }
 
 BOOST_AUTO_TEST_CASE(get_one_time_multiple) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
 
@@ -567,7 +567,7 @@ BOOST_AUTO_TEST_CASE(get_one_time_multiple) {
 }
 
 BOOST_AUTO_TEST_CASE(get_one_time_different_devices) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
 
@@ -589,7 +589,7 @@ BOOST_AUTO_TEST_CASE(get_one_time_different_devices) {
 }
 
 BOOST_AUTO_TEST_CASE(retrieve_messages) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
 
@@ -601,7 +601,7 @@ BOOST_AUTO_TEST_CASE(retrieve_messages) {
 }
 
 BOOST_AUTO_TEST_CASE(retrieve_message_empty) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
 
@@ -610,7 +610,7 @@ BOOST_AUTO_TEST_CASE(retrieve_message_empty) {
 }
 
 BOOST_AUTO_TEST_CASE(retrieve_message_bad_user) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
 
@@ -619,7 +619,7 @@ BOOST_AUTO_TEST_CASE(retrieve_message_bad_user) {
 }
 
 BOOST_AUTO_TEST_CASE(retrieve_message_multiple) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
 
@@ -633,7 +633,7 @@ BOOST_AUTO_TEST_CASE(retrieve_message_multiple) {
 }
 
 BOOST_AUTO_TEST_CASE(retrieve_message_empty_user) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
 
@@ -645,19 +645,19 @@ BOOST_AUTO_TEST_CASE(retrieve_message_empty_user) {
 }
 
 BOOST_AUTO_TEST_CASE(confirm_registration_basic) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_registration_code("foobar@test.com", 12345);
     BOOST_TEST(!db.confirm_registration_code(12345).empty());
 }
 
 BOOST_AUTO_TEST_CASE(confirm_registration_bad) {
-    auto db = get_db();
+    auto db = get_server_db();
     db.add_registration_code("foobar@test.com", 12345);
     BOOST_TEST(db.confirm_registration_code(23456).empty());
 }
 
 BOOST_AUTO_TEST_CASE(confirm_registration_empty_table) {
-    auto db = get_db();
+    auto db = get_server_db();
     BOOST_TEST(db.confirm_registration_code(12345).empty());
 }
 

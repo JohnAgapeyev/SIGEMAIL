@@ -13,13 +13,13 @@
 #include "error.h"
 #include "logging.h"
 
-void client::db::database::prepare_statement(const char* sql, sqlite3_stmt** stmt) {
+void client::database::prepare_statement(const char* sql, sqlite3_stmt** stmt) {
     if (sqlite3_prepare_v2(db_conn, sql, strlen(sql) + 1, stmt, nullptr) != SQLITE_OK) {
         throw_db_error();
     }
 }
 
-void client::db::database::exec_statement(const char* sql) {
+void client::database::exec_statement(const char* sql) {
     char* err_msg = nullptr;
 
     if (sqlite3_exec(db_conn, sql, nullptr, nullptr, &err_msg)) {
@@ -29,13 +29,13 @@ void client::db::database::exec_statement(const char* sql) {
     sqlite3_free(err_msg);
 }
 
-void client::db::database::throw_db_error() {
+void client::database::throw_db_error() {
     const auto err_msg = sqlite3_errmsg(db_conn);
     spdlog::error(err_msg);
     throw db_error(err_msg);
 }
 
-client::db::database::database(const char* db_name) {
+client::database::database(const char* db_name) {
     if (sqlite3_open(db_name, &db_conn) != SQLITE_OK) {
         throw db_error(sqlite3_errmsg(db_conn));
     }
@@ -67,7 +67,7 @@ client::db::database::database(const char* db_name) {
     prepare_statement(select_sessions, &sessions_select);
 }
 
-client::db::database::~database() {
+client::database::~database() {
     sqlite3_finalize(self_insert);
     sqlite3_finalize(users_insert);
     sqlite3_finalize(devices_insert);
@@ -91,7 +91,7 @@ client::db::database::~database() {
     sqlite3_close(db_conn);
 }
 
-void client::db::database::save_registration(const std::string& email, const int device_id,
+void client::database::save_registration(const std::string& email, const int device_id,
         const std::string& auth_token, const crypto::DH_Keypair& identity_keypair,
         const crypto::DH_Keypair& pre_keypair) {
     sqlite3_reset(self_insert);
@@ -134,7 +134,7 @@ void client::db::database::save_registration(const std::string& email, const int
     }
 }
 
-void client::db::database::add_one_time(const crypto::DH_Keypair& one_time) {
+void client::database::add_one_time(const crypto::DH_Keypair& one_time) {
     sqlite3_reset(one_time_insert);
     sqlite3_clear_bindings(one_time_insert);
 
@@ -163,7 +163,7 @@ void client::db::database::add_one_time(const crypto::DH_Keypair& one_time) {
     }
 }
 
-void client::db::database::add_user_record(const std::string& email) {
+void client::database::add_user_record(const std::string& email) {
     sqlite3_reset(users_insert);
     sqlite3_clear_bindings(users_insert);
 
@@ -176,7 +176,7 @@ void client::db::database::add_user_record(const std::string& email) {
     }
 }
 
-void client::db::database::add_device_record(const std::string& email) {
+void client::database::add_device_record(const std::string& email) {
     sqlite3_reset(devices_insert);
     sqlite3_clear_bindings(devices_insert);
 
@@ -189,7 +189,7 @@ void client::db::database::add_device_record(const std::string& email) {
     }
 }
 
-void client::db::database::add_session(
+void client::database::add_session(
         const std::string& email, const int device_index, const session& s) {
     sqlite3_reset(sessions_insert);
     sqlite3_clear_bindings(sessions_insert);
@@ -219,7 +219,7 @@ void client::db::database::add_session(
     }
 }
 
-void client::db::database::mark_user_stale(const std::string& email) {
+void client::database::mark_user_stale(const std::string& email) {
     sqlite3_reset(users_update);
     sqlite3_clear_bindings(users_update);
     if (sqlite3_bind_text(users_update, 1, email.c_str(), email.size(), SQLITE_TRANSIENT)
@@ -231,7 +231,7 @@ void client::db::database::mark_user_stale(const std::string& email) {
     }
 }
 
-void client::db::database::mark_device_stale(const int device_index) {
+void client::database::mark_device_stale(const int device_index) {
     sqlite3_reset(devices_update);
     sqlite3_clear_bindings(devices_update);
     if (sqlite3_bind_int(devices_update, 1, device_index) != SQLITE_OK) {
@@ -242,12 +242,12 @@ void client::db::database::mark_device_stale(const int device_index) {
     }
 }
 
-void client::db::database::purge_stale_records() {
+void client::database::purge_stale_records() {
     exec_statement(delete_users_stale);
     exec_statement(delete_devices_stale);
 }
 
-void client::db::database::remove_user_record(const std::string& email) {
+void client::database::remove_user_record(const std::string& email) {
     sqlite3_reset(users_delete);
     sqlite3_clear_bindings(users_delete);
 
@@ -260,7 +260,7 @@ void client::db::database::remove_user_record(const std::string& email) {
     }
 }
 
-void client::db::database::remove_device_record(const int device_index) {
+void client::database::remove_device_record(const int device_index) {
     sqlite3_reset(devices_delete);
     sqlite3_clear_bindings(devices_delete);
 
@@ -272,7 +272,7 @@ void client::db::database::remove_device_record(const int device_index) {
     }
 }
 
-void client::db::database::remove_session(const int session_id) {
+void client::database::remove_session(const int session_id) {
     sqlite3_reset(sessions_delete);
     sqlite3_clear_bindings(sessions_delete);
 
@@ -284,7 +284,7 @@ void client::db::database::remove_session(const int session_id) {
     }
 }
 
-void client::db::database::remove_one_time(const crypto::public_key& public_key) {
+void client::database::remove_one_time(const crypto::public_key& public_key) {
     sqlite3_reset(one_time_delete);
     sqlite3_clear_bindings(one_time_delete);
 
@@ -308,7 +308,7 @@ void client::db::database::remove_one_time(const crypto::public_key& public_key)
     }
 }
 
-void client::db::database::activate_session(const int device_index, const int session_id) {
+void client::database::activate_session(const int device_index, const int session_id) {
     sqlite3_reset(devices_update_active);
     sqlite3_clear_bindings(devices_update_active);
 
@@ -324,7 +324,7 @@ void client::db::database::activate_session(const int device_index, const int se
 }
 
 std::tuple<std::string, int, std::string, crypto::DH_Keypair, crypto::DH_Keypair>
-        client::db::database::get_self_data() {
+        client::database::get_self_data() {
     sqlite3_reset(self_select);
     sqlite3_clear_bindings(self_select);
 
@@ -396,7 +396,7 @@ std::tuple<std::string, int, std::string, crypto::DH_Keypair, crypto::DH_Keypair
     return {user_id, device_id, auth_token, identity_keypair, prekey_keypair};
 }
 
-crypto::DH_Keypair client::db::database::get_one_time_key(const crypto::public_key& public_key) {
+crypto::DH_Keypair client::database::get_one_time_key(const crypto::public_key& public_key) {
     sqlite3_reset(one_time_select);
     sqlite3_clear_bindings(one_time_select);
 
@@ -429,7 +429,7 @@ crypto::DH_Keypair client::db::database::get_one_time_key(const crypto::public_k
     return one_time_keypair;
 }
 
-std::vector<int> client::db::database::get_device_ids(const std::string& email) {
+std::vector<int> client::database::get_device_ids(const std::string& email) {
     sqlite3_reset(devices_select);
     sqlite3_clear_bindings(devices_select);
 
@@ -451,7 +451,7 @@ std::vector<int> client::db::database::get_device_ids(const std::string& email) 
     return id_list;
 }
 
-std::vector<std::pair<int, session>> client::db::database::get_sessions_by_device(
+std::vector<std::pair<int, session>> client::database::get_sessions_by_device(
         const int device_id) {
     sqlite3_reset(sessions_select);
     sqlite3_clear_bindings(sessions_select);
@@ -488,7 +488,7 @@ std::vector<std::pair<int, session>> client::db::database::get_sessions_by_devic
     return session_list;
 }
 
-session client::db::database::get_active_session(const int device_id) {
+session client::database::get_active_session(const int device_id) {
     sqlite3_reset(active_select);
     sqlite3_clear_bindings(active_select);
 

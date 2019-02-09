@@ -9,7 +9,7 @@ BOOST_AUTO_TEST_SUITE(client_db_tests)
 
 //Literally just test that the db creation doesn't error and throw
 BOOST_AUTO_TEST_CASE(db_creation) {
-    auto db = get_db();
+    auto db = get_client_db();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

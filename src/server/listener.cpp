@@ -11,7 +11,7 @@
 #include "server_state.h"
 
 listener::listener(boost::asio::io_context& ioc, ssl::context& ssl_ctx, tcp::endpoint endpoint,
-        server::db::database& db) :
+        server::database& db) :
         ctx(ssl_ctx),
         acceptor(ioc), socket(ioc), server_db(db) {
     boost::system::error_code ec;

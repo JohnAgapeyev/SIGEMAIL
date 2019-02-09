@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "client_network.h"
+#include "client_state.h"
 #include "crypto.h"
 #include "listener.h"
 #include "logging.h"
@@ -13,10 +14,11 @@
 #include "server_state.h"
 #include "session.h"
 
-server::db::database get_db();
+server::database get_server_db();
+client::database get_client_db();
 
 struct Server_DB_Pair {
-    Server_DB_Pair(tcp::endpoint endpoint, server::db::database& in_db) :
+    Server_DB_Pair(tcp::endpoint endpoint, server::database& in_db) :
             ioc(), ssl(boost::asio::ssl::context::tls), db(in_db) {
         load_server_certificate(ssl);
         listen = std::make_shared<listener>(ioc, ssl, endpoint, db);
@@ -27,7 +29,7 @@ struct Server_DB_Pair {
 
     boost::asio::io_context ioc;
     boost::asio::ssl::context ssl;
-    server::db::database& db;
+    server::database& db;
     std::shared_ptr<listener> listen;
 };
 
@@ -49,6 +51,6 @@ std::array<std::byte, 24> get_truncated_hash(const std::string_view data);
 session get_session();
 
 std::shared_ptr<client_network_session> get_client();
-std::shared_ptr<Server_DB_Pair> get_server(server::db::database& db);
+std::shared_ptr<Server_DB_Pair> get_server(server::database& db);
 
 #endif /* end of include guard: TEST_H */

@@ -13,13 +13,13 @@
 #include "logging.h"
 #include "server_state.h"
 
-void server::db::database::prepare_statement(const char* sql, sqlite3_stmt** stmt) {
+void server::database::prepare_statement(const char* sql, sqlite3_stmt** stmt) {
     if (sqlite3_prepare_v2(db_conn, sql, strlen(sql) + 1, stmt, nullptr) != SQLITE_OK) {
         throw_db_error();
     }
 }
 
-void server::db::database::exec_statement(const char* sql) {
+void server::database::exec_statement(const char* sql) {
     char* err_msg = nullptr;
 
     if (sqlite3_exec(db_conn, sql, nullptr, nullptr, &err_msg)) {
@@ -29,13 +29,13 @@ void server::db::database::exec_statement(const char* sql) {
     sqlite3_free(err_msg);
 }
 
-void server::db::database::throw_db_error() {
+void server::database::throw_db_error() {
     const auto err_msg = sqlite3_errmsg(db_conn);
     spdlog::error(err_msg);
     throw db_error(err_msg);
 }
 
-server::db::database::database(const char* db_name) {
+server::database::database(const char* db_name) {
     if (sqlite3_open(db_name, &db_conn) != SQLITE_OK) {
         throw db_error(sqlite3_errmsg(db_conn));
     }
@@ -69,7 +69,7 @@ server::db::database::database(const char* db_name) {
     prepare_statement(select_registration, &registration_codes_select);
 }
 
-server::db::database::~database() {
+server::database::~database() {
     sqlite3_finalize(users_insert);
     sqlite3_finalize(devices_insert);
     sqlite3_finalize(otpk_insert);
@@ -91,7 +91,7 @@ server::db::database::~database() {
     sqlite3_close(db_conn);
 }
 
-void server::db::database::add_user(const std::string_view user_id, const std::string_view auth_token) {
+void server::database::add_user(const std::string_view user_id, const std::string_view auth_token) {
     sqlite3_reset(users_insert);
     sqlite3_clear_bindings(users_insert);
 
@@ -120,8 +120,9 @@ void server::db::database::add_user(const std::string_view user_id, const std::s
     }
 }
 
-void server::db::database::add_device(const std::string_view user_id, const crypto::public_key& identity,
-        const crypto::public_key& pre_key, const crypto::signature& signature) {
+void server::database::add_device(const std::string_view user_id,
+        const crypto::public_key& identity, const crypto::public_key& pre_key,
+        const crypto::signature& signature) {
     sqlite3_reset(devices_insert);
     sqlite3_clear_bindings(devices_insert);
 
@@ -147,7 +148,7 @@ void server::db::database::add_device(const std::string_view user_id, const cryp
     }
 }
 
-void server::db::database::add_one_time_key(const int device_id, const crypto::public_key& one_time) {
+void server::database::add_one_time_key(const int device_id, const crypto::public_key& one_time) {
     sqlite3_reset(otpk_insert);
     sqlite3_clear_bindings(otpk_insert);
 
@@ -165,7 +166,7 @@ void server::db::database::add_one_time_key(const int device_id, const crypto::p
     }
 }
 
-void server::db::database::add_message(const std::string_view user_id, const int device_id,
+void server::database::add_message(const std::string_view user_id, const int device_id,
         const std::vector<std::byte>& message_contents) {
     sqlite3_reset(mailbox_insert);
     sqlite3_clear_bindings(mailbox_insert);
@@ -190,7 +191,7 @@ void server::db::database::add_message(const std::string_view user_id, const int
     }
 }
 
-void server::db::database::add_registration_code(const std::string_view email, const int code) {
+void server::database::add_registration_code(const std::string_view email, const int code) {
     sqlite3_reset(registration_codes_insert);
     sqlite3_clear_bindings(registration_codes_insert);
 
@@ -209,7 +210,7 @@ void server::db::database::add_registration_code(const std::string_view email, c
     }
 }
 
-void server::db::database::update_pre_key(const int device_id, const crypto::public_key& pre_key,
+void server::database::update_pre_key(const int device_id, const crypto::public_key& pre_key,
         const crypto::signature& signature) {
     sqlite3_reset(devices_update);
     sqlite3_clear_bindings(devices_update);
@@ -232,7 +233,7 @@ void server::db::database::update_pre_key(const int device_id, const crypto::pub
     }
 }
 
-void server::db::database::remove_user(const std::string_view user_id) {
+void server::database::remove_user(const std::string_view user_id) {
     sqlite3_reset(users_delete);
     sqlite3_clear_bindings(users_delete);
 
@@ -246,7 +247,7 @@ void server::db::database::remove_user(const std::string_view user_id) {
     }
 }
 
-void server::db::database::remove_device(const int device_id) {
+void server::database::remove_device(const int device_id) {
     sqlite3_reset(devices_delete);
     sqlite3_clear_bindings(devices_delete);
 
@@ -259,7 +260,7 @@ void server::db::database::remove_device(const int device_id) {
     }
 }
 
-void server::db::database::remove_one_time_key(const int key_id) {
+void server::database::remove_one_time_key(const int key_id) {
     sqlite3_reset(otpk_delete);
     sqlite3_clear_bindings(otpk_delete);
 
@@ -272,7 +273,7 @@ void server::db::database::remove_one_time_key(const int key_id) {
     }
 }
 
-void server::db::database::remove_message(const int message_id) {
+void server::database::remove_message(const int message_id) {
     sqlite3_reset(mailbox_delete);
     sqlite3_clear_bindings(mailbox_delete);
 
@@ -285,7 +286,7 @@ void server::db::database::remove_message(const int message_id) {
     }
 }
 
-void server::db::database::remove_registration_code(const std::string_view email) {
+void server::database::remove_registration_code(const std::string_view email) {
     sqlite3_reset(registration_codes_delete);
     sqlite3_clear_bindings(registration_codes_delete);
 
@@ -302,7 +303,7 @@ void server::db::database::remove_registration_code(const std::string_view email
 
 //This is inefficient once the database gets too big due to reallocating the vector, and doing the work outside the database
 //Fine for now, but will need attention if scale is ever a factor
-std::vector<std::array<std::byte, 24>> server::db::database::contact_intersection(
+std::vector<std::array<std::byte, 24>> server::database::contact_intersection(
         std::vector<std::array<std::byte, 24>> truncated_hashes) {
     std::vector<std::array<std::byte, 24>> all_hashes;
     int err;
@@ -340,7 +341,7 @@ std::vector<std::array<std::byte, 24>> server::db::database::contact_intersectio
     return intersect;
 }
 
-[[nodiscard]] bool server::db::database::confirm_auth_token(
+[[nodiscard]] bool server::database::confirm_auth_token(
         const std::string_view user_id, const std::string_view auth_token) {
     sqlite3_reset(users_auth_select);
     sqlite3_clear_bindings(users_auth_select);
@@ -370,7 +371,7 @@ std::vector<std::array<std::byte, 24>> server::db::database::contact_intersectio
 }
 
 std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>>
-        server::db::database::lookup_devices(const std::string_view user_id) {
+        server::database::lookup_devices(const std::string_view user_id) {
     sqlite3_reset(devices_user_select);
     sqlite3_clear_bindings(devices_user_select);
 
@@ -417,7 +418,7 @@ std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::sign
 }
 
 std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>>
-        server::db::database::lookup_devices(const std::vector<int> device_ids) {
+        server::database::lookup_devices(const std::vector<int> device_ids) {
     sqlite3_reset(devices_id_select);
     sqlite3_clear_bindings(devices_id_select);
 
@@ -471,7 +472,7 @@ std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::sign
     return records;
 }
 
-std::tuple<int, crypto::public_key> server::db::database::get_one_time_key(const int device_id) {
+std::tuple<int, crypto::public_key> server::database::get_one_time_key(const int device_id) {
     sqlite3_reset(otpk_select);
     sqlite3_clear_bindings(otpk_select);
 
@@ -502,7 +503,7 @@ std::tuple<int, crypto::public_key> server::db::database::get_one_time_key(const
     return {std::move(key_id), std::move(output)};
 }
 
-std::vector<std::tuple<int, int, std::string>> server::db::database::retrieve_messages(
+std::vector<std::tuple<int, int, std::string>> server::database::retrieve_messages(
         const std::string_view user_id) {
     sqlite3_reset(mailbox_select);
     sqlite3_clear_bindings(mailbox_select);
@@ -533,7 +534,7 @@ std::vector<std::tuple<int, int, std::string>> server::db::database::retrieve_me
     return records;
 }
 
-[[nodiscard]] std::string server::db::database::confirm_registration_code(const int reg_code) {
+[[nodiscard]] std::string server::database::confirm_registration_code(const int reg_code) {
     sqlite3_reset(registration_codes_select);
     sqlite3_clear_bindings(registration_codes_select);
 

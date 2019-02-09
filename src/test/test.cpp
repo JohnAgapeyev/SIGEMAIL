@@ -2,6 +2,7 @@
 #include <memory>
 #include <thread>
 
+#include "client_state.h"
 #include "listener.h"
 #include "logging.h"
 #include "server_network.h"
@@ -33,8 +34,12 @@ session get_session() {
     return s;
 }
 
-server::db::database get_db() {
-    return server::db::database{server::db::IN_MEMORY_DB};
+server::database get_server_db() {
+    return server::database{server::IN_MEMORY_DB};
+}
+
+client::database get_client_db() {
+    return client::database{client::IN_MEMORY_DB};
 }
 
 std::array<std::byte, 24> get_truncated_hash(const std::string_view data) {
@@ -63,6 +68,6 @@ std::shared_ptr<client_network_session> get_client() {
     return host_ref;
 }
 
-std::shared_ptr<Server_DB_Pair> get_server(server::db::database& db) {
+std::shared_ptr<Server_DB_Pair> get_server(server::database& db) {
     return std::make_shared<Server_DB_Pair>(tcp::endpoint{tcp::v4(), 8443}, db);
 }
