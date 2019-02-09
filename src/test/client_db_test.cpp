@@ -141,4 +141,63 @@ BOOST_AUTO_TEST_CASE(remove_user_record_empty_email) {
     db.remove_user_record("");
 }
 
+BOOST_AUTO_TEST_CASE(remove_device_record) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.remove_device_record(1);
+}
+
+BOOST_AUTO_TEST_CASE(remove_device_record_bad_device) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.remove_device_record(-1);
+}
+
+BOOST_AUTO_TEST_CASE(remove_device_record_empty_table) {
+    auto db = get_client_db();
+    db.remove_device_record(-1);
+}
+
+BOOST_AUTO_TEST_CASE(remove_one_time) {
+    auto db = get_client_db();
+    const crypto::DH_Keypair k;
+    db.add_one_time(k);
+    db.remove_one_time(k.get_public());
+}
+
+BOOST_AUTO_TEST_CASE(remove_one_time_bad_public_key) {
+    auto db = get_client_db();
+    const crypto::DH_Keypair k;
+    db.add_one_time(k);
+    db.remove_one_time({});
+}
+
+BOOST_AUTO_TEST_CASE(remove_one_time_empty_table) {
+    auto db = get_client_db();
+    db.remove_one_time({});
+}
+
+BOOST_AUTO_TEST_CASE(remove_session) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.add_session("foobar@test.com", 1, get_session());
+    db.remove_session(1);
+}
+
+BOOST_AUTO_TEST_CASE(remove_session_bad_id) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    db.add_session("foobar@test.com", 1, get_session());
+    db.remove_session(-1);
+}
+
+BOOST_AUTO_TEST_CASE(remove_session_empty_table) {
+    auto db = get_client_db();
+    db.remove_session(-1);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
