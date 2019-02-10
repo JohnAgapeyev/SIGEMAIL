@@ -50,7 +50,7 @@ namespace client {
 
         void add_one_time(const crypto::DH_Keypair& one_time);
         void add_user_record(const std::string& email);
-        void add_device_record(const std::string& email);
+        void add_device_record(const std::string& email, const int device_record);
         void add_session(const std::string& email, const int device_index, const session& s);
 
         void remove_user_record(const std::string& email);
@@ -151,7 +151,7 @@ namespace client {
         static constexpr auto insert_one_time = "INSERT INTO one_time VALUES (?1, ?2);";
         static constexpr auto insert_users = "INSERT INTO users VALUES (?1, 0);";
         static constexpr auto insert_devices
-                = "INSERT INTO devices(user_id, active_session, stale) VALUES (?1, NULL, 0);";
+                = "INSERT INTO devices(device_id, user_id, active_session, stale) VALUES (?2, ?1, NULL, 0);";
         static constexpr auto insert_sessions
                 = "INSERT INTO sessions(user_id, device_id, contents) VALUES (?1, ?2, ?3);";
 

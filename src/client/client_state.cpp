@@ -180,12 +180,15 @@ void client::database::add_user_record(const std::string& email) {
     }
 }
 
-void client::database::add_device_record(const std::string& email) {
+void client::database::add_device_record(const std::string& email, const int device_index) {
     sqlite3_reset(devices_insert);
     sqlite3_clear_bindings(devices_insert);
 
     if (sqlite3_bind_text(devices_insert, 1, email.c_str(), email.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
+        throw_db_error();
+    }
+    if (sqlite3_bind_int(devices_insert, 2, device_index) != SQLITE_OK) {
         throw_db_error();
     }
     if (sqlite3_step(devices_insert) != SQLITE_DONE) {
