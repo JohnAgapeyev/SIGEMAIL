@@ -143,7 +143,13 @@ client_network_session::~client_network_session() {
     ss << res;
     spdlog::debug("Got a server response:\n{}", ss.str());
 
-    return res.result() == http::status::ok;
+    if (res.result() == http::status::ok) {
+        //Verification succeeded
+        //Device ID will need to be grabbed from the response
+        client_db.save_registration(email, 1, auth_token, {}, {});
+        return true;
+    }
+    return false;
 }
 
 /*
@@ -174,7 +180,7 @@ client_network_session::~client_network_session() {
 
         arch << kp.get_public();
 
-        child.add("", ss.str());
+        child.put("", ss.str());
         keys.push_back(std::make_pair("", child));
     }
     ptr.add_child("keys", keys);
@@ -184,6 +190,11 @@ client_network_session::~client_network_session() {
 
     req.body() = ss.str();
     req.prepare_payload();
+
+    //Clear the stringstream
+    ss.str(std::string{});
+    ss << req;
+    spdlog::debug("Sending request \n{}", ss.str());
 
     http::write(stream, req);
     http::read(stream, buffer, res);
@@ -253,7 +264,7 @@ client_network_session::~client_network_session() {
 
         arch << trunc_hash;
 
-        child.add("", ss.str());
+        child.put("", ss.str());
         contact_data.push_back(std::make_pair("", child));
     }
 
@@ -344,8 +355,8 @@ client_network_session::~client_network_session() {
 
 std::string client_network_session::get_auth() {
     const auto [user_id, device_id, auth_token, identity, pre_key] = client_db.get_self_data();
-    std::stringstream ss{"Basic "};
-    ss << user_id << ':' << auth_token;
+    std::stringstream ss;
+    ss << "Basic " << user_id << ':' << auth_token;
     return ss.str();
 }
 

@@ -355,6 +355,9 @@ const http::response<http::string_body> http_session::verify_verification_code(
     //Add the properly registered user to the database
     server_db.add_user(user_id, auth_token);
 
+    //This will need to be gathered from the initial request contents
+    server_db.add_device(user_id, {}, {}, {});
+
     return http_ok();
 }
 
