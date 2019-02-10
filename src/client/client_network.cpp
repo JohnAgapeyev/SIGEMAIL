@@ -19,15 +19,16 @@
 #include <string>
 
 #include "client_network.h"
+#include "client_state.h"
 #include "crypto.h"
 #include "dh.h"
 #include "logging.h"
 
 //This will throw boost::system::system_error if any part of the connection fails
 client_network_session::client_network_session(boost::asio::io_context& ioc, ssl::context& ctx,
-        const char* dest_host, const char* dest_port) :
+        const char* dest_host, const char* dest_port, client::database& db) :
         resolver(ioc),
-        stream(ioc, ctx) {
+        stream(ioc, ctx), client_db(db) {
     //Set default fields that will always be present
     req.set(http::field::host, dest_host);
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);

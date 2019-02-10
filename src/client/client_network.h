@@ -15,6 +15,7 @@
 #include <string>
 
 #include "message.h"
+#include "client_state.h"
 
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
 namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
@@ -24,7 +25,7 @@ class client_network_session : public std::enable_shared_from_this<client_networ
 public:
     // Resolver requires an io_context
     client_network_session(boost::asio::io_context& ioc, ssl::context& ctx, const char* dest_host,
-            const char* dest_port);
+            const char* dest_port, client::database& db);
     ~client_network_session();
 
     [[nodiscard]] bool request_verification_code(const std::string& email);
@@ -42,6 +43,7 @@ private:
     http::request<http::string_body> req;
     http::response<http::string_body> res;
     tcp::resolver::results_type dns_results;
+    client::database& client_db;
 };
 
 #endif /* end of include guard: CLIENT_NETWORK_H */

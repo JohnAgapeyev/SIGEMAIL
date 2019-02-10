@@ -39,7 +39,7 @@ session get_session();
 server::database get_server_db();
 client::database get_client_db();
 
-std::shared_ptr<client_network_session> get_client();
+std::shared_ptr<client_network_session> get_client(client::database& db);
 std::shared_ptr<Server_DB_Pair> get_server(server::database& db);
 
 #endif /* end of include guard: TEST_H */

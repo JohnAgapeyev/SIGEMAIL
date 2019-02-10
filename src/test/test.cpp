@@ -66,7 +66,7 @@ std::array<std::byte, 24> get_truncated_hash(const std::string_view data) {
     return out;
 }
 
-std::shared_ptr<client_network_session> get_client() {
+std::shared_ptr<client_network_session> get_client(client::database& db) {
     boost::asio::io_context ioc;
     // The SSL context is required, and holds certificates
     ssl::context ctx{ssl::context::tls};
@@ -76,7 +76,7 @@ std::shared_ptr<client_network_session> get_client() {
 
     std::shared_ptr<client_network_session> host_ref;
     try {
-        host_ref = std::make_shared<client_network_session>(ioc, ctx, "localhost", "8443");
+        host_ref = std::make_shared<client_network_session>(ioc, ctx, "localhost", "8443", db);
     } catch (const boost::system::system_error& e) {
         spdlog::error("Client network session failed to establish: {}", e.what());
         throw;

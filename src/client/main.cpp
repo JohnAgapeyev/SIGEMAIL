@@ -45,9 +45,10 @@ int main(int argc, char** argv) {
     ctx.set_verify_callback(ssl::rfc2818_verification("localhost"));
 #endif
 
+    client::database client_db{"client_db"};
     std::shared_ptr<client_network_session> host_ref;
     try {
-        host_ref = std::make_shared<client_network_session>(ioc, ctx, host, port);
+        host_ref = std::make_shared<client_network_session>(ioc, ctx, host, port, client_db);
     } catch (const boost::system::system_error& e) {
         spdlog::error("Client network session failed to establish: {}", e.what());
         return 1;
