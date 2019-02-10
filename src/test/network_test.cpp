@@ -13,7 +13,7 @@ BOOST_AUTO_TEST_CASE(basic_request) {
     auto client_db = get_client_db();
     const auto server = get_server(server_db);
     const auto client = get_client(client_db);
-    //BOOST_TEST(client->request_verification_code("foobar@test.com"));
+    BOOST_TEST(client->request_verification_code("foobar@test.com"));
 }
 
 BOOST_AUTO_TEST_CASE(confirm_verification_code) {
@@ -22,9 +22,24 @@ BOOST_AUTO_TEST_CASE(confirm_verification_code) {
     const auto server = get_server(server_db);
     const auto client = get_client(client_db);
 
-    //db.add_registration_code("foobar@test.com", 12345);
+    server_db.add_registration_code("foobar@test.com", 12345);
 
-    //BOOST_TEST(client->verify_verification_code(12345));
+    BOOST_TEST(client->verify_verification_code(12345));
 }
+
+#if 0
+BOOST_AUTO_TEST_CASE(register_prekeys) {
+    auto server_db = get_server_db();
+    auto client_db = get_client_db();
+    const auto server = get_server(server_db);
+    const auto client = get_client(client_db);
+
+    client_db.save_registration("foobar@test.com", 1, "testauth", {}, {});
+    server_db.add_user("foobar@test.com", "testauth");
+    server_db.add_device("foobar@test.com", {}, {}, {});
+
+    BOOST_TEST(client->register_prekeys(100));
+}
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()

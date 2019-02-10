@@ -314,7 +314,7 @@ const http::response<http::string_body> http_session::request_verification_code(
 
 const http::response<http::string_body> http_session::verify_verification_code(
         http::request<http::string_body>&& req, const std::string_view reg_code) const {
-    auto www_auth = std::string_view{req[http::field::www_authenticate].to_string()};
+    auto www_auth = req[http::field::www_authenticate].to_string();
 
     if (!validate_auth(www_auth)) {
         return unauthorized();
@@ -323,7 +323,7 @@ const http::response<http::string_body> http_session::verify_verification_code(
     //None of these are checked because that is done in validate_auth
     size_t delim_loc = www_auth.find_first_of(' ');
     //Drop the auth type from the string
-    www_auth.remove_prefix(delim_loc);
+    www_auth.erase(0, delim_loc + 1);
     //Get the location of the credential split
     delim_loc = www_auth.find_first_of(':');
 
@@ -564,7 +564,7 @@ const http::response<http::string_body> http_session::submit_message(
     return http_ok();
 }
 
-[[nodiscard]] bool http_session::validate_auth(std::string_view www_auth) const {
+[[nodiscard]] bool http_session::validate_auth(std::string www_auth) const {
     if (www_auth.empty()) {
         //No WWW-Authenticate header
         return false;
@@ -576,13 +576,13 @@ const http::response<http::string_body> http_session::submit_message(
         return false;
     }
 
-    if (www_auth.substr(0, delim_loc - 1).compare("Basic") != 0) {
+    if (www_auth.substr(0, delim_loc).compare("Basic") != 0) {
         //Auth type is not Basic, therefore unsupported
         return false;
     }
 
     //Drop the auth type from the string
-    www_auth.remove_prefix(delim_loc);
+    www_auth.erase(0, delim_loc + 1);
 
     /*
      * Alright, so there will be no base64 involved with the auth token.
@@ -599,7 +599,7 @@ const http::response<http::string_body> http_session::submit_message(
     return true;
 }
 
-[[nodiscard]] bool http_session::confirm_authentication(std::string_view www_auth) const {
+[[nodiscard]] bool http_session::confirm_authentication(std::string www_auth) const {
     if (!validate_auth(www_auth)) {
         return false;
     }
@@ -607,7 +607,7 @@ const http::response<http::string_body> http_session::submit_message(
     //None of these are checked because that is done in validate_auth
     size_t delim_loc = www_auth.find_first_of(' ');
     //Drop the auth type from the string
-    www_auth.remove_prefix(delim_loc);
+    www_auth.erase(0, delim_loc + 1);
     //Get the location of the credential split
     delim_loc = www_auth.find_first_of(':');
 

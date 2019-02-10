@@ -44,6 +44,8 @@ private:
     http::response<http::string_body> res;
     tcp::resolver::results_type dns_results;
     client::database& client_db;
+
+    std::string get_auth();
 };
 
 #endif /* end of include guard: CLIENT_NETWORK_H */

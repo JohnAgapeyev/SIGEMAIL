@@ -101,6 +101,8 @@ client_network_session::~client_network_session() {
 
     req.method(http::verb::put);
     req.target(target_str);
+    //req.set(http::field::www_authenticate, get_auth());
+    req.set(http::field::www_authenticate, "Basic foobar@test.com:testauth");
 
     boost::property_tree::ptree ptr;
 
@@ -110,11 +112,12 @@ client_network_session::~client_network_session() {
     std::stringstream ss;
     boost::property_tree::write_json(ss, ptr);
 
-    spdlog::info("JSON output {}", ss.str());
-
     req.body() = ss.str();
 
-    spdlog::info("Resulting body {}", req.body());
+    //Clear the stringstream
+    ss.str(std::string{});
+    ss << req;
+    spdlog::info("Sending request \n{}", ss.str());
 
     req.prepare_payload();
 
@@ -141,6 +144,7 @@ client_network_session::~client_network_session() {
 [[nodiscard]] bool client_network_session::register_prekeys(const uint64_t key_count) {
     req.method(http::verb::put);
     req.target("/v1/keys/");
+    req.set(http::field::www_authenticate, get_auth());
 
     boost::property_tree::ptree ptr;
     boost::property_tree::ptree keys;
@@ -194,6 +198,7 @@ client_network_session::~client_network_session() {
 
     req.method(http::verb::get);
     req.target(target_str);
+    req.set(http::field::www_authenticate, get_auth());
 
     req.prepare_payload();
 
@@ -217,6 +222,7 @@ client_network_session::~client_network_session() {
 [[nodiscard]] bool client_network_session::contact_intersection(const std::vector<std::string>& contacts) {
     req.method(http::verb::put);
     req.target("/v1/directory/tokens");
+    req.set(http::field::www_authenticate, get_auth());
 
     boost::property_tree::ptree ptr;
     boost::property_tree::ptree contact_data;
@@ -281,6 +287,7 @@ client_network_session::~client_network_session() {
 
     req.method(http::verb::put);
     req.target(target_str);
+    req.set(http::field::www_authenticate, get_auth());
 
     boost::property_tree::ptree ptr;
     boost::property_tree::ptree message_data;
@@ -319,4 +326,11 @@ client_network_session::~client_network_session() {
     ss << res;
     spdlog::debug("Got a server response:\n{}", ss.str());
     return res.result() == http::status::ok;
+}
+
+std::string client_network_session::get_auth() {
+    const auto [user_id, device_id, auth_token, identity, pre_key] = client_db.get_self_data();
+    std::stringstream ss{"Basic "};
+    ss << user_id << ':' << auth_token;
+    return ss.str();
 }

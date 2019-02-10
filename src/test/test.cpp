@@ -10,8 +10,11 @@
 
 DisableLogging::DisableLogging() {
     auto logger = spdlog::create<spdlog::sinks::null_sink_st>("null_logger");
-    //spdlog::set_level(spdlog::level::debug);
+#if 1
+    spdlog::set_level(spdlog::level::debug);
+#else
     spdlog::set_default_logger(logger);
+#endif
 }
 
 Server_DB_Pair::Server_DB_Pair(tcp::endpoint endpoint, server::database& in_db) :
