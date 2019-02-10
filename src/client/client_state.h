@@ -177,7 +177,7 @@ namespace client {
 
         static constexpr auto select_active
                 = "SELECT contents FROM sessions INNER JOIN devices ON devices.active_session = "
-                  "sessions.session_id WHERE device_id = ?1;";
+                  "sessions.session_id WHERE devices.device_id = ?1;";
     };
 
     static constexpr auto IN_MEMORY_DB = ":memory:";

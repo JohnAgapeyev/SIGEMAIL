@@ -407,4 +407,81 @@ BOOST_AUTO_TEST_CASE(get_one_time_empty_table) {
     BOOST_REQUIRE_THROW(db.get_one_time_key({}), db_error);
 }
 
+BOOST_AUTO_TEST_CASE(get_sessions) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    const auto s = get_session();
+    db.add_session("foobar@test.com", 1, s);
+    const auto sess_list = db.get_sessions_by_device(1);
+    BOOST_TEST((sess_list.size() == 1 && sess_list.front().second == s));
+}
+
+BOOST_AUTO_TEST_CASE(get_sessions_multiple) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    for (int i = 0; i < 10; ++i) {
+        db.add_session("foobar@test.com", 1, get_session());
+    }
+    const auto sess_list = db.get_sessions_by_device(1);
+    BOOST_TEST((sess_list.size() == 10));
+}
+
+BOOST_AUTO_TEST_CASE(get_sessions_bad_device) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    for (int i = 0; i < 10; ++i) {
+        db.add_session("foobar@test.com", 1, get_session());
+    }
+    const auto sess_list = db.get_sessions_by_device(-1);
+    BOOST_TEST((sess_list.size() == 0));
+}
+
+BOOST_AUTO_TEST_CASE(get_sessions_empty_device_table) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    const auto sess_list = db.get_sessions_by_device(-1);
+    BOOST_TEST((sess_list.size() == 0));
+}
+
+BOOST_AUTO_TEST_CASE(get_sessions_empty_sessions) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    const auto sess_list = db.get_sessions_by_device(1);
+    BOOST_TEST((sess_list.size() == 0));
+}
+
+BOOST_AUTO_TEST_CASE(get_active_session) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    const auto s = get_session();
+    db.add_session("foobar@test.com", 1, s);
+    db.activate_session(1, 1);
+    const auto active = db.get_active_session(1);
+    BOOST_TEST((s == active));
+}
+
+BOOST_AUTO_TEST_CASE(get_active_session_empty) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    const auto s = get_session();
+    db.add_session("foobar@test.com", 1, s);
+    BOOST_REQUIRE_THROW(db.get_active_session(1), db_error);
+}
+
+BOOST_AUTO_TEST_CASE(get_active_session_bad_device_id) {
+    auto db = get_client_db();
+    db.add_user_record("foobar@test.com");
+    db.add_device_record("foobar@test.com");
+    const auto s = get_session();
+    db.add_session("foobar@test.com", 1, s);
+    db.activate_session(1, 1);
+    BOOST_REQUIRE_THROW(db.get_active_session(-1), db_error);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

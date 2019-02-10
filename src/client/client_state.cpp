@@ -65,6 +65,7 @@ client::database::database(const char* db_name) {
     prepare_statement(select_one_time, &one_time_select);
     prepare_statement(select_device_ids, &devices_select);
     prepare_statement(select_sessions, &sessions_select);
+    prepare_statement(select_active, &active_select);
 }
 
 client::database::~database() {
@@ -87,6 +88,7 @@ client::database::~database() {
     sqlite3_finalize(one_time_select);
     sqlite3_finalize(devices_select);
     sqlite3_finalize(sessions_select);
+    sqlite3_finalize(active_select);
 
     sqlite3_close(db_conn);
 }
@@ -479,11 +481,11 @@ std::vector<std::pair<int, session>> client::database::get_sessions_by_device(co
     int err;
     while ((err = sqlite3_step(sessions_select)) == SQLITE_ROW) {
         const int id = sqlite3_column_int(sessions_select, 0);
-        const auto serialized_str = sqlite3_column_text(self_select, 1);
+        const auto serialized_str = sqlite3_column_text(sessions_select, 1);
         if (!serialized_str) {
             throw_db_error();
         }
-        const auto serialized_len = sqlite3_column_bytes(self_select, 1);
+        const auto serialized_len = sqlite3_column_bytes(sessions_select, 1);
 
         std::stringstream ss{std::string{reinterpret_cast<const char*>(serialized_str),
                 static_cast<unsigned long>(serialized_len)}};
@@ -514,11 +516,11 @@ session client::database::get_active_session(const int device_id) {
         throw_db_error();
     }
 
-    const auto serialized_str = sqlite3_column_text(self_select, 0);
+    const auto serialized_str = sqlite3_column_text(active_select, 0);
     if (!serialized_str) {
         throw_db_error();
     }
-    const auto serialized_len = sqlite3_column_bytes(self_select, 0);
+    const auto serialized_len = sqlite3_column_bytes(active_select, 0);
 
     std::stringstream ss{std::string{reinterpret_cast<const char*>(serialized_str),
             static_cast<unsigned long>(serialized_len)}};
