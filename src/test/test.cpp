@@ -1,4 +1,3 @@
-#include <boost/asio/signal_set.hpp>
 #include <memory>
 #include <thread>
 
@@ -8,6 +7,24 @@
 #include "server_network.h"
 #include "server_state.h"
 #include "test.h"
+
+DisableLogging::DisableLogging() {
+    auto logger = spdlog::create<spdlog::sinks::null_sink_st>("null_logger");
+    //spdlog::set_level(spdlog::level::debug);
+    spdlog::set_default_logger(logger);
+}
+
+Server_DB_Pair::Server_DB_Pair(tcp::endpoint endpoint, server::database& in_db) :
+        ioc(), ssl(boost::asio::ssl::context::tls), db(in_db) {
+    load_server_certificate(ssl);
+    listen = std::make_shared<listener>(ioc, ssl, endpoint, db);
+    listen->run();
+    std::thread{[this]() { ioc.run(); }}.detach();
+}
+
+Server_DB_Pair::~Server_DB_Pair() {
+    ioc.stop();
+}
 
 crypto::secure_vector<std::byte> get_message() {
     crypto::secure_vector<std::byte> out;

@@ -1,7 +1,6 @@
 #ifndef TEST_H
 #define TEST_H
 
-#include <boost/asio/signal_set.hpp>
 #include <memory>
 #include <vector>
 
@@ -14,18 +13,9 @@
 #include "server_state.h"
 #include "session.h"
 
-server::database get_server_db();
-client::database get_client_db();
-
 struct Server_DB_Pair {
-    Server_DB_Pair(tcp::endpoint endpoint, server::database& in_db) :
-            ioc(), ssl(boost::asio::ssl::context::tls), db(in_db) {
-        load_server_certificate(ssl);
-        listen = std::make_shared<listener>(ioc, ssl, endpoint, db);
-        listen->run();
-        std::thread{[this]() { ioc.run(); }}.detach();
-    }
-    ~Server_DB_Pair() { ioc.stop(); }
+    Server_DB_Pair(tcp::endpoint endpoint, server::database& in_db);
+    ~Server_DB_Pair();
 
     boost::asio::io_context ioc;
     boost::asio::ssl::context ssl;
@@ -34,11 +24,7 @@ struct Server_DB_Pair {
 };
 
 struct DisableLogging {
-    DisableLogging() {
-        auto logger = spdlog::create<spdlog::sinks::null_sink_st>("null_logger");
-        //spdlog::set_level(spdlog::level::debug);
-        spdlog::set_default_logger(logger);
-    }
+    DisableLogging();
     ~DisableLogging() = default;
 };
 
@@ -49,6 +35,9 @@ crypto::shared_key get_key();
 std::array<std::byte, 24> get_truncated_hash(const std::string_view data);
 
 session get_session();
+
+server::database get_server_db();
+client::database get_client_db();
 
 std::shared_ptr<client_network_session> get_client();
 std::shared_ptr<Server_DB_Pair> get_server(server::database& db);
