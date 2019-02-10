@@ -177,7 +177,7 @@ client_network_session::~client_network_session() {
     if (res.result() == http::status::ok) {
         //Verification succeeded
         //Device ID will need to be grabbed from the response
-        client_db.save_registration(email, 1, auth_token, {}, {});
+        client_db.save_registration(email, 1, auth_token, identity_keypair, pre_key);
         return true;
     }
     return false;
