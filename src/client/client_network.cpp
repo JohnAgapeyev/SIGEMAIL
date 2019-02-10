@@ -91,10 +91,9 @@ client_network_session::~client_network_session() {
 /*
  * Request is as follows:
  * {
- *   email: {email}
+ *   identity_key: "{identity_key}"
+ *   pre_key: "{public_key}",
  *   signature: "{signature}",
- *   publicKey: "{public_key}",
- *   identityKey: "{identity_key}"
  * }
  */
 [[nodiscard]] bool client_network_session::verify_verification_code(const std::string& email, const uint64_t code) {
@@ -121,9 +120,41 @@ client_network_session::~client_network_session() {
 
     boost::property_tree::ptree ptr;
 
-    ptr.add("email", email);
-
     std::stringstream ss;
+
+    crypto::DH_Keypair identity_keypair;
+
+    {
+        boost::archive::text_oarchive arch{ss};
+        arch << identity_keypair.get_public();
+    }
+
+    ptr.add("identity_key", ss.str());
+
+    crypto::DH_Keypair pre_key;
+
+    ss.str(std::string{});
+
+    {
+        boost::archive::text_oarchive arch{ss};
+        arch << pre_key.get_public();
+    }
+
+    ptr.add("pre_key", ss.str());
+
+    crypto::signature key_sig = crypto::sign_key(identity_keypair, pre_key.get_public());
+
+    ss.str(std::string{});
+
+    {
+        boost::archive::text_oarchive arch{ss};
+        arch << key_sig;
+    }
+
+    ptr.add("signature", ss.str());
+
+    ss.str(std::string{});
+
     boost::property_tree::write_json(ss, ptr);
 
     req.body() = ss.str();

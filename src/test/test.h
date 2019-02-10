@@ -21,6 +21,7 @@ struct Server_DB_Pair {
     boost::asio::ssl::context ssl;
     server::database& db;
     std::shared_ptr<listener> listen;
+    std::thread t;
 };
 
 struct Client_Wrapper {

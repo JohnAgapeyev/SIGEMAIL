@@ -312,6 +312,14 @@ const http::response<http::string_body> http_session::request_verification_code(
     return http_ok();
 }
 
+/*
+ * Request is as follows:
+ * {
+ *   identity_key: "{identity_key}"
+ *   pre_key: "{public_key}",
+ *   signature: "{signature}",
+ * }
+ */
 const http::response<http::string_body> http_session::verify_verification_code(
         http::request<http::string_body>&& req, const std::string_view reg_code) const {
     auto www_auth = req[http::field::www_authenticate].to_string();
@@ -351,12 +359,48 @@ const http::response<http::string_body> http_session::verify_verification_code(
     }
 
     //Now parse the body contents
+    const auto identity = ptr->get_child_optional("identity_key");
+    if (!identity) {
+        return bad_json();
+    }
+    const auto prekey = ptr->get_child_optional("pre_key");
+    if (!prekey) {
+        return bad_json();
+    }
+    const auto signature = ptr->get_child_optional("signature");
+    if (!signature) {
+        return bad_json();
+    }
+
+    crypto::public_key identity_public;
+    {
+        std::stringstream ss{identity->get_value<std::string>()};
+        boost::archive::text_iarchive arch{ss};
+        arch >> identity_public;
+    }
+    crypto::public_key prekey_public;
+    {
+        std::stringstream ss{prekey->get_value<std::string>()};
+        boost::archive::text_iarchive arch{ss};
+        arch >> prekey_public;
+    }
+    crypto::signature signature_data;
+    {
+        std::stringstream ss{signature->get_value<std::string>()};
+        boost::archive::text_iarchive arch{ss};
+        arch >> signature_data;
+    }
+
+    if (!crypto::verify_signed_key(signature_data, prekey_public, identity_public)) {
+        //Signature failed to verify
+        return bad_request("Invalid pre-key signature");
+    }
 
     //Add the properly registered user to the database
     server_db.add_user(user_id, auth_token);
 
     //This will need to be gathered from the initial request contents
-    server_db.add_device(user_id, {}, {}, {});
+    server_db.add_device(user_id, identity_public, prekey_public, signature_data);
 
     return http_ok();
 }

@@ -22,11 +22,12 @@ Server_DB_Pair::Server_DB_Pair(tcp::endpoint endpoint, server::database& in_db) 
     load_server_certificate(ssl);
     listen = std::make_shared<listener>(ioc, ssl, endpoint, db);
     listen->run();
-    std::thread{[this]() { ioc.run(); }}.detach();
+    t = std::thread{[this]() { ioc.run(); }};
 }
 
 Server_DB_Pair::~Server_DB_Pair() {
     ioc.stop();
+    t.join();
 }
 
 Client_Wrapper::Client_Wrapper(
