@@ -23,6 +23,15 @@ struct Server_DB_Pair {
     std::shared_ptr<listener> listen;
 };
 
+struct Client_Wrapper {
+    Client_Wrapper(const char* dest_host, const char* dest_port, client::database& in_db);
+    ~Client_Wrapper() = default;
+
+    boost::asio::io_context ioc;
+    boost::asio::ssl::context ssl;
+    std::shared_ptr<client_network_session> client;
+};
+
 struct DisableLogging {
     DisableLogging();
     ~DisableLogging() = default;
@@ -39,7 +48,7 @@ session get_session();
 server::database get_server_db();
 client::database get_client_db();
 
-std::shared_ptr<client_network_session> get_client(client::database& db);
+std::shared_ptr<Client_Wrapper> get_client(client::database& db);
 std::shared_ptr<Server_DB_Pair> get_server(server::database& db);
 
 #endif /* end of include guard: TEST_H */

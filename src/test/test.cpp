@@ -29,6 +29,15 @@ Server_DB_Pair::~Server_DB_Pair() {
     ioc.stop();
 }
 
+Client_Wrapper::Client_Wrapper(
+        const char* dest_host, const char* dest_port, client::database& in_db) :
+        ioc(),
+        ssl(boost::asio::ssl::context::tls) {
+    ssl.set_default_verify_paths();
+    ssl.set_verify_mode(ssl::verify_none);
+    client = std::make_shared<client_network_session>(ioc, ssl, dest_host, dest_port, in_db);
+}
+
 crypto::secure_vector<std::byte> get_message() {
     crypto::secure_vector<std::byte> out;
     out.assign(76, std::byte{'a'});
@@ -69,23 +78,8 @@ std::array<std::byte, 24> get_truncated_hash(const std::string_view data) {
     return out;
 }
 
-std::shared_ptr<client_network_session> get_client(client::database& db) {
-    boost::asio::io_context ioc;
-    // The SSL context is required, and holds certificates
-    ssl::context ctx{ssl::context::tls};
-    ctx.set_default_verify_paths();
-
-    ctx.set_verify_mode(ssl::verify_none);
-
-    std::shared_ptr<client_network_session> host_ref;
-    try {
-        host_ref = std::make_shared<client_network_session>(ioc, ctx, "localhost", "8443", db);
-    } catch (const boost::system::system_error& e) {
-        spdlog::error("Client network session failed to establish: {}", e.what());
-        throw;
-    }
-
-    return host_ref;
+std::shared_ptr<Client_Wrapper> get_client(client::database& db) {
+    return std::make_shared<Client_Wrapper>("localhost", "8443", db);
 }
 
 std::shared_ptr<Server_DB_Pair> get_server(server::database& db) {

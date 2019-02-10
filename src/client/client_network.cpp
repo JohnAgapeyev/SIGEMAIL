@@ -17,6 +17,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <random>
 
 #include "client_network.h"
 #include "client_state.h"
@@ -53,8 +54,14 @@ client_network_session::~client_network_session() {
     if (ec) {
         spdlog::error("Client shutdown error: {}", ec.message());
     }
-    stream.lowest_layer().shutdown(boost::asio::socket_base::shutdown_both);
-    stream.lowest_layer().close();
+    stream.lowest_layer().shutdown(boost::asio::socket_base::shutdown_both, ec);
+    if (ec) {
+        spdlog::error("Client shutdown error: {}", ec.message());
+    }
+    stream.lowest_layer().close(ec);
+    if (ec) {
+        spdlog::error("Client shutdown error: {}", ec.message());
+    }
 }
 
 /*
@@ -90,7 +97,7 @@ client_network_session::~client_network_session() {
  *   identityKey: "{identity_key}"
  * }
  */
-[[nodiscard]] bool client_network_session::verify_verification_code(const uint64_t code) {
+[[nodiscard]] bool client_network_session::verify_verification_code(const std::string& email, const uint64_t code) {
     const auto target_str = [code]() {
         const auto target_prefix = "/v1/accounts/code/";
         std::stringstream ss;
@@ -99,15 +106,22 @@ client_network_session::~client_network_session() {
         return ss.str();
     }();
 
+    std::string auth_token = generate_random_auth_token();
+
+    const auto auth_str = [&email, &auth_token]() {
+        const auto auth_prefix = "Basic ";
+        std::stringstream ss;
+        ss << auth_prefix << email << ':' << auth_token;
+        return ss.str();
+    }();
+
     req.method(http::verb::put);
     req.target(target_str);
-    //req.set(http::field::www_authenticate, get_auth());
-    req.set(http::field::www_authenticate, "Basic foobar@test.com:testauth");
+    req.set(http::field::www_authenticate, auth_str);
 
     boost::property_tree::ptree ptr;
 
-    //This email should be replaced when client database is online
-    ptr.add("email", "foobar@test.com");
+    ptr.add("email", email);
 
     std::stringstream ss;
     boost::property_tree::write_json(ss, ptr);
@@ -333,4 +347,29 @@ std::string client_network_session::get_auth() {
     std::stringstream ss{"Basic "};
     ss << user_id << ':' << auth_token;
     return ss.str();
+}
+
+std::string client_network_session::generate_random_auth_token() {
+    static const std::vector<char> charset{
+        '0','1','2','3','4',
+        '5','6','7','8','9',
+        'A','B','C','D','E','F',
+        'G','H','I','J','K',
+        'L','M','N','O','P',
+        'Q','R','S','T','U',
+        'V','W','X','Y','Z',
+        'a','b','c','d','e','f',
+        'g','h','i','j','k',
+        'l','m','n','o','p',
+        'q','r','s','t','u',
+        'v','w','x','y','z'
+    };
+    static std::default_random_engine rng(std::random_device{}());
+    static std::uniform_int_distribution<> dist(0, charset.size()-1);
+    static const auto gen_func = [](){return charset[dist(rng)];};
+    static constexpr auto auth_len = 32;
+
+    std::array<char, auth_len> out;
+    std::generate_n(out.begin(), auth_len, gen_func);
+    return std::string{out.data(), out.size()};
 }

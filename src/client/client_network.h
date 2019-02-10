@@ -29,7 +29,7 @@ public:
     ~client_network_session();
 
     [[nodiscard]] bool request_verification_code(const std::string& email);
-    [[nodiscard]] bool verify_verification_code(const uint64_t code);
+    [[nodiscard]] bool verify_verification_code(const std::string& email, const uint64_t code);
     [[nodiscard]] bool register_prekeys(const uint64_t key_count);
     [[nodiscard]] bool lookup_prekey(const std::string& user_id, const uint64_t device_id);
     [[nodiscard]] bool contact_intersection(const std::vector<std::string>& contacts);
@@ -46,6 +46,7 @@ private:
     client::database& client_db;
 
     std::string get_auth();
+    std::string generate_random_auth_token();
 };
 
 #endif /* end of include guard: CLIENT_NETWORK_H */
