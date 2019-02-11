@@ -2,6 +2,7 @@
 #include <thread>
 
 #include "client_state.h"
+#include "db_utils.h"
 #include "listener.h"
 #include "logging.h"
 #include "server_network.h"
@@ -65,11 +66,11 @@ session get_session() {
 }
 
 server::database get_server_db() {
-    return server::database{server::IN_MEMORY_DB};
+    return server::database{IN_MEMORY_DB};
 }
 
 client::database get_client_db() {
-    return client::database{client::IN_MEMORY_DB};
+    return client::database{IN_MEMORY_DB};
 }
 
 std::array<std::byte, 24> get_truncated_hash(const std::string_view data) {

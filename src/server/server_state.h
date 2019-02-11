@@ -104,10 +104,6 @@ namespace server {
         sqlite3_stmt* mailbox_select;
         sqlite3_stmt* registration_codes_select;
 
-        void prepare_statement(const char* sql, sqlite3_stmt** stmt);
-        void exec_statement(const char* sql);
-        void throw_db_error();
-
         static constexpr auto create_users = "\
         CREATE TABLE IF NOT EXISTS users (\
            user_id    TEXT PRIMARY KEY,\
@@ -186,8 +182,6 @@ namespace server {
         static constexpr auto select_registration
                 = "SELECT email, expiration FROM registration_codes WHERE code = ?1;";
     };
-
-    static constexpr auto IN_MEMORY_DB = ":memory:";
 } // namespace server
 
 #endif /* end of include guard: SERVER_STATE_H */

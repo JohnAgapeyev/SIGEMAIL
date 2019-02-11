@@ -101,10 +101,6 @@ namespace client {
         sqlite3_stmt* sessions_select;
         sqlite3_stmt* active_select;
 
-        void prepare_statement(const char* sql, sqlite3_stmt** stmt);
-        void exec_statement(const char* sql);
-        void throw_db_error();
-
         static constexpr auto create_self = "\
         CREATE TABLE IF NOT EXISTS self (\
            user_id      TEXT    PRIMARY KEY,\
@@ -179,8 +175,6 @@ namespace client {
                 = "SELECT contents FROM sessions INNER JOIN devices ON devices.active_session = "
                   "sessions.session_id WHERE devices.device_id = ?1;";
     };
-
-    static constexpr auto IN_MEMORY_DB = ":memory:";
 } // namespace client
 
 #endif /* end of include guard: CLIENT_STATE_H */

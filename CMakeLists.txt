@@ -88,6 +88,7 @@ set(SIGEMAIL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/device.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/message.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/hash.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/db_utils.cpp
 )
 
 set(CLIENT_SOURCES
