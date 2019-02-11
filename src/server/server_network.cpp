@@ -262,7 +262,7 @@ const http::response<http::string_body> http_session::handle_request(
                 return bad_request("Invalid target");
             }
 
-            return lookup_prekey(std::move(req), target.substr(0, delim_loc - 1), target.substr(delim_loc));
+            return lookup_prekey(std::move(req), target.substr(0, delim_loc), target.substr(delim_loc + 1));
         }
         //Check for message prefix
     } else if (target.substr(0, strlen(message_prefix)).compare(message_prefix) == 0) {
@@ -461,6 +461,7 @@ const http::response<http::string_body> http_session::lookup_prekey(
     } else {
         int did;
         try {
+            spdlog::debug("Looking up prekey for string {}", device_id);
             did = std::stoi(std::string{device_id.data(), device_id.size()});
         } catch (...) {
             return bad_request("Requested device id is not a number");
@@ -662,7 +663,7 @@ const http::response<http::string_body> http_session::submit_message(
     //Get the location of the credential split
     delim_loc = www_auth.find_first_of(':');
 
-    const auto user_id = www_auth.substr(0, delim_loc - 1);
+    const auto user_id = www_auth.substr(0, delim_loc);
     const auto password = www_auth.substr(delim_loc + 1);
 
     return server_db.confirm_auth_token(user_id, password);

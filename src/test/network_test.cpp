@@ -50,11 +50,11 @@ BOOST_AUTO_TEST_CASE(lookup_prekeys) {
 
     server_db.add_registration_code("foobar@test.com", 12345);
     BOOST_TEST(client->verify_verification_code("foobar@test.com", 12345));
-    BOOST_TEST(client->register_prekeys(100));
+    BOOST_TEST(client->register_prekeys(10));
 
     server_db.add_registration_code("foobar2@test.com", 12345);
     BOOST_TEST(client->verify_verification_code("foobar2@test.com", 12345));
-    BOOST_TEST(client->register_prekeys(100));
+    BOOST_TEST(client->register_prekeys(10));
 
     BOOST_TEST(client->lookup_prekey("foobar2@test.com", 2));
 }

@@ -68,6 +68,8 @@ client_network_session::~client_network_session() {
  * Request is empty
  */
 [[nodiscard]] bool client_network_session::request_verification_code(const std::string& email) {
+    req.clear();
+    req.body() = "";
     const auto target_str = [&email]() {
         const auto target_prefix = "/v1/accounts/email/code/";
         std::stringstream ss;
@@ -97,6 +99,8 @@ client_network_session::~client_network_session() {
  * }
  */
 [[nodiscard]] bool client_network_session::verify_verification_code(const std::string& email, const uint64_t code) {
+    req.clear();
+    req.body() = "";
     const auto target_str = [code]() {
         const auto target_prefix = "/v1/accounts/code/";
         std::stringstream ss;
@@ -193,6 +197,8 @@ client_network_session::~client_network_session() {
  * }
  */
 [[nodiscard]] bool client_network_session::register_prekeys(const uint64_t key_count) {
+    req.clear();
+    req.body() = "";
     req.method(http::verb::put);
     req.target("/v1/keys/");
     req.set(http::field::www_authenticate, get_auth());
@@ -242,6 +248,8 @@ client_network_session::~client_network_session() {
  * Request is empty
  */
 [[nodiscard]] bool client_network_session::lookup_prekey(const std::string& user_id, const uint64_t device_id) {
+    req.clear();
+    req.body() = "";
     const auto target_str = [&user_id, device_id]() {
         const auto target_prefix = "/v1/keys/";
         std::stringstream ss;
@@ -258,11 +266,16 @@ client_network_session::~client_network_session() {
 
     req.prepare_payload();
 
+    //Clear the stringstream
+    std::stringstream ss;
+    ss << req;
+    spdlog::debug("Sending client request\n{}", ss.str());
+
     http::write(stream, req);
     http::read(stream, buffer, res);
 
     //Clear the stringstream
-    std::stringstream ss;
+    ss.str(std::string{});
     ss << res;
     spdlog::debug("Got a server response:\n{}", ss.str());
 
@@ -276,6 +289,8 @@ client_network_session::~client_network_session() {
  *  }
  */
 [[nodiscard]] bool client_network_session::contact_intersection(const std::vector<std::string>& contacts) {
+    req.clear();
+    req.body() = "";
     req.method(http::verb::put);
     req.target("/v1/directory/tokens");
     req.set(http::field::www_authenticate, get_auth());
@@ -333,6 +348,8 @@ client_network_session::~client_network_session() {
  */
 [[nodiscard]] bool client_network_session::submit_message(const std::string& user_id,
         const std::vector<std::pair<uint64_t, signal_message>>& messages) {
+    req.clear();
+    req.body() = "";
     const auto target_str = [&user_id]() {
         const auto target_prefix = "/v1/messages/";
         std::stringstream ss;
