@@ -216,7 +216,7 @@ void server::database::remove_user(const std::string_view user_id) {
     sqlite3_reset(users_delete);
     sqlite3_clear_bindings(users_delete);
 
-    if (sqlite3_bind_text(users_delete, 1, user_id.data(), user_id.size() + 1, SQLITE_TRANSIENT)
+    if (sqlite3_bind_text(users_delete, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
         throw_db_error(db_conn);
     }
@@ -270,10 +270,12 @@ void server::database::remove_registration_code(const std::string_view email) {
     sqlite3_clear_bindings(registration_codes_delete);
 
     if (sqlite3_bind_text(
-                registration_codes_delete, 1, email.data(), email.size() + 1, SQLITE_TRANSIENT)
+                registration_codes_delete, 1, email.data(), email.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
         throw_db_error(db_conn);
     }
+
+    spdlog::error("Removing registration code for {}", email);
 
     if (sqlite3_step(registration_codes_delete) != SQLITE_DONE) {
         throw_db_error(db_conn);

@@ -258,18 +258,22 @@ BOOST_AUTO_TEST_CASE(remove_registration_code) {
     auto db = get_server_db();
     db.add_registration_code("foobar@test.com", 12345);
     db.remove_registration_code("foobar@test.com");
+    //This should work since the data will be gone, and the unique constraint won't fire
+    db.add_registration_code("foobar@test.com", 12345);
 }
 
 BOOST_AUTO_TEST_CASE(remove_registration_code_bad_email) {
     auto db = get_server_db();
     db.add_registration_code("foobar@test.com", 12345);
     db.remove_registration_code("foobar@com");
+    BOOST_REQUIRE_THROW(db.add_registration_code("foobar@test.com", 12345), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(remove_registration_code_empty_email) {
     auto db = get_server_db();
     db.add_registration_code("foobar@test.com", 12345);
     db.remove_registration_code("");
+    BOOST_REQUIRE_THROW(db.add_registration_code("foobar@test.com", 12345), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(remove_registration_code_empty_table) {
