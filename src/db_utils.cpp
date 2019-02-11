@@ -26,3 +26,12 @@ void throw_db_error(sqlite3* db_conn) {
     spdlog::error(err_msg);
     throw db_error(err_msg);
 }
+
+std::string read_db_string(sqlite3* db_conn, sqlite3_stmt* stmt, const int column_index) {
+    const auto data = sqlite3_column_text(stmt, column_index);
+    if (!data) {
+        throw_db_error(db_conn);
+    }
+    const int data_len = sqlite3_column_bytes(stmt, column_index);
+    return std::string{reinterpret_cast<const char*>(data), static_cast<unsigned long>(data_len)};
+}

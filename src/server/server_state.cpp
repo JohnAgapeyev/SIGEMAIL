@@ -498,13 +498,9 @@ std::vector<std::tuple<int, int, std::string>> server::database::retrieve_messag
     while ((err = sqlite3_step(mailbox_select)) == SQLITE_ROW) {
         const auto message_id = sqlite3_column_int(mailbox_select, 0);
         const auto device_id = sqlite3_column_int(mailbox_select, 1);
+        const auto m_data = read_db_string(db_conn, mailbox_select, 2);
 
-        const auto m_data = sqlite3_column_text(mailbox_select, 2);
-        const auto m_data_len = sqlite3_column_bytes(mailbox_select, 2);
-
-        records.emplace_back(std::move(message_id), std::move(device_id),
-                std::string{reinterpret_cast<const char*>(m_data),
-                        static_cast<unsigned long>(m_data_len)});
+        records.emplace_back(std::move(message_id), std::move(device_id), std::move(m_data));
     }
     if (err != SQLITE_DONE) {
         throw_db_error(db_conn);
@@ -529,27 +525,12 @@ std::vector<std::tuple<int, int, std::string>> server::database::retrieve_messag
         throw_db_error(db_conn);
     }
 
-    const auto email = sqlite3_column_text(registration_codes_select, 0);
-    const auto email_len = sqlite3_column_bytes(registration_codes_select, 0);
-    if (!email) {
-        throw_db_error(db_conn);
-    }
-
-    const std::string email_str{
-            reinterpret_cast<const char*>(email), static_cast<unsigned long>(email_len)};
-
-    const auto date = sqlite3_column_text(registration_codes_select, 1);
-    const auto date_len = sqlite3_column_bytes(registration_codes_select, 1);
-    if (!date) {
-        throw_db_error(db_conn);
-    }
-
-    const std::string date_str{
-            reinterpret_cast<const char*>(date), static_cast<unsigned long>(date_len)};
+    const auto email = read_db_string(db_conn, registration_codes_select, 0);
+    const auto date = read_db_string(db_conn, registration_codes_select, 1);
 
     uint64_t date_int;
     try {
-        date_int = std::stoi(date_str);
+        date_int = std::stoi(date);
     } catch (...) {
         throw_db_error(db_conn);
     }
@@ -557,7 +538,7 @@ std::vector<std::tuple<int, int, std::string>> server::database::retrieve_messag
 
     if (date_int < curr_time) {
         //Registration code has expired
-        remove_registration_code(email_str);
+        remove_registration_code(email);
         return "";
     }
 
@@ -565,5 +546,5 @@ std::vector<std::tuple<int, int, std::string>> server::database::retrieve_messag
     if (sqlite3_step(registration_codes_select) != SQLITE_DONE) {
         throw_db_error(db_conn);
     }
-    return email_str;
+    return email;
 }

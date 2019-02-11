@@ -318,47 +318,11 @@ std::tuple<std::string, int, std::string, crypto::DH_Keypair, crypto::DH_Keypair
         throw_db_error(db_conn);
     }
 
-    const auto user_id_str = sqlite3_column_text(self_select, 0);
-    if (!user_id_str) {
-        throw_db_error(db_conn);
-    }
-
-    const int user_id_len = sqlite3_column_bytes(self_select, 0);
-
-    std::string user_id{
-            reinterpret_cast<const char*>(user_id_str), static_cast<unsigned long>(user_id_len)};
-
+    auto user_id = read_db_string(db_conn, self_select, 0);
     const int device_id = sqlite3_column_int(self_select, 1);
-
-    const auto auth_token_str = sqlite3_column_text(self_select, 2);
-    if (!auth_token_str) {
-        throw_db_error(db_conn);
-    }
-
-    const int auth_token_len = sqlite3_column_bytes(self_select, 2);
-
-    std::string auth_token{reinterpret_cast<const char*>(auth_token_str),
-            static_cast<unsigned long>(auth_token_len)};
-
-    const auto identity_str = sqlite3_column_text(self_select, 3);
-    if (!identity_str) {
-        throw_db_error(db_conn);
-    }
-
-    const int identity_str_len = sqlite3_column_bytes(self_select, 3);
-
-    std::string identity{reinterpret_cast<const char*>(identity_str),
-            static_cast<unsigned long>(identity_str_len)};
-
-    const auto prekey_str = sqlite3_column_text(self_select, 3);
-    if (!prekey_str) {
-        throw_db_error(db_conn);
-    }
-
-    const int prekey_str_len = sqlite3_column_bytes(self_select, 3);
-
-    std::string prekey{
-            reinterpret_cast<const char*>(prekey_str), static_cast<unsigned long>(prekey_str_len)};
+    auto auth_token = read_db_string(db_conn, self_select, 2);
+    auto identity = read_db_string(db_conn, self_select, 3);
+    auto prekey = read_db_string(db_conn, self_select, 4);
 
     std::stringstream ss{identity};
 
@@ -405,14 +369,7 @@ crypto::DH_Keypair client::database::get_one_time_key(const crypto::public_key& 
         throw_db_error(db_conn);
     }
 
-    const auto serialized_str = sqlite3_column_text(one_time_select, 0);
-    if (!serialized_str) {
-        throw_db_error(db_conn);
-    }
-    const auto serialized_len = sqlite3_column_bytes(one_time_select, 0);
-
-    ss.str(std::string{reinterpret_cast<const char*>(serialized_str),
-            static_cast<unsigned long>(serialized_len)});
+    ss.str(read_db_string(db_conn, one_time_select, 0));
 
     crypto::DH_Keypair one_time_keypair;
 
@@ -463,14 +420,8 @@ std::vector<std::pair<int, session>> client::database::get_sessions_by_device(co
     int err;
     while ((err = sqlite3_step(sessions_select)) == SQLITE_ROW) {
         const int id = sqlite3_column_int(sessions_select, 0);
-        const auto serialized_str = sqlite3_column_text(sessions_select, 1);
-        if (!serialized_str) {
-            throw_db_error(db_conn);
-        }
-        const auto serialized_len = sqlite3_column_bytes(sessions_select, 1);
 
-        std::stringstream ss{std::string{reinterpret_cast<const char*>(serialized_str),
-                static_cast<unsigned long>(serialized_len)}};
+        std::stringstream ss{read_db_string(db_conn, sessions_select, 1)};
 
         //This is annoying but I have to do this for deserialization
         session s{crypto::public_key{}, crypto::DH_Keypair{}};
@@ -498,14 +449,7 @@ session client::database::get_active_session(const int device_id) {
         throw_db_error(db_conn);
     }
 
-    const auto serialized_str = sqlite3_column_text(active_select, 0);
-    if (!serialized_str) {
-        throw_db_error(db_conn);
-    }
-    const auto serialized_len = sqlite3_column_bytes(active_select, 0);
-
-    std::stringstream ss{std::string{reinterpret_cast<const char*>(serialized_str),
-            static_cast<unsigned long>(serialized_len)}};
+    std::stringstream ss{read_db_string(db_conn, active_select, 0)};
 
     //This is annoying but I have to do this for deserialization
     session s{crypto::public_key{}, crypto::DH_Keypair{}};
