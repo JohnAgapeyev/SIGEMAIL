@@ -401,6 +401,33 @@ client_network_session::~client_network_session() {
     return res.result() == http::status::ok;
 }
 
+[[nodiscard]] bool client_network_session::retrieve_messages(const std::string& user_id) {
+    req.clear();
+    req.body() = "";
+    const auto target_str = [&user_id]() {
+        const auto target_prefix = "/v1/messages/";
+        std::stringstream ss;
+        ss << target_prefix;
+        ss << user_id;
+        return ss.str();
+    }();
+
+    req.method(http::verb::get);
+    req.target(target_str);
+    req.set(http::field::www_authenticate, get_auth());
+
+    req.body() = "";
+    req.prepare_payload();
+
+    http::write(stream, req);
+    http::read(stream, buffer, res);
+
+    std::stringstream ss;
+    ss << res;
+    spdlog::debug("Got a server response:\n{}", ss.str());
+    return res.result() == http::status::ok;
+}
+
 std::string client_network_session::get_auth() {
     const auto [user_id, device_id, auth_token, identity, pre_key] = client_db.get_self_data();
     std::stringstream ss;

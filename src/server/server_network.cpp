@@ -285,7 +285,7 @@ const http::response<http::string_body> http_session::handle_request(
             return submit_message(std::move(req), target);
         } else {
             //GET request is for retrieving messages
-            return submit_message(std::move(req), target);
+            return retrieve_messages(std::move(req), target);
         }
         //Check for contact intersection target
     } else if (target.compare(contact_intersection_target) == 0) {
@@ -612,12 +612,8 @@ const http::response<http::string_body> http_session::submit_message(
         }
 
         std::vector<std::byte> m;
-
-        ss.str(contents_str);
-
-        {
-            boost::archive::text_iarchive arch{ss};
-            arch >> m;
+        for (const auto c : contents_str) {
+            m.emplace_back(static_cast<std::byte>(c));
         }
 
         server_db.add_message(email, device_id, m);

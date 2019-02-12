@@ -35,6 +35,7 @@ public:
     [[nodiscard]] bool contact_intersection(const std::vector<std::string>& contacts);
     [[nodiscard]] bool submit_message(const std::string& user_id,
             const std::vector<std::pair<uint64_t, signal_message>>& messages);
+    [[nodiscard]] bool retrieve_messages(const std::string& user_id);
 
 private:
     tcp::resolver resolver;
