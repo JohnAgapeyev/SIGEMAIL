@@ -161,6 +161,9 @@ void http_session::do_close() {
  * Submit Message
  * PUT /v1/messages/{destination_number}
  *
+ * Receive Messages
+ * GET /v1/messages/{source_number}
+ *
  * These are based on the examples given at:
  * https://github.com/signalapp/Signal-Server/wiki/API-Protocol
  *
@@ -266,7 +269,7 @@ const http::response<http::string_body> http_session::handle_request(
         }
         //Check for message prefix
     } else if (target.substr(0, strlen(message_prefix)).compare(message_prefix) == 0) {
-        if (req.method() != http::verb::put) {
+        if (req.method() != http::verb::put && req.method() != http::verb::get) {
             return bad_method();
         }
 
@@ -278,7 +281,12 @@ const http::response<http::string_body> http_session::handle_request(
         target.erase(0, 1);
 
         spdlog::info("Message message");
-        return submit_message(std::move(req), target);
+        if (req.method() == http::verb::put) {
+            return submit_message(std::move(req), target);
+        } else {
+            //GET request is for retrieving messages
+            return submit_message(std::move(req), target);
+        }
         //Check for contact intersection target
     } else if (target.compare(contact_intersection_target) == 0) {
         if (req.method() != http::verb::put) {
@@ -596,14 +604,16 @@ const http::response<http::string_body> http_session::submit_message(
 
         int device_id;
 
-        {
-            boost::archive::text_iarchive arch{ss};
-            arch >> device_id;
+        try {
+            device_id = std::stoi(device_id_str);
+        } catch (const std::exception&) {
+            //Bad request
+            return bad_request("Destination Device ID is not a number");
         }
 
         std::vector<std::byte> m;
 
-        ss.str(std::string{});
+        ss.str(contents_str);
 
         {
             boost::archive::text_iarchive arch{ss};
@@ -614,6 +624,49 @@ const http::response<http::string_body> http_session::submit_message(
     }
 
     return http_ok();
+}
+
+/**
+ * Server response packet is as follows:
+ * {
+ *  messages : [
+ *      {
+ *      device_id : {device_id},
+ *      contents : {contents}
+ *      },
+ *      ...
+ *  ]
+ * }
+ */
+const http::response<http::string_body> http_session::retrieve_messages(
+        http::request<http::string_body>&& req, const std::string_view email) const {
+    if (!confirm_authentication(req[http::field::www_authenticate].to_string())) {
+        //Authentication code verification failed
+        return unauthorized();
+    }
+    if (!req.body().empty()) {
+        //Expected an empty request, but received data
+        return bad_request("Expected an empty request body");
+    }
+    const auto data = server_db.retrieve_messages(email);
+
+        boost::property_tree::ptree out_ptr;
+        boost::property_tree::ptree message_data;
+
+    for (const auto& [message_id, device_id, contents] : data) {
+        boost::property_tree::ptree child;
+
+        child.put("device_id", device_id);
+        child.put("contents", contents);
+        message_data.push_back(std::make_pair("", child));
+    }
+
+    out_ptr.add_child("messages", message_data);
+
+    std::stringstream ss;
+    boost::property_tree::write_json(ss, out_ptr);
+
+    return http_ok(ss.str());
 }
 
 [[nodiscard]] bool http_session::validate_auth(std::string www_auth) const {

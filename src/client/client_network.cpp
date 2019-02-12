@@ -337,7 +337,7 @@ client_network_session::~client_network_session() {
  * Request is as follows:
  *
  * {
- *    message: [
+ *    messages: [
  *      {
  *             dest_device: {destination_device_id},
  *             contents: "{serialized message}",
@@ -370,7 +370,7 @@ client_network_session::~client_network_session() {
 
         std::stringstream ss;
         ss << device_id;
-        child.add("dest_device", ss.str());
+        child.add("device_id", ss.str());
 
         //Clear the stringstream
         ss.str(std::string{});
@@ -383,7 +383,7 @@ client_network_session::~client_network_session() {
         message_data.push_back(std::make_pair("", child));
     }
 
-    ptr.add_child("message", message_data);
+    ptr.add_child("messages", message_data);
 
     std::stringstream ss;
     boost::property_tree::write_json(ss, ptr);

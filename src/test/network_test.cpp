@@ -83,4 +83,78 @@ BOOST_AUTO_TEST_CASE(contact_intersection) {
     BOOST_TEST(client->contact_intersection(contacts));
 }
 
+BOOST_AUTO_TEST_CASE(submit_message) {
+    auto server_db = get_server_db();
+    auto client_db = get_client_db();
+    const auto server_wrapper = get_server(server_db);
+    const auto client_wrapper = get_client(client_db);
+    auto client = client_wrapper->client;
+
+    server_db.add_registration_code("foobar@test.com", 12345);
+    BOOST_TEST(client->verify_verification_code("foobar@test.com", 12345));
+
+    crypto::DH_Keypair send_pair;
+    crypto::DH_Keypair recv_pair;
+
+    session send_s{get_key(), recv_pair.get_public()};
+    const auto m = send_s.ratchet_encrypt(get_message(), get_aad());
+
+    std::vector<std::pair<uint64_t, signal_message>> messages;
+
+    messages.emplace_back(1, m);
+
+    BOOST_TEST(client->submit_message("foobar@test.com", messages));
+}
+
+BOOST_AUTO_TEST_CASE(submit_message_multiple) {
+    auto server_db = get_server_db();
+    auto client_db = get_client_db();
+    const auto server_wrapper = get_server(server_db);
+    const auto client_wrapper = get_client(client_db);
+    auto client = client_wrapper->client;
+
+    server_db.add_registration_code("foobar@test.com", 12345);
+    BOOST_TEST(client->verify_verification_code("foobar@test.com", 12345));
+
+    crypto::DH_Keypair send_pair;
+    crypto::DH_Keypair recv_pair;
+
+    session send_s{get_key(), recv_pair.get_public()};
+    const auto m = send_s.ratchet_encrypt(get_message(), get_aad());
+
+    std::vector<std::pair<uint64_t, signal_message>> messages;
+    messages.emplace_back(1, m);
+    messages.emplace_back(1, m);
+    messages.emplace_back(1, m);
+    messages.emplace_back(1, m);
+    messages.emplace_back(1, m);
+
+    BOOST_TEST(client->submit_message("foobar@test.com", messages));
+}
+
+BOOST_AUTO_TEST_CASE(submit_message_different_dests) {
+    auto server_db = get_server_db();
+    auto client_db = get_client_db();
+    const auto server_wrapper = get_server(server_db);
+    const auto client_wrapper = get_client(client_db);
+    auto client = client_wrapper->client;
+
+    server_db.add_registration_code("foobar@test.com", 12345);
+    BOOST_TEST(client->verify_verification_code("foobar@test.com", 12345));
+
+    server_db.add_registration_code("foobar2@test.com", 12345);
+    BOOST_TEST(client->verify_verification_code("foobar2@test.com", 12345));
+
+    crypto::DH_Keypair send_pair;
+    crypto::DH_Keypair recv_pair;
+
+    session send_s{get_key(), recv_pair.get_public()};
+    const auto m = send_s.ratchet_encrypt(get_message(), get_aad());
+
+    std::vector<std::pair<uint64_t, signal_message>> messages;
+    messages.emplace_back(2, m);
+
+    BOOST_TEST(client->submit_message("foobar2@test.com", messages));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

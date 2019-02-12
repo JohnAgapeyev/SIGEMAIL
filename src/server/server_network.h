@@ -52,6 +52,8 @@ private:
             http::request<http::string_body>&& req) const;
     const http::response<http::string_body> submit_message(
             http::request<http::string_body>&& req, const std::string_view email) const;
+    const http::response<http::string_body> retrieve_messages(
+            http::request<http::string_body>&& req, const std::string_view email) const;
 
     [[nodiscard]] bool confirm_authentication(std::string www_auth) const;
     [[nodiscard]] bool validate_auth(std::string www_auth) const;
