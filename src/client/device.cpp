@@ -5,47 +5,52 @@
 #include "device_record.h"
 #include "user_record.h"
 
-void device::delete_user_record(const user_index& u_index) {
+device::device(boost::asio::io_context& ioc, ssl::context& ctx, const char* dest_host,
+            const char* dest_port, client::database& db) : client_db(db), network_session(std::make_shared<client_network_session>(ioc, ctx, dest_host, dest_port, client_db)) {
+    //Foobar
+}
+
+void device::delete_user_record(const std::string& u_index) {
     if (!correspondents.erase(u_index)) {
         //User index did not exist
         throw std::runtime_error("Tried to delete user record that did not exist");
     }
 }
 
-void device::delete_device_record(const user_index& u_index, uint64_t device_index) {
+void device::delete_device_record(const std::string& u_index, int device_index) {
     auto user_rec = correspondents.at(u_index);
     if (user_rec.delete_device_record(device_index)) {
         delete_user_record(u_index);
     }
 }
 
-void device::delete_session(const user_index& u_index, uint64_t device_index, const session& s) {
+void device::delete_session(const std::string& u_index, int device_index, const session& s) {
     auto device_rec = correspondents.at(u_index).user_devices.at(device_index);
     if (device_rec.delete_session(s)) {
         delete_device_record(u_index, device_index);
     }
 }
 
-void device::insert_session(const user_index& u_index, uint64_t device_index, const session& s) {
+void device::insert_session(const std::string& u_index, int device_index, const session& s) {
     auto device_rec = correspondents.at(u_index).user_devices.at(device_index);
     device_rec.insert_session(s);
 }
 
-void device::activate_session(const user_index& u_index, uint64_t device_index, const session& s) {
+void device::activate_session(const std::string& u_index, int device_index, const session& s) {
     auto device_rec = correspondents.at(u_index).user_devices.at(device_index);
     device_rec.activate_session(s);
 }
 
-void device::mark_user_stale(const user_index& u_index) {
+void device::mark_user_stale(const std::string& u_index) {
     correspondents.at(u_index).is_stale = true;
 }
 
-void device::mark_device_stale(const user_index& u_index, uint64_t device_index) {
+void device::mark_device_stale(const std::string& u_index, int device_index) {
     correspondents.at(u_index).user_devices.at(device_index).is_stale = true;
 }
 
 void device::conditionally_update(
-        const user_index& u_index, uint64_t device_index, const crypto::public_key& pub_key) {
+        const std::string& u_index, int device_index, const crypto::public_key& pub_key) {
     if (!correspondents.count(u_index)) {
         //User does not exist
         user_record ur;
@@ -64,7 +69,7 @@ void device::conditionally_update(
 }
 
 void device::prep_for_encryption(
-        const user_index& u_index, uint64_t device_index, const crypto::public_key& pub_key) {
+        const std::string& u_index, int device_index, const crypto::public_key& pub_key) {
     if (correspondents.at(u_index).is_stale) {
         delete_user_record(u_index);
     } else if (correspondents.at(u_index).user_devices.at(device_index).is_stale) {
@@ -104,13 +109,13 @@ void device::prep_for_encryption(
 }
 
 void device::send_signal_message(const crypto::secure_vector<std::byte>& plaintext,
-        const crypto::secure_vector<user_index>& recipients) {
+        const crypto::secure_vector<std::string>& recipients) {
 
     //TODO This needs to be retrieved from the X3DH agreement somehow
     const crypto::secure_vector<std::byte> aad;
 
     for (const auto& user_id : recipients) {
-        std::map<uint64_t, signal_message> device_messages;
+        std::map<int, signal_message> device_messages;
 
         if (const auto it = correspondents.find(user_id); it != correspondents.end() && !it->second.is_stale) {
             for (const auto& [device_id, device_rec] : it->second.user_devices) {
@@ -134,7 +139,7 @@ void device::send_signal_message(const crypto::secure_vector<std::byte>& plainte
 }
 
 void device::receive_signal_message(const crypto::secure_vector<std::byte>& ciphertext,
-        const user_index& user_id, const uint64_t device_id) {
+        const std::string& user_id, const int device_id) {
     //Foobar
 }
 
@@ -144,6 +149,6 @@ void device::receive_signal_message(const crypto::secure_vector<std::byte>& ciph
  * If unsuccessful, we should get either bad user_id, or bad device_ids
  * Those error conditions will be handled in send_signal_message, since they require record updates internally
  */
-void device::send_messages_to_server(const user_index& user_id, const std::map<uint64_t, signal_message>& messages) {
+void device::send_messages_to_server(const std::string& user_id, const std::map<int, signal_message>& messages) {
     //Foobar
 }

@@ -83,9 +83,6 @@ set(SIGEMAIL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/sign.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/session.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/key_pack.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/user_record.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/device_record.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/device.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/message.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/hash.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/db_utils.cpp
@@ -94,6 +91,9 @@ set(SIGEMAIL_SOURCES
 set(CLIENT_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/client/client_network.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/client/client_state.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/client/device_record.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/client/device.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/client/user_record.cpp
 )
 
 set(SERVER_SOURCES
