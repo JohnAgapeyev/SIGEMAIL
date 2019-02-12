@@ -17,22 +17,22 @@ public:
     device& operator=(device&&) = default;
     device& operator=(const device&) = default;
 
-    void delete_user_record(const std::string& u_index);
-    void delete_device_record(const std::string& u_index, int device_index);
-    void delete_session(const std::string& u_index, int device_index, const session& s);
+    void delete_user_record(const std::string& email);
+    void delete_device_record(const std::string& email, int device_index);
+    void delete_session(const std::string& email, int device_index, const session& s);
 
-    void insert_session(const std::string& u_index, int device_index, const session& s);
+    void insert_session(const std::string& email, int device_index, const session& s);
 
-    void activate_session(const std::string& u_index, int device_index, const session& s);
+    void activate_session(const std::string& email, int device_index, const session& s);
 
-    void mark_user_stale(const std::string& u_index);
-    void mark_device_stale(const std::string& u_index, int device_index);
+    void mark_user_stale(const std::string& email);
+    void mark_device_stale(const std::string& email, int device_index);
 
     void conditionally_update(
-            const std::string& u_index, int device_index, const crypto::public_key& pub_key);
+            const std::string& email, int device_index, const crypto::public_key& pub_key);
 
     void prep_for_encryption(
-            const std::string& u_index, int device_index, const crypto::public_key& pub_key);
+            const std::string& email, int device_index, const crypto::public_key& pub_key);
 
     void send_signal_message(const crypto::secure_vector<std::byte>& plaintext,
             const crypto::secure_vector<std::string>& recipients);
