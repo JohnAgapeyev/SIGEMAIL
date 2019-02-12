@@ -12,6 +12,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <cstdint>
 #include <cstdlib>
+#include <optional>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -301,7 +302,7 @@ client_network_session::~client_network_session() {
         const auto key_child = value.get_child_optional("");
         if (!key_child) {
             //Got a badly formattted server response
-        return std::nullopt;
+            return std::nullopt;
         }
         const auto device_id_str = key_child->get_child("device_id").get_value<std::string>();
         const auto identity_str = key_child->get_child("identity").get_value<std::string>();
@@ -379,7 +380,7 @@ client_network_session::~client_network_session() {
  *   "contacts": [ "{token}", "{token}", ..., "{token}" ]
  *  }
  */
-[[nodiscard]] bool client_network_session::contact_intersection(const std::vector<std::string>& contacts) {
+[[nodiscard]] std::optional<std::vector<std::string>> client_network_session::contact_intersection(const std::vector<std::string>& contacts) {
     req.clear();
     req.body() = "";
     req.method(http::verb::put);
@@ -388,6 +389,8 @@ client_network_session::~client_network_session() {
 
     boost::property_tree::ptree ptr;
     boost::property_tree::ptree contact_data;
+
+    std::map<std::array<std::byte, 24>, std::string> contact_hash_map;
 
     for (const auto& email : contacts) {
         boost::property_tree::ptree child;
@@ -403,6 +406,8 @@ client_network_session::~client_network_session() {
 
         child.put("", ss.str());
         contact_data.push_back(std::make_pair("", child));
+
+        contact_hash_map.emplace(trunc_hash, email);
     }
 
     ptr.add_child("contacts", contact_data);
@@ -421,7 +426,53 @@ client_network_session::~client_network_session() {
     ss << res;
     spdlog::debug("Got a server response:\n{}", ss.str());
 
-    return res.result() == http::status::ok;
+    if (res.result() != http::status::ok) {
+        return std::nullopt;
+    }
+
+    const auto resp_ptr = parse_json_response(res.body());
+    if (!resp_ptr) {
+        //Got a badly formattted server response
+        return std::nullopt;
+    }
+
+    const auto contact_ptr = resp_ptr->get_child_optional("contacts");
+    if (!contact_ptr) {
+        //Got a badly formattted server response
+        return std::nullopt;
+    }
+
+    std::vector<std::string> intersection;
+    std::vector<std::array<std::byte, 24>> intersection_hashes;
+
+    for (const auto& [key, value] : *contact_ptr) {
+        const auto hash_child = value.get_child_optional("");
+        if (!hash_child) {
+            //Got a badly formattted server response
+            return std::nullopt;
+        }
+        const auto trunc_hash_str = hash_child->get_value<std::string>();
+
+        std::array<std::byte, 24> trunc_hash;
+
+        std::stringstream ss{trunc_hash_str};
+        boost::archive::text_iarchive arch{ss};
+
+        arch >> trunc_hash;
+
+        intersection_hashes.emplace_back(std::move(trunc_hash));
+    }
+
+    for (const auto& hash : intersection_hashes) {
+        decltype(contact_hash_map.begin()) hash_it;
+        if ((hash_it = contact_hash_map.find(hash)) == contact_hash_map.end()) {
+            //Server responded with a hash that we don't have
+            return std::nullopt;
+        }
+        intersection.emplace_back(hash_it->second);
+    }
+
+    return intersection;
 }
 
 /*

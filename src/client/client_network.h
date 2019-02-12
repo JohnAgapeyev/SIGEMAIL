@@ -13,6 +13,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "client_state.h"
@@ -35,7 +36,8 @@ public:
     [[nodiscard]] std::optional<std::vector<std::tuple<int, crypto::public_key, crypto::public_key,
             std::optional<crypto::public_key>>>>
             lookup_prekey(const std::string& user_id, const int device_id);
-    [[nodiscard]] bool contact_intersection(const std::vector<std::string>& contacts);
+    [[nodiscard]] std::optional<std::vector<std::string>> contact_intersection(
+            const std::vector<std::string>& contacts);
     [[nodiscard]] bool submit_message(const std::string& user_id,
             const std::vector<std::pair<int, signal_message>>& messages);
     [[nodiscard]] bool retrieve_messages(const std::string& user_id);

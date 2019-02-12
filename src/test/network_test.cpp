@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(contact_intersection) {
     contacts.emplace_back("foobar3@test.com");
     contacts.emplace_back("foobar5@test.com");
 
-    BOOST_TEST(client->contact_intersection(contacts));
+    BOOST_TEST(client->contact_intersection(contacts).has_value());
 }
 
 BOOST_AUTO_TEST_CASE(submit_message) {
