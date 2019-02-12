@@ -556,7 +556,7 @@ const http::response<http::string_body> http_session::contact_intersection(
 
         arch << token;
 
-        child.add("", ss.str());
+        child.put("", ss.str());
         contact_data.push_back(std::make_pair("", child));
     }
 
