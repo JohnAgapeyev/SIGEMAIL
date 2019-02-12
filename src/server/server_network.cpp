@@ -449,6 +449,21 @@ const http::response<http::string_body> http_session::register_prekeys(
     return http_ok();
 }
 
+/**
+ * Server response is as follows:
+ * {
+ *  keys : [
+ *      {
+ *      device_id : {device_id},
+ *      identity : {identity},
+ *      prekey : {prekey},
+ *      signature : {signature},
+ *      one_time : {one_time}
+ *      },
+ *      ...
+ *  ]
+ * }
+ */
 const http::response<http::string_body> http_session::lookup_prekey(
         http::request<http::string_body>&& req, const std::string_view email,
         const std::string_view device_id) const {
@@ -513,6 +528,20 @@ const http::response<http::string_body> http_session::lookup_prekey(
         }
 
         element.add("signature", ss.str());
+
+        try {
+            const auto [key_id, one_time] = server_db.get_one_time_key(device_id);
+            //Clear the stringstream
+            ss.str(std::string{});
+
+            {
+                boost::archive::text_oarchive arch{ss};
+                arch << one_time;
+            }
+            element.add("one_time", ss.str());
+        } catch(const db_error&) {
+            //Ignore the error, and don't send a one time key
+        }
 
         child.push_back(std::make_pair("", element));
     }
@@ -600,10 +629,7 @@ const http::response<http::string_body> http_session::submit_message(
         const auto device_id_str = message_child->get_child("device_id").get_value<std::string>();
         const auto contents_str = message_child->get_child("contents").get_value<std::string>();
 
-        std::stringstream ss{device_id_str};
-
         int device_id;
-
         try {
             device_id = std::stoi(device_id_str);
         } catch (const std::exception&) {

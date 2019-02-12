@@ -50,13 +50,25 @@ BOOST_AUTO_TEST_CASE(lookup_prekeys) {
 
     server_db.add_registration_code("foobar@test.com", 12345);
     BOOST_TEST(client->verify_verification_code("foobar@test.com", 12345));
-    BOOST_TEST(client->register_prekeys(10));
 
     server_db.add_registration_code("foobar2@test.com", 12345);
     BOOST_TEST(client->verify_verification_code("foobar2@test.com", 12345));
+
+    BOOST_TEST(client->lookup_prekey("foobar2@test.com", 2).has_value());
+}
+
+BOOST_AUTO_TEST_CASE(lookup_prekeys_with_one_time) {
+    auto server_db = get_server_db();
+    auto client_db = get_client_db();
+    const auto server_wrapper = get_server(server_db);
+    const auto client_wrapper = get_client(client_db);
+    auto client = client_wrapper->client;
+
+    server_db.add_registration_code("foobar@test.com", 12345);
+    BOOST_TEST(client->verify_verification_code("foobar@test.com", 12345));
     BOOST_TEST(client->register_prekeys(10));
 
-    BOOST_TEST(client->lookup_prekey("foobar2@test.com", 2));
+    BOOST_TEST(client->lookup_prekey("foobar2@test.com", 1).has_value());
 }
 
 BOOST_AUTO_TEST_CASE(contact_intersection) {
@@ -99,7 +111,7 @@ BOOST_AUTO_TEST_CASE(submit_message) {
     session send_s{get_key(), recv_pair.get_public()};
     const auto m = send_s.ratchet_encrypt(get_message(), get_aad());
 
-    std::vector<std::pair<uint64_t, signal_message>> messages;
+    std::vector<std::pair<int, signal_message>> messages;
 
     messages.emplace_back(1, m);
 
@@ -122,7 +134,7 @@ BOOST_AUTO_TEST_CASE(submit_message_multiple) {
     session send_s{get_key(), recv_pair.get_public()};
     const auto m = send_s.ratchet_encrypt(get_message(), get_aad());
 
-    std::vector<std::pair<uint64_t, signal_message>> messages;
+    std::vector<std::pair<int, signal_message>> messages;
     messages.emplace_back(1, m);
     messages.emplace_back(1, m);
     messages.emplace_back(1, m);
@@ -151,7 +163,7 @@ BOOST_AUTO_TEST_CASE(submit_message_different_dests) {
     session send_s{get_key(), recv_pair.get_public()};
     const auto m = send_s.ratchet_encrypt(get_message(), get_aad());
 
-    std::vector<std::pair<uint64_t, signal_message>> messages;
+    std::vector<std::pair<int, signal_message>> messages;
     messages.emplace_back(2, m);
 
     BOOST_TEST(client->submit_message("foobar2@test.com", messages));
@@ -173,7 +185,7 @@ BOOST_AUTO_TEST_CASE(retrieve_messages) {
     session send_s{get_key(), recv_pair.get_public()};
     const auto m = send_s.ratchet_encrypt(get_message(), get_aad());
 
-    std::vector<std::pair<uint64_t, signal_message>> messages;
+    std::vector<std::pair<int, signal_message>> messages;
     messages.emplace_back(1, m);
 
     BOOST_TEST(client->submit_message("foobar@test.com", messages));

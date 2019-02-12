@@ -98,7 +98,7 @@ client_network_session::~client_network_session() {
  *   signature: "{signature}",
  * }
  */
-[[nodiscard]] bool client_network_session::verify_verification_code(const std::string& email, const uint64_t code) {
+[[nodiscard]] bool client_network_session::verify_verification_code(const std::string& email, const int code) {
     req.clear();
     req.body() = "";
     const auto target_str = [code]() {
@@ -196,7 +196,7 @@ client_network_session::~client_network_session() {
  *       ...]
  * }
  */
-[[nodiscard]] bool client_network_session::register_prekeys(const uint64_t key_count) {
+[[nodiscard]] bool client_network_session::register_prekeys(const int key_count) {
     req.clear();
     req.body() = "";
     req.method(http::verb::put);
@@ -206,7 +206,7 @@ client_network_session::~client_network_session() {
     boost::property_tree::ptree ptr;
     boost::property_tree::ptree keys;
 
-    for (uint64_t i = 0; i < key_count; ++i) {
+    for (int i = 0; i < key_count; ++i) {
         boost::property_tree::ptree child;
 
         //Ephemeral key needs to be stored in client database here
@@ -247,7 +247,7 @@ client_network_session::~client_network_session() {
 /*
  * Request is empty
  */
-[[nodiscard]] bool client_network_session::lookup_prekey(const std::string& user_id, const uint64_t device_id) {
+[[nodiscard]] std::optional<std::vector<std::tuple<int, crypto::public_key, crypto::public_key, std::optional<crypto::public_key>>>> client_network_session::lookup_prekey(const std::string& user_id, const int device_id) {
     req.clear();
     req.body() = "";
     const auto target_str = [&user_id, device_id]() {
@@ -279,7 +279,98 @@ client_network_session::~client_network_session() {
     ss << res;
     spdlog::debug("Got a server response:\n{}", ss.str());
 
-    return res.result() == http::status::ok;
+    if (res.result() != http::status::ok) {
+        return std::nullopt;
+    }
+
+    const auto ptr = parse_json_response(res.body());
+    if (!ptr) {
+        //Got a badly formattted server response
+        return std::nullopt;
+    }
+
+    const auto keys = ptr->get_child_optional("keys");
+    if (!keys) {
+        //Got a badly formattted server response
+        return std::nullopt;
+    }
+
+    std::vector<std::tuple<int, crypto::public_key, crypto::public_key, std::optional<crypto::public_key>>> key_data;
+
+    for (const auto& [key, value] : *keys) {
+        const auto key_child = value.get_child_optional("");
+        if (!key_child) {
+            //Got a badly formattted server response
+        return std::nullopt;
+        }
+        const auto device_id_str = key_child->get_child("device_id").get_value<std::string>();
+        const auto identity_str = key_child->get_child("identity").get_value<std::string>();
+        const auto prekey_str = key_child->get_child("prekey").get_value<std::string>();
+        const auto signature_str = key_child->get_child("signature").get_value<std::string>();
+
+        int device_id;
+        try {
+            device_id = std::stoi(device_id_str);
+        } catch (const std::exception&) {
+            //Bad request
+        return std::nullopt;
+        }
+
+        std::stringstream ss{identity_str};
+
+        crypto::public_key identity_pubkey;
+
+        {
+            boost::archive::text_iarchive arch{ss};
+            arch >> identity_pubkey;
+        }
+
+        ss.str(prekey_str);
+
+        crypto::public_key prekey_pubkey;
+
+        {
+            boost::archive::text_iarchive arch{ss};
+            arch >> prekey_pubkey;
+        }
+
+        ss.str(signature_str);
+
+        crypto::signature signature;
+
+        {
+            boost::archive::text_iarchive arch{ss};
+            arch >> signature;
+        }
+
+        if (!crypto::verify_signed_key(signature, prekey_pubkey, identity_pubkey)) {
+            //Key signature failed to verify
+            return std::nullopt;
+        }
+
+        std::optional<crypto::public_key> one_time_key;
+        try {
+            const auto one_time_str = key_child->get_child("one_time").get_value<std::string>();
+            ss.str(one_time_str);
+            crypto::public_key one_time;
+            {
+                boost::archive::text_iarchive arch{ss};
+                arch >> one_time;
+            }
+            one_time_key = one_time;
+        } catch(const boost::property_tree::ptree_error&) {
+            //Ignore the error, there is no one-time key
+            one_time_key = std::nullopt;
+        } catch(...) {
+            //Unknown error on the one time key
+            spdlog::error("Hit an unknown error on reading one time key from lookup message");
+            one_time_key = std::nullopt;
+        }
+
+        key_data.emplace_back(device_id, identity_pubkey, prekey_pubkey, one_time_key);
+    }
+
+    return key_data;
 }
 
 /*
@@ -347,7 +438,7 @@ client_network_session::~client_network_session() {
  * }
  */
 [[nodiscard]] bool client_network_session::submit_message(const std::string& user_id,
-        const std::vector<std::pair<uint64_t, signal_message>>& messages) {
+        const std::vector<std::pair<int, signal_message>>& messages) {
     req.clear();
     req.body() = "";
     const auto target_str = [&user_id]() {
@@ -458,4 +549,18 @@ std::string client_network_session::generate_random_auth_token() {
     std::array<char, auth_len> out;
     std::generate_n(out.begin(), auth_len, gen_func);
     return std::string{out.data(), out.size()};
+}
+
+std::optional<boost::property_tree::ptree> client_network_session::parse_json_response(
+        const std::string& body) const {
+    try {
+        std::stringstream ss{body};
+        boost::property_tree::ptree ptr;
+        boost::property_tree::read_json(ss, ptr);
+        spdlog::debug("Received response contents {}", ss.str());
+        return ptr;
+    } catch (const boost::property_tree::json_parser_error& e) {
+        spdlog::error("Failed to convert JSON to Property Tree: {}", e.what());
+        return std::nullopt;
+    }
 }

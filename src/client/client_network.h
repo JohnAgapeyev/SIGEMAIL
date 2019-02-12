@@ -7,6 +7,7 @@
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <cstdint>
 #include <cstdlib>
 #include <functional>
@@ -14,8 +15,8 @@
 #include <memory>
 #include <string>
 
-#include "message.h"
 #include "client_state.h"
+#include "message.h"
 
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
 namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
@@ -29,12 +30,14 @@ public:
     ~client_network_session();
 
     [[nodiscard]] bool request_verification_code(const std::string& email);
-    [[nodiscard]] bool verify_verification_code(const std::string& email, const uint64_t code);
-    [[nodiscard]] bool register_prekeys(const uint64_t key_count);
-    [[nodiscard]] bool lookup_prekey(const std::string& user_id, const uint64_t device_id);
+    [[nodiscard]] bool verify_verification_code(const std::string& email, const int code);
+    [[nodiscard]] bool register_prekeys(const int key_count);
+    [[nodiscard]] std::optional<std::vector<std::tuple<int, crypto::public_key, crypto::public_key,
+            std::optional<crypto::public_key>>>>
+            lookup_prekey(const std::string& user_id, const int device_id);
     [[nodiscard]] bool contact_intersection(const std::vector<std::string>& contacts);
     [[nodiscard]] bool submit_message(const std::string& user_id,
-            const std::vector<std::pair<uint64_t, signal_message>>& messages);
+            const std::vector<std::pair<int, signal_message>>& messages);
     [[nodiscard]] bool retrieve_messages(const std::string& user_id);
 
 private:
@@ -48,6 +51,7 @@ private:
 
     std::string get_auth();
     std::string generate_random_auth_token();
+    std::optional<boost::property_tree::ptree> parse_json_response(const std::string& body) const;
 };
 
 #endif /* end of include guard: CLIENT_NETWORK_H */
