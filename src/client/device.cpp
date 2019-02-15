@@ -3,7 +3,10 @@
 
 #include "device.h"
 #include "device_record.h"
+#include "error.h"
 #include "user_record.h"
+#include "client_state.h"
+#include "client_network.h"
 
 device::device(boost::asio::io_context& ioc, ssl::context& ctx, const char* dest_host,
             const char* dest_port, client::database& db) : client_db(db), network_session(std::make_shared<client_network_session>(ioc, ctx, dest_host, dest_port, client_db)) {
@@ -86,6 +89,7 @@ void device::mark_device_stale(const std::string& email, int device_index) {
 void device::conditionally_update(
         const std::string& email, int device_index, const crypto::public_key& pub_key) {
 #if 1
+    //This section won't overwrite records with different public keys, only creating a new record
     client_db.add_user_record(email);
     client_db.add_device_record(email, device_index, pub_key);
 #else
@@ -123,6 +127,37 @@ void device::prep_for_encryption(
 
 #if 1
     //This entire section needs to contact the server for data, and the end result must be an active session created and inserted
+    try {
+        client_db.get_active_session(device_index);
+        return;
+    } catch(const db_error&) {}
+    //Sesssion does not exist, have to contact the server
+    //Do it here instead of nested inside the catch
+    const auto dest_data = network_session->lookup_prekey(email, device_index);
+    if (!dest_data.has_value()) {
+        //Server returned an error
+        throw std::runtime_error("Server could not retrieve destination data");
+    }
+    const auto server_data = *dest_data;
+
+    const auto [self_email, self_device_id, auth_token, self_identity, self_prekey] = client_db.get_self_data();
+
+    //Need to somehow save this keypair for later I'm pretty sure
+    const crypto::DH_Keypair ephemeral_keypair;
+
+    for (const auto& [device_id, identity_key, pre_key, one_time_key] : server_data) {
+        if (device_id != device_index) {
+            continue;
+        }
+        crypto::shared_key secret_key;
+        if (one_time_key.has_value()) {
+            secret_key = crypto::X3DH_sender(self_identity, ephemeral_keypair, identity_key, pre_key);
+        } else {
+            secret_key = crypto::X3DH_sender(self_identity, ephemeral_keypair, identity_key, pre_key);
+        }
+        session s{secret_key, pub_key};
+        insert_session(email, device_id, s);
+    }
 #else
     auto device_rec = correspondents.at(email).user_devices.at(device_index);
     if (!device_rec.active_session) {
