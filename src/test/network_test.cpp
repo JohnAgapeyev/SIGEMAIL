@@ -193,4 +193,39 @@ BOOST_AUTO_TEST_CASE(retrieve_messages) {
     BOOST_TEST(client->retrieve_messages("foobar@test.com").has_value());
 }
 
+BOOST_AUTO_TEST_CASE(retrieve_messages_decrypt) {
+    auto server_db = get_server_db();
+    auto client_db = get_client_db();
+    const auto server_wrapper = get_server(server_db);
+    const auto client_wrapper = get_client(client_db);
+    auto client = client_wrapper->client;
+
+    server_db.add_registration_code("foobar@test.com", 12345);
+    BOOST_TEST(client->verify_verification_code("foobar@test.com", 12345));
+
+    crypto::DH_Keypair send_pair;
+    crypto::DH_Keypair recv_pair;
+
+    session send_s{get_key(), recv_pair.get_public()};
+    session recv_s{get_key(), recv_pair};
+
+    const auto plaintext = get_message();
+    const auto aad = get_aad();
+
+    const auto m = send_s.ratchet_encrypt(plaintext, aad);
+
+    std::vector<std::pair<int, signal_message>> messages;
+    messages.emplace_back(1, m);
+
+    BOOST_TEST(client->submit_message("foobar@test.com", messages));
+
+    std::optional<std::vector<std::pair<int, signal_message>>> data;
+
+    BOOST_TEST((data = client->retrieve_messages("foobar@test.com")).has_value());
+
+    const auto new_plain = recv_s.ratchet_decrypt(data->front().second);
+
+    BOOST_TEST(plaintext == new_plain);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
