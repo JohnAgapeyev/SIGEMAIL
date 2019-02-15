@@ -6,8 +6,9 @@
 #include "client_state.h"
 #include "client_network.h"
 
-device::device(boost::asio::io_context& ioc, ssl::context& ctx, const char* dest_host,
-            const char* dest_port, client::database& db) : client_db(db), network_session(std::make_shared<client_network_session>(ioc, ctx, dest_host, dest_port, client_db)) {
+device::device(const char* dest_host,
+            const char* dest_port, client::database& db) : ioc(), ssl(boost::asio::ssl::context::tls),
+    client_db(db), network_session(std::make_shared<client_network_session>(ioc, ssl, dest_host, dest_port, client_db)) {
     //Foobar
 }
 

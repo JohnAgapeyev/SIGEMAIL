@@ -111,6 +111,7 @@ set(TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/server_db_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/client_db_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test/network_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/test/high_level_test.cpp
 )
 
 set(INCLUDE_DIRS
@@ -196,6 +197,7 @@ add_test(NAME serialization_tests COMMAND test_binary -t serialization_tests)
 add_test(NAME server_db_tests COMMAND test_binary -t server_db_tests)
 add_test(NAME client_db_tests COMMAND test_binary -t client_db_tests)
 add_test(NAME network_tests COMMAND test_binary -t network_tests)
+add_test(NAME high_level_tests COMMAND test_binary -t high_level_tests)
 
 target_link_libraries(test_binary PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES} Boost::unit_test_framework Boost::serialization spdlog)
 

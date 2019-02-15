@@ -8,8 +8,7 @@
 
 class device {
 public:
-    device(boost::asio::io_context& ioc, ssl::context& ctx, const char* dest_host,
-            const char* dest_port, client::database& db);
+    device(const char* dest_host, const char* dest_port, client::database& db);
     ~device() = default;
     device(const device&) = default;
     device(device&&) = default;
@@ -39,6 +38,8 @@ public:
     std::optional<std::vector<crypto::secure_vector<std::byte>>> receive_signal_message();
 
 private:
+    boost::asio::io_context ioc;
+    boost::asio::ssl::context ssl;
     client::database& client_db;
     std::shared_ptr<client_network_session> network_session;
 };
