@@ -314,7 +314,7 @@ client_network_session::~client_network_session() {
             device_id = std::stoi(device_id_str);
         } catch (const std::exception&) {
             //Bad request
-        return std::nullopt;
+            return std::nullopt;
         }
 
         std::stringstream ss{identity_str};
@@ -543,7 +543,7 @@ client_network_session::~client_network_session() {
     return res.result() == http::status::ok;
 }
 
-[[nodiscard]] bool client_network_session::retrieve_messages(const std::string& user_id) {
+[[nodiscard]] std::optional<std::vector<std::pair<int, signal_message>>> client_network_session::retrieve_messages(const std::string& user_id) {
     req.clear();
     req.body() = "";
     const auto target_str = [&user_id]() {
@@ -567,7 +567,59 @@ client_network_session::~client_network_session() {
     std::stringstream ss;
     ss << res;
     spdlog::debug("Got a server response:\n{}", ss.str());
-    return res.result() == http::status::ok;
+
+    if (res.result() != http::status::ok) {
+        return std::nullopt;
+    }
+
+    const auto resp_ptr = parse_json_response(res.body());
+    if (!resp_ptr) {
+        //Got a badly formattted server response
+        return std::nullopt;
+    }
+
+    const auto message_ptr = resp_ptr->get_child_optional("messages");
+    if (!message_ptr) {
+        //Got a badly formattted server response
+        return std::nullopt;
+    }
+
+    std::vector<std::pair<int, signal_message>> messages;
+
+    for (const auto& [key, value] : *message_ptr) {
+        const auto id_child = value.get_child_optional("device_id");
+        if (!id_child) {
+            //Got a badly formattted server response
+            return std::nullopt;
+        }
+        const auto device_id_str = id_child->get_value<std::string>();
+
+        int device_id;
+        try {
+            device_id = std::stoi(device_id_str);
+        } catch(const std::exception&) {
+            //Failed to convert device id to int
+            return std::nullopt;
+        }
+
+        const auto contents_child = value.get_child_optional("contents");
+        if (!contents_child) {
+            //Got a badly formattted server response
+            return std::nullopt;
+        }
+        const auto contents_str = contents_child->get_value<std::string>();
+
+        signal_message m;
+
+        std::stringstream ss{contents_str};
+        boost::archive::text_iarchive arch{ss};
+
+        arch >> m;
+
+        messages.emplace_back(device_id, std::move(m));
+    }
+
+    return messages;
 }
 
 std::string client_network_session::get_auth() {

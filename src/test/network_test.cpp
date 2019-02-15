@@ -190,7 +190,7 @@ BOOST_AUTO_TEST_CASE(retrieve_messages) {
 
     BOOST_TEST(client->submit_message("foobar@test.com", messages));
 
-    BOOST_TEST(client->retrieve_messages("foobar@test.com"));
+    BOOST_TEST(client->retrieve_messages("foobar@test.com").has_value());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
