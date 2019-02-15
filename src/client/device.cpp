@@ -129,7 +129,30 @@ void device::send_signal_message(const crypto::secure_vector<std::byte>& plainte
     }
 }
 
-void device::receive_signal_message(const crypto::secure_vector<std::byte>& ciphertext,
-        const std::string& user_id, const int device_id) {
-    //Foobar
+std::optional<std::vector<crypto::secure_vector<std::byte>>> device::receive_signal_message() {
+    const auto [self_email, self_device_id, auth_token, self_identity, self_prekey] = client_db.get_self_data();
+
+    const auto server_data = network_session->retrieve_messages(self_email);
+    if (!server_data.has_value()) {
+        //Network had an error, or response was empty
+        return std::nullopt;
+    }
+
+    auto session = client_db.get_active_session(self_device_id);
+
+    std::vector<crypto::secure_vector<std::byte>> plaintext_messages;
+
+    for (const auto& [device_id, mesg] : *server_data) {
+        if (device_id != self_device_id) {
+            //Ignore messages we can't decrypt
+            continue;
+        }
+        //This will also need to sync up with the database as well
+        auto plaintext = session.ratchet_decrypt(mesg);
+
+        plaintext_messages.emplace_back(std::move(plaintext));
+    }
+
+    return plaintext_messages;
 }
+

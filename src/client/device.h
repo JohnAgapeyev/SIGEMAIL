@@ -36,8 +36,7 @@ public:
     void send_signal_message(const crypto::secure_vector<std::byte>& plaintext,
             const crypto::secure_vector<std::string>& recipients);
 
-    void receive_signal_message(const crypto::secure_vector<std::byte>& ciphertext,
-            const std::string& user_id, const int device_id);
+    std::optional<std::vector<crypto::secure_vector<std::byte>>> receive_signal_message();
 
 private:
     client::database& client_db;
