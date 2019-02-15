@@ -44,7 +44,7 @@ namespace server {
 
         void add_user(const std::string_view user_id, const std::string_view auth_token);
         //Signature should be verified before this call
-        void add_device(const std::string_view user_id, const crypto::public_key& identity,
+        int add_device(const std::string_view user_id, const crypto::public_key& identity,
                 const crypto::public_key& pre_key, const crypto::signature& signature);
         void add_one_time_key(const int device_id, const crypto::public_key& one_time);
         void add_message(const std::string_view user_id, const int device_id,
@@ -104,6 +104,8 @@ namespace server {
         sqlite3_stmt* mailbox_select;
         sqlite3_stmt* registration_codes_select;
 
+        sqlite3_stmt* last_rowid_insert;
+
         static constexpr auto create_users = "\
         CREATE TABLE IF NOT EXISTS users (\
            user_id    TEXT PRIMARY KEY,\
@@ -156,6 +158,8 @@ namespace server {
         static constexpr auto insert_registration
                 = "INSERT INTO registration_codes VALUES (?1, ?2, "
                   "strftime('%s', 'now', '+1 day'));";
+
+        static constexpr auto rowid_insert = "SELECT last_insert_rowid();";
 
         static constexpr auto update_pre_key_stmt
                 = "UPDATE devices SET pre_key = ?1, signature = ?2 WHERE device_id = ?3;";

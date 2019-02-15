@@ -327,6 +327,11 @@ const http::response<http::string_body> http_session::request_verification_code(
  *   pre_key: "{public_key}",
  *   signature: "{signature}",
  * }
+ *
+ * Response is as follows:
+ * {
+ *   device_id: "{new_device_id}"
+ * }
  */
 const http::response<http::string_body> http_session::verify_verification_code(
         http::request<http::string_body>&& req, const std::string_view reg_code) const {
@@ -409,12 +414,18 @@ const http::response<http::string_body> http_session::verify_verification_code(
 
     //Add the properly registered user to the database
     server_db.add_user(user_id, auth_token);
-    server_db.add_device(user_id, identity_public, prekey_public, signature_data);
+    int added_device_id = server_db.add_device(user_id, identity_public, prekey_public, signature_data);
 
     //Finally, remove the registration code from the database
     server_db.remove_registration_code(user_id);
 
-    return http_ok();
+    boost::property_tree::ptree out_ptr;
+    out_ptr.add("device_id", added_device_id);
+
+    std::stringstream ss;
+    boost::property_tree::write_json(ss, out_ptr);
+
+    return http_ok(ss.str());
 }
 
 const http::response<http::string_body> http_session::register_prekeys(

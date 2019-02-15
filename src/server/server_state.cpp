@@ -46,6 +46,8 @@ server::database::database(const char* db_name) {
     prepare_statement(db_conn, select_one_time, &otpk_select);
     prepare_statement(db_conn, select_message, &mailbox_select);
     prepare_statement(db_conn, select_registration, &registration_codes_select);
+
+    prepare_statement(db_conn, rowid_insert, &last_rowid_insert);
 }
 
 server::database::~database() {
@@ -99,7 +101,7 @@ void server::database::add_user(const std::string_view user_id, const std::strin
     }
 }
 
-void server::database::add_device(const std::string_view user_id,
+int server::database::add_device(const std::string_view user_id,
         const crypto::public_key& identity, const crypto::public_key& pre_key,
         const crypto::signature& signature) {
     sqlite3_reset(devices_insert);
@@ -121,10 +123,23 @@ void server::database::add_device(const std::string_view user_id,
             != SQLITE_OK) {
         throw_db_error(db_conn);
     }
-
     if (sqlite3_step(devices_insert) != SQLITE_DONE) {
         throw_db_error(db_conn);
     }
+
+    sqlite3_reset(last_rowid_insert);
+
+    if (sqlite3_step(last_rowid_insert) != SQLITE_ROW) {
+        throw_db_error(db_conn);
+    }
+
+    int inserted_device_id = sqlite3_column_int(last_rowid_insert, 0);
+
+    if (sqlite3_step(last_rowid_insert) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
+
+    return inserted_device_id;
 }
 
 void server::database::add_one_time_key(const int device_id, const crypto::public_key& one_time) {

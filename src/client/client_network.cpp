@@ -71,6 +71,8 @@ client_network_session::~client_network_session() {
 [[nodiscard]] bool client_network_session::request_verification_code(const std::string& email) {
     req.clear();
     req.body() = "";
+    res.clear();
+    res.body() = "";
     const auto target_str = [&email]() {
         const auto target_prefix = "/v1/accounts/email/code/";
         std::stringstream ss;
@@ -102,6 +104,8 @@ client_network_session::~client_network_session() {
 [[nodiscard]] bool client_network_session::verify_verification_code(const std::string& email, const int code) {
     req.clear();
     req.body() = "";
+    res.clear();
+    res.body() = "";
     const auto target_str = [code]() {
         const auto target_prefix = "/v1/accounts/code/";
         std::stringstream ss;
@@ -179,13 +183,34 @@ client_network_session::~client_network_session() {
     ss << res;
     spdlog::debug("Got a server response:\n{}", ss.str());
 
-    if (res.result() == http::status::ok) {
-        //Verification succeeded
-        //Device ID will need to be grabbed from the response
-        client_db.save_registration(email, 1, auth_token, identity_keypair, pre_key);
-        return true;
+    if (res.result() != http::status::ok) {
+        return false;
     }
-    return false;
+
+    const auto resp_ptr = parse_json_response(res.body());
+    if (!resp_ptr) {
+        //Got a badly formattted server response
+        return false;
+    }
+
+    const auto did = resp_ptr->get_child_optional("device_id");
+    if (!did) {
+        //Got a badly formattted server response
+        return false;
+    }
+    const auto device_id_str = did->get_value<std::string>();
+
+    int device_id;
+    try {
+        device_id = std::stoi(device_id_str);
+    } catch (const std::exception&) {
+        //Bad request
+        return false;
+    }
+
+    //Verification succeeded
+    client_db.save_registration(email, device_id, auth_token, identity_keypair, pre_key);
+    return true;
 }
 
 /*
@@ -200,6 +225,8 @@ client_network_session::~client_network_session() {
 [[nodiscard]] bool client_network_session::register_prekeys(const int key_count) {
     req.clear();
     req.body() = "";
+    res.clear();
+    res.body() = "";
     req.method(http::verb::put);
     req.target("/v1/keys/");
     req.set(http::field::www_authenticate, get_auth());
@@ -251,6 +278,8 @@ client_network_session::~client_network_session() {
 [[nodiscard]] std::optional<std::vector<std::tuple<int, crypto::public_key, crypto::public_key, std::optional<crypto::public_key>>>> client_network_session::lookup_prekey(const std::string& user_id, const int device_id) {
     req.clear();
     req.body() = "";
+    res.clear();
+    res.body() = "";
     const auto target_str = [&user_id, device_id]() {
         const auto target_prefix = "/v1/keys/";
         std::stringstream ss;
@@ -383,6 +412,8 @@ client_network_session::~client_network_session() {
 [[nodiscard]] std::optional<std::vector<std::string>> client_network_session::contact_intersection(const std::vector<std::string>& contacts) {
     req.clear();
     req.body() = "";
+    res.clear();
+    res.body() = "";
     req.method(http::verb::put);
     req.target("/v1/directory/tokens");
     req.set(http::field::www_authenticate, get_auth());
@@ -492,6 +523,8 @@ client_network_session::~client_network_session() {
         const std::vector<std::pair<int, signal_message>>& messages) {
     req.clear();
     req.body() = "";
+    res.clear();
+    res.body() = "";
     const auto target_str = [&user_id]() {
         const auto target_prefix = "/v1/messages/";
         std::stringstream ss;
@@ -546,6 +579,8 @@ client_network_session::~client_network_session() {
 [[nodiscard]] std::optional<std::vector<std::pair<int, signal_message>>> client_network_session::retrieve_messages(const std::string& user_id) {
     req.clear();
     req.body() = "";
+    res.clear();
+    res.body() = "";
     const auto target_str = [&user_id]() {
         const auto target_prefix = "/v1/messages/";
         std::stringstream ss;

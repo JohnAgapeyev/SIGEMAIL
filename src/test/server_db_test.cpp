@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(add_empty_user) {
 BOOST_AUTO_TEST_CASE(add_device) {
     auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
-    db.add_device("foobar@test.com", {}, {}, {});
+    BOOST_TEST(db.add_device("foobar@test.com", {}, {}, {}) == 1);
 }
 
 BOOST_AUTO_TEST_CASE(add_device_bad_user) {
