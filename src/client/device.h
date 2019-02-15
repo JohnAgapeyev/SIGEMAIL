@@ -19,11 +19,11 @@ public:
 
     void delete_user_record(const std::string& email);
     void delete_device_record(const std::string& email, int device_index);
-    void delete_session(const std::string& email, int device_index, const session& s);
+    void delete_session(const std::string& email, int device_index, const int session_id);
 
     void insert_session(const std::string& email, int device_index, const session& s);
 
-    void activate_session(const std::string& email, int device_index, const session& s);
+    void activate_session(const std::string& email, int device_index, const int session_id);
 
     void mark_user_stale(const std::string& email);
     void mark_device_stale(const std::string& email, int device_index);

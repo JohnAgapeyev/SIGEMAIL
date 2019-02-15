@@ -23,6 +23,7 @@ void device::delete_user_record(const std::string& email) {
 
 void device::delete_device_record(const std::string& email, int device_index) {
 #if 1
+    (void)email;
     //This currently doesn't recurse to delete unused user records
     client_db.remove_device_record(device_index);
 #else
@@ -33,9 +34,11 @@ void device::delete_device_record(const std::string& email, int device_index) {
 #endif
 }
 
-void device::delete_session(const std::string& email, int device_index, const session& s) {
+void device::delete_session(const std::string& email, int device_index, const int session_id) {
 #if 1
-    //Currently this needs its interface changed to place nicely
+    (void)email;
+    (void)device_index;
+    client_db.remove_session(session_id);
 #else
     auto device_rec = correspondents.at(email).user_devices.at(device_index);
     if (device_rec.delete_session(s)) {
@@ -53,10 +56,10 @@ void device::insert_session(const std::string& email, int device_index, const se
 #endif
 }
 
-void device::activate_session(const std::string& email, int device_index, const session& s) {
+void device::activate_session(const std::string& email, int device_index, const int session_id) {
 #if 1
-    //This needs its interface changed to use session ids
-    //client_db.activate_session(device_index, s);
+    (void)email;
+    client_db.activate_session(device_index, session_id);
 #else
     auto device_rec = correspondents.at(email).user_devices.at(device_index);
     device_rec.activate_session(s);
@@ -73,6 +76,7 @@ void device::mark_user_stale(const std::string& email) {
 
 void device::mark_device_stale(const std::string& email, int device_index) {
 #if 1
+    (void)email;
     client_db.mark_device_stale(device_index);
 #else
     correspondents.at(email).user_devices.at(device_index).is_stale = true;
