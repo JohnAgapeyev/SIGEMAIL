@@ -159,7 +159,8 @@ void client::database::add_user_record(const std::string& email) {
     }
 }
 
-void client::database::add_device_record(const std::string& email, const int device_index) {
+void client::database::add_device_record(
+        const std::string& email, const int device_index, const crypto::public_key& pub_key) {
     sqlite3_reset(devices_insert);
     sqlite3_clear_bindings(devices_insert);
 
@@ -168,6 +169,10 @@ void client::database::add_device_record(const std::string& email, const int dev
         throw_db_error(db_conn);
     }
     if (sqlite3_bind_int(devices_insert, 2, device_index) != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+    if (sqlite3_bind_blob(devices_insert, 3, pub_key.data(), pub_key.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
         throw_db_error(db_conn);
     }
     if (sqlite3_step(devices_insert) != SQLITE_DONE) {

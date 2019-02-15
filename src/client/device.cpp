@@ -82,9 +82,8 @@ void device::mark_device_stale(const std::string& email, int device_index) {
 void device::conditionally_update(
         const std::string& email, int device_index, const crypto::public_key& pub_key) {
 #if 1
-    //This will require some database modifications to handle everything nicely
     client_db.add_user_record(email);
-    client_db.add_device_record(email, device_index);
+    client_db.add_device_record(email, device_index, pub_key);
 #else
     if (!correspondents.count(email)) {
         //User does not exist

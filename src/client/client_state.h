@@ -50,7 +50,7 @@ namespace client {
 
         void add_one_time(const crypto::DH_Keypair& one_time);
         void add_user_record(const std::string& email);
-        void add_device_record(const std::string& email, const int device_record);
+        void add_device_record(const std::string& email, const int device_record, const crypto::public_key& pub_key);
         void add_session(const std::string& email, const int device_index, const session& s);
 
         void remove_user_record(const std::string& email);
@@ -126,11 +126,12 @@ namespace client {
         CREATE TABLE IF NOT EXISTS devices (\
            device_id      INTEGER PRIMARY KEY,\
            user_id        TEXT    NOT NULL,\
+           public_key     BLOB    NOT NULL,\
            active_session INTEGER,\
            stale          INTEGER NOT NULL,\
            FOREIGN KEY(user_id) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE,\
            FOREIGN KEY(active_session) REFERENCES sessions(session_id) ON UPDATE CASCADE ON DELETE CASCADE,\
-           CHECK(length(user_id) > 0 and stale >= 0 and stale <= 1)\
+           CHECK(length(user_id) > 0 and stale >= 0 and stale <= 1 and length(public_key) > 0)\
         );";
         static constexpr auto create_sessions = "\
         CREATE TABLE IF NOT EXISTS sessions (\
@@ -147,7 +148,7 @@ namespace client {
         static constexpr auto insert_one_time = "INSERT INTO one_time VALUES (?1, ?2);";
         static constexpr auto insert_users = "INSERT INTO users VALUES (?1, 0);";
         static constexpr auto insert_devices
-                = "INSERT INTO devices(device_id, user_id, active_session, stale) VALUES (?2, ?1, NULL, 0);";
+                = "INSERT INTO devices(device_id, user_id, public_key, active_session, stale) VALUES (?2, ?1, ?3, NULL, 0);";
         static constexpr auto insert_sessions
                 = "INSERT INTO sessions(user_id, device_id, contents) VALUES (?1, ?2, ?3);";
 
