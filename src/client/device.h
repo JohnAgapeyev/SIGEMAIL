@@ -5,7 +5,6 @@
 #include "client_state.h"
 #include "crypto.h"
 #include "session.h"
-#include "user_record.h"
 
 class device {
 public:
@@ -43,17 +42,6 @@ public:
 private:
     client::database& client_db;
     std::shared_ptr<client_network_session> network_session;
-
-    std::unordered_map<std::string, user_record, boost::hash<std::string>> correspondents;
-    user_record self;
-
-    crypto::DH_Keypair identity_keypair;
-    crypto::DH_Keypair signed_pre_key;
-    crypto::signature pre_key_signature;
-    crypto::secure_vector<crypto::DH_Keypair> one_time_keys;
-
-    void send_messages_to_server(
-            const std::string& user_id, const std::map<int, signal_message>& messages);
 };
 
 #endif /* end of include guard: DEVICE_H */

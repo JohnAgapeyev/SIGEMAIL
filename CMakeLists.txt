@@ -91,9 +91,7 @@ set(SIGEMAIL_SOURCES
 set(CLIENT_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/client/client_network.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/client/client_state.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/client/device_record.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/client/device.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/client/user_record.cpp
 )
 
 set(SERVER_SOURCES
