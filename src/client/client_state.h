@@ -51,7 +51,7 @@ namespace client {
         void add_one_time(const crypto::DH_Keypair& one_time);
         void add_user_record(const std::string& email);
         void add_device_record(const std::string& email, const int device_record, const crypto::public_key& pub_key);
-        void add_session(const std::string& email, const int device_index, const session& s);
+        int add_session(const std::string& email, const int device_index, const session& s);
 
         void remove_user_record(const std::string& email);
         void remove_device_record(const int device_index);
@@ -73,7 +73,9 @@ namespace client {
 
         std::vector<std::pair<int, session>> get_sessions_by_device(const int device_id);
 
-        session get_active_session(const int device_id);
+        std::pair<int, session> get_active_session(const int device_id);
+
+        void sync_session(const int session_id, const session& s);
 
     private:
         sqlite3* db_conn;
@@ -100,6 +102,8 @@ namespace client {
         sqlite3_stmt* devices_select;
         sqlite3_stmt* sessions_select;
         sqlite3_stmt* active_select;
+
+        sqlite3_stmt* last_rowid_insert;
 
         static constexpr auto create_self = "\
         CREATE TABLE IF NOT EXISTS self (\
@@ -152,10 +156,13 @@ namespace client {
         static constexpr auto insert_sessions
                 = "INSERT INTO sessions(user_id, device_id, contents) VALUES (?1, ?2, ?3);";
 
+        static constexpr auto rowid_insert = "SELECT last_insert_rowid();";
+
         static constexpr auto update_users = "UPDATE users SET stale = 1 WHERE user_id = ?1;";
         static constexpr auto update_devices = "UPDATE devices SET stale = 1 WHERE device_id = ?1;";
         static constexpr auto update_devices_active
                 = "UPDATE devices SET active_session = ?2 WHERE device_id = ?1;";
+        static constexpr auto update_sessions = "UPDATE sessions SET contents = ?2 WHERE session_id = ?1;";
 
         static constexpr auto delete_users = "DELETE FROM users WHERE user_id = ?1;";
         static constexpr auto delete_users_stale = "DELETE FROM users WHERE stale = 1;";
@@ -173,7 +180,7 @@ namespace client {
                 = "SELECT session_id, contents FROM sessions WHERE device_id = ?1;";
 
         static constexpr auto select_active
-                = "SELECT contents FROM sessions INNER JOIN devices ON devices.active_session = "
+                = "SELECT devices.active_session, contents FROM sessions INNER JOIN devices ON devices.active_session = "
                   "sessions.session_id WHERE devices.device_id = ?1;";
     };
 } // namespace client

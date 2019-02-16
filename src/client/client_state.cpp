@@ -34,6 +34,7 @@ client::database::database(const char* db_name) {
     prepare_statement(db_conn, update_users, &users_update);
     prepare_statement(db_conn, update_devices, &devices_update);
     prepare_statement(db_conn, update_devices_active, &devices_update_active);
+    prepare_statement(db_conn, update_sessions, &sessions_update);
 
     prepare_statement(db_conn, delete_sessions, &sessions_delete);
     prepare_statement(db_conn, delete_users, &users_delete);
@@ -45,6 +46,8 @@ client::database::database(const char* db_name) {
     prepare_statement(db_conn, select_device_ids, &devices_select);
     prepare_statement(db_conn, select_sessions, &sessions_select);
     prepare_statement(db_conn, select_active, &active_select);
+
+    prepare_statement(db_conn, rowid_insert, &last_rowid_insert);
 }
 
 client::database::~database() {
@@ -57,6 +60,7 @@ client::database::~database() {
     sqlite3_finalize(users_update);
     sqlite3_finalize(devices_update);
     sqlite3_finalize(devices_update_active);
+    sqlite3_finalize(sessions_update);
 
     sqlite3_finalize(sessions_delete);
     sqlite3_finalize(devices_delete);
@@ -68,6 +72,8 @@ client::database::~database() {
     sqlite3_finalize(devices_select);
     sqlite3_finalize(sessions_select);
     sqlite3_finalize(active_select);
+
+    sqlite3_finalize(last_rowid_insert);
 
     sqlite3_close(db_conn);
 }
@@ -180,7 +186,7 @@ void client::database::add_device_record(
     }
 }
 
-void client::database::add_session(
+int client::database::add_session(
         const std::string& email, const int device_index, const session& s) {
     sqlite3_reset(sessions_insert);
     sqlite3_clear_bindings(sessions_insert);
@@ -208,6 +214,19 @@ void client::database::add_session(
     if (sqlite3_step(sessions_insert) != SQLITE_DONE) {
         throw_db_error(db_conn);
     }
+
+    sqlite3_reset(last_rowid_insert);
+    if (sqlite3_step(last_rowid_insert) != SQLITE_ROW) {
+        throw_db_error(db_conn);
+    }
+
+    int added_session_id = sqlite3_column_int(last_rowid_insert, 0);
+
+    if (sqlite3_step(last_rowid_insert) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
+
+    return added_session_id;
 }
 
 void client::database::mark_user_stale(const std::string& email) {
@@ -442,7 +461,7 @@ std::vector<std::pair<int, session>> client::database::get_sessions_by_device(co
     return session_list;
 }
 
-session client::database::get_active_session(const int device_id) {
+std::pair<int, session> client::database::get_active_session(const int device_id) {
     sqlite3_reset(active_select);
     sqlite3_clear_bindings(active_select);
 
@@ -454,7 +473,9 @@ session client::database::get_active_session(const int device_id) {
         throw_db_error(db_conn);
     }
 
-    std::stringstream ss{read_db_string(db_conn, active_select, 0)};
+    const int session_id = sqlite3_column_int(active_select, 0);
+
+    std::stringstream ss{read_db_string(db_conn, active_select, 1)};
 
     //This is annoying but I have to do this for deserialization
     session s{crypto::public_key{}, crypto::DH_Keypair{}};
@@ -466,5 +487,30 @@ session client::database::get_active_session(const int device_id) {
     if (sqlite3_step(active_select) != SQLITE_DONE) {
         throw_db_error(db_conn);
     }
-    return s;
+    return {session_id, s};
+}
+
+void client::database::sync_session(const int session_id, const session& s) {
+    sqlite3_reset(sessions_update);
+    sqlite3_clear_bindings(sessions_update);
+
+    if (sqlite3_bind_int(sessions_update, 1, session_id) != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    std::stringstream ss;
+    boost::archive::text_oarchive arch{ss};
+    arch << s;
+
+    const auto serialized = ss.str();
+
+    if (sqlite3_bind_text(
+                sessions_update, 2, serialized.data(), serialized.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_step(sessions_update) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
 }

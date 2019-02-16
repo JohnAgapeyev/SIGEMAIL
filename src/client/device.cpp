@@ -115,13 +115,16 @@ void device::send_signal_message(const crypto::secure_vector<std::byte>& plainte
         std::vector<std::pair<int, signal_message>> message_list;
         const auto dest_devices = client_db.get_device_ids(email);
         for (const auto device_id : dest_devices) {
-            auto session = client_db.get_active_session(device_id);
+            auto [sess_id, session] = client_db.get_active_session(device_id);
             const auto mesg = session.ratchet_encrypt(plaintext, aad);
 
             //Session needs to be updated back in the database after this
             //Also we need some exception handling if anything fails
 
             message_list.emplace_back(device_id, std::move(mesg));
+
+            //Sync the session back to the database
+            client_db.sync_session(sess_id, session);
         }
         if (!network_session->submit_message(email, message_list)) {
             //Message submission failed
@@ -139,7 +142,7 @@ std::optional<std::vector<crypto::secure_vector<std::byte>>> device::receive_sig
         return std::nullopt;
     }
 
-    auto session = client_db.get_active_session(self_device_id);
+    auto [sess_id, session] = client_db.get_active_session(self_device_id);
 
     std::vector<crypto::secure_vector<std::byte>> plaintext_messages;
 
@@ -148,11 +151,14 @@ std::optional<std::vector<crypto::secure_vector<std::byte>>> device::receive_sig
             //Ignore messages we can't decrypt
             continue;
         }
-        //This will also need to sync up with the database as well
         auto plaintext = session.ratchet_decrypt(mesg);
 
         plaintext_messages.emplace_back(std::move(plaintext));
+
     }
+
+    //Sync the session back to the database
+    client_db.sync_session(sess_id, session);
 
     return plaintext_messages;
 }
