@@ -25,8 +25,8 @@ session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_kp) :
 const signal_message session::ratchet_encrypt(const crypto::secure_vector<std::byte>& plaintext,
         const crypto::secure_vector<std::byte>& aad) {
 
-        //initial_header_contents = std::nullopt;
-        //initial_secret_key = std::nullopt;
+        initial_header_contents = std::nullopt;
+        initial_secret_key = std::nullopt;
 
     if (!initial_header_contents.has_value()) {
         const auto message_key = crypto::chain_derive(send_chain_key);

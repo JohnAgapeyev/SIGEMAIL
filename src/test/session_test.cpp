@@ -7,6 +7,7 @@
 
 BOOST_AUTO_TEST_SUITE(session_tests)
 
+#if 0
 BOOST_AUTO_TEST_CASE(session_initial) {
     const auto message = get_message();
     const auto aad = get_aad();
@@ -84,8 +85,9 @@ BOOST_AUTO_TEST_CASE(session_initial_back_forth) {
     BOOST_TEST(next_plain == message);
 }
 
-#if 0
+#else
 BOOST_AUTO_TEST_CASE(session_one_shot) {
+#if 0
     const auto message = get_message();
     const auto aad = get_aad();
 
@@ -112,6 +114,7 @@ BOOST_AUTO_TEST_CASE(session_one_shot) {
     BOOST_TEST(plaintext == message);
 
     //BOOST_TEST(recv_s.ratchet_decrypt(send_s.ratchet_encrypt(message, aad)) == message);
+#endif
 #endif
 }
 

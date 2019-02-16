@@ -125,12 +125,21 @@ private:
         boost::optional<initial_message_header> tmp_head;
         ar& tmp_head;
 
-        initial_header_contents = *tmp_head;
+        if (tmp_head.has_value()) {
+            initial_header_contents = *tmp_head;
+        } else {
+            initial_header_contents = std::nullopt;
+        }
 
         boost::optional<crypto::shared_key> tmp_key;
         ar& tmp_key;
 
-        initial_secret_key = *tmp_key;
+        if (tmp_key.has_value()) {
+            initial_secret_key = *tmp_key;
+        } else {
+            initial_secret_key = std::nullopt;
+        }
+
     }
     BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
