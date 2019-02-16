@@ -60,8 +60,11 @@ crypto::shared_key get_key() {
 
 session get_session() {
     const auto key = get_key();
-    crypto::DH_Keypair kp;
-    session s{key, kp.get_public()};
+    crypto::DH_Keypair kp1;
+    crypto::DH_Keypair kp2;
+    crypto::DH_Keypair kp3;
+    crypto::DH_Keypair kp4;
+    session s{key, kp1.get_public(), kp2.get_public(), kp3.get_public(), kp4.get_public()};
     return s;
 }
 

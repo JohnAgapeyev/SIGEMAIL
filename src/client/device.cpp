@@ -54,17 +54,16 @@ void device::conditionally_update(
 }
 
 void device::prep_for_encryption(
-        const std::string& email, int device_index, const crypto::public_key& pub_key) {
+        const std::string& email, int device_index) {
     //This purges stale users and device records
     client_db.purge_stale_records();
-
-    conditionally_update(email, device_index, pub_key);
 
     //This entire section needs to contact the server for data, and the end result must be an active session created and inserted
     try {
         client_db.get_active_session(device_index);
         return;
     } catch(const db_error&) {}
+
     //Sesssion does not exist, have to contact the server
     //Do it here instead of nested inside the catch
     const auto dest_data = network_session->lookup_prekey(email, device_index);
@@ -76,22 +75,33 @@ void device::prep_for_encryption(
 
     const auto [self_email, self_device_id, auth_token, self_identity, self_prekey] = client_db.get_self_data();
 
-    //Need to somehow save this keypair for later I'm pretty sure
     const crypto::DH_Keypair ephemeral_keypair;
 
-    for (const auto& [device_id, identity_key, pre_key, one_time_key] : server_data) {
-        if (device_id != device_index) {
-            continue;
-        }
-        crypto::shared_key secret_key;
-        if (one_time_key.has_value()) {
-            secret_key = crypto::X3DH_sender(self_identity, ephemeral_keypair, identity_key, pre_key);
-        } else {
-            secret_key = crypto::X3DH_sender(self_identity, ephemeral_keypair, identity_key, pre_key);
-        }
-        session s{secret_key, pub_key};
-        insert_session(email, device_id, s);
+    if (server_data.size() != 1) {
+        //We got more data than we expected
+        throw std::runtime_error("Server returned too much data");
     }
+
+    //Since this is a specific index, there cannot be more than 1 entry
+    const auto [device_id, identity_key, pre_key, one_time_key] = server_data.front();
+
+    if (device_id != device_index) {
+        //Server gave us a different device
+        throw std::runtime_error("Server gave us wrong device info");
+    }
+
+    conditionally_update(email, device_id, identity_key);
+
+    crypto::shared_key secret_key;
+    if (one_time_key.has_value()) {
+        secret_key = crypto::X3DH_sender(self_identity, ephemeral_keypair, identity_key, pre_key, *one_time_key);
+    } else {
+        secret_key = crypto::X3DH_sender(self_identity, ephemeral_keypair, identity_key, pre_key);
+    }
+
+    session s{std::move(secret_key), std::move(pre_key), std::move(self_identity.get_public()), std::move(ephemeral_keypair.get_public()), one_time_key};
+
+    insert_session(email, device_id, std::move(s));
 }
 
 void device::send_signal_message(const crypto::secure_vector<std::byte>& plaintext,
@@ -109,17 +119,21 @@ void device::send_signal_message(const crypto::secure_vector<std::byte>& plainte
      *  - If the user does not exist, mark it stale, same with devices
      *  - If there are missing valid devices, prep for encryption, and restart this process
      *
-     *  This will require some modifications to the client db to get everything playing nicely
+     * Here's my current plan so far:
+     * - Active sessions for valid recipients
+     *
+     * Also we need some exception handling if anything fails
      */
     for (const auto& email : recipients) {
         std::vector<std::pair<int, signal_message>> message_list;
         const auto dest_devices = client_db.get_device_ids(email);
         for (const auto device_id : dest_devices) {
-            auto [sess_id, session] = client_db.get_active_session(device_id);
-            const auto mesg = session.ratchet_encrypt(plaintext, aad);
+            //This ensures we always have an active session
+            prep_for_encryption(email, device_id);
 
-            //Session needs to be updated back in the database after this
-            //Also we need some exception handling if anything fails
+            auto [sess_id, session] = client_db.get_active_session(device_id);
+
+            const auto mesg = session.ratchet_encrypt(plaintext, aad);
 
             message_list.emplace_back(device_id, std::move(mesg));
 

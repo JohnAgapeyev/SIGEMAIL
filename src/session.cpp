@@ -7,34 +7,67 @@
 
 const uint64_t MAX_SKIP = 100;
 
-session::session(crypto::shared_key shared_secret, crypto::public_key dest_public_key) :
-        self_keypair(), remote_public_key(std::move(dest_public_key)),
-        root_key(std::move(shared_secret)),
+session::session(crypto::shared_key shared_secret, crypto::public_key dest_public_key,
+        crypto::public_key initial_id_public, crypto::public_key initial_ephem_public,
+        std::optional<crypto::public_key> initial_otpk_public) :
+        self_keypair(),
+        remote_public_key(std::move(dest_public_key)), root_key(shared_secret),
         send_chain_key(crypto::root_derive(
-                root_key, self_keypair.generate_shared_secret(remote_public_key))) {}
+                root_key, self_keypair.generate_shared_secret(remote_public_key))),
+        initial_header_contents({std::move(initial_id_public), std::move(initial_ephem_public),
+                std::move(initial_otpk_public)}),
+        initial_secret_key(std::move(shared_secret)) {}
 
 session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_kp) :
-        self_keypair(std::move(self_kp)), root_key(std::move(shared_secret)) {}
+        self_keypair(std::move(self_kp)),
+        root_key(std::move(shared_secret)), initial_header_contents{std::nullopt} {}
 
 const signal_message session::ratchet_encrypt(const crypto::secure_vector<std::byte>& plaintext,
         const crypto::secure_vector<std::byte>& aad) {
-    const auto message_key = crypto::chain_derive(send_chain_key);
 
-    const signal_message m = [&]() {
-        signal_message result;
-        message_header h;
-        h.dh_public_key = self_keypair.get_public();
-        h.prev_chain_len = previous_send_chain_size;
-        h.message_num = send_message_num;
-        result.header = h;
-        result.message = crypto::encrypt(plaintext, message_key, aad);
-        result.aad = crypto::secure_vector<std::byte>{aad};
-        return result;
-    }();
+        //initial_header_contents = std::nullopt;
+        //initial_secret_key = std::nullopt;
 
-    ++send_message_num;
+    if (!initial_header_contents.has_value()) {
+        const auto message_key = crypto::chain_derive(send_chain_key);
 
-    return m;
+        const signal_message m = [this, &message_key, &plaintext, &aad]() {
+            signal_message result;
+            message_header h;
+            h.dh_public_key = self_keypair.get_public();
+            h.prev_chain_len = previous_send_chain_size;
+            h.message_num = send_message_num;
+            result.header = h;
+            result.message = crypto::encrypt(plaintext, message_key, aad);
+            result.aad = crypto::secure_vector<std::byte>{aad};
+            return result;
+        }();
+
+        ++send_message_num;
+
+        return m;
+    } else {
+        const auto message_key = *initial_secret_key;
+
+        const signal_message m = [this, &message_key, &plaintext, &aad]() {
+            signal_message result;
+            initial_message_header h;
+            h.identity_key = initial_header_contents->identity_key;
+            h.ephemeral_key = initial_header_contents->ephemeral_key;
+            h.remote_one_time_public_key = initial_header_contents->remote_one_time_public_key;
+            result.header = h;
+            result.message = crypto::encrypt(plaintext, message_key, aad);
+            result.aad = crypto::secure_vector<std::byte>{aad};
+            return result;
+        }();
+
+        ++send_message_num;
+
+        initial_header_contents = std::nullopt;
+        initial_secret_key = std::nullopt;
+
+        return m;
+    }
 }
 
 const crypto::secure_vector<std::byte> session::ratchet_decrypt(const signal_message& message) {

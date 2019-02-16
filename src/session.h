@@ -21,7 +21,9 @@ extern const uint64_t MAX_SKIP;
 class session {
 public:
     //Sender initialization
-    session(crypto::shared_key shared_secret, crypto::public_key dest_public_key);
+    session(crypto::shared_key shared_secret, crypto::public_key dest_public_key,
+            crypto::public_key initial_id_public, crypto::public_key initial_ephem_public,
+            std::optional<crypto::public_key> initial_otpk_public);
     //Receiver initialization
     session(crypto::shared_key shared_secret, crypto::DH_Keypair self_kp);
     ~session() = default;
@@ -55,6 +57,9 @@ private:
     uint64_t receive_message_num = 0;
     uint64_t previous_send_chain_size = 0;
 
+    std::optional<initial_message_header> initial_header_contents;
+    std::optional<crypto::shared_key> initial_secret_key;
+
     crypto::secure_unordered_map<std::pair<crypto::public_key, uint64_t>, crypto::shared_key>
             skipped_keys;
 
@@ -80,6 +85,21 @@ private:
         }
 
         ar& tmp;
+
+        if (initial_header_contents == std::nullopt) {
+            boost::optional<initial_message_header> boost_tmp{boost::none};
+            ar& boost_tmp;
+        } else {
+            boost::optional<initial_message_header> boost_tmp = *initial_header_contents;
+            ar& boost_tmp;
+        }
+        if (initial_secret_key == std::nullopt) {
+            boost::optional<crypto::shared_key> boost_tmp{boost::none};
+            ar& boost_tmp;
+        } else {
+            boost::optional<crypto::shared_key> boost_tmp = *initial_secret_key;
+            ar& boost_tmp;
+        }
     }
     template<class Archive>
     void load(Archive& ar, const unsigned int version) {
@@ -101,6 +121,16 @@ private:
         for (auto [key, value] : tmp) {
             skipped_keys.emplace(std::move(key), std::move(value));
         }
+
+        boost::optional<initial_message_header> tmp_head;
+        ar& tmp_head;
+
+        initial_header_contents = *tmp_head;
+
+        boost::optional<crypto::shared_key> tmp_key;
+        ar& tmp_key;
+
+        initial_secret_key = *tmp_key;
     }
     BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
