@@ -51,7 +51,7 @@ struct initial_message_header {
 
     friend class boost::serialization::access;
     template<class Archive>
-    void serialize(Archive& ar, const unsigned int version) {
+    void save(Archive& ar, const unsigned int version) const {
         boost::ignore_unused_variable_warning(version);
         ar& identity_key;
         ar& ephemeral_key;
@@ -64,6 +64,22 @@ struct initial_message_header {
             ar& one_time_opt;
         }
     }
+    template<class Archive>
+    void load(Archive& ar, const unsigned int version) {
+        boost::ignore_unused_variable_warning(version);
+        ar& identity_key;
+        ar& ephemeral_key;
+
+        boost::optional<crypto::public_key> one_time_opt;
+        ar& one_time_opt;
+
+        if (one_time_opt.has_value()) {
+            remote_one_time_public_key = *one_time_opt;
+        } else {
+            remote_one_time_public_key = std::nullopt;
+        }
+    }
+    BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
 
 struct signal_message {
@@ -126,7 +142,7 @@ namespace boost::serialization {
     template<class Archive, typename T>
     void serialize(Archive& ar, const crypto::secure_vector<T>& v, const unsigned int version) {
         boost::ignore_unused_variable_warning(version);
-        ar & boost::serialization::base_object<const std::vector<T>>(v);
+        ar& boost::serialization::base_object<const std::vector<T>>(v);
     }
 } // namespace boost::serialization
 

@@ -76,16 +76,6 @@ private:
         ar& receive_message_num;
         ar& previous_send_chain_size;
 
-        std::unordered_map<std::pair<crypto::public_key, uint64_t>, crypto::shared_key,
-                boost::hash<std::pair<crypto::public_key, uint64_t>>>
-                tmp;
-
-        for (auto [key, value] : skipped_keys) {
-            tmp.emplace(std::move(key), std::move(value));
-        }
-
-        ar& tmp;
-
         if (initial_header_contents == std::nullopt) {
             boost::optional<initial_message_header> boost_tmp{boost::none};
             ar& boost_tmp;
@@ -100,6 +90,16 @@ private:
             boost::optional<crypto::shared_key> boost_tmp = *initial_secret_key;
             ar& boost_tmp;
         }
+
+        std::unordered_map<std::pair<crypto::public_key, uint64_t>, crypto::shared_key,
+                boost::hash<std::pair<crypto::public_key, uint64_t>>>
+                tmp;
+
+        for (auto [key, value] : skipped_keys) {
+            tmp.emplace(std::move(key), std::move(value));
+        }
+
+        ar& tmp;
     }
     template<class Archive>
     void load(Archive& ar, const unsigned int version) {
@@ -112,15 +112,6 @@ private:
         ar& send_message_num;
         ar& receive_message_num;
         ar& previous_send_chain_size;
-
-        std::unordered_map<std::pair<crypto::public_key, uint64_t>, crypto::shared_key,
-                boost::hash<std::pair<crypto::public_key, uint64_t>>>
-                tmp;
-        ar& tmp;
-
-        for (auto [key, value] : tmp) {
-            skipped_keys.emplace(std::move(key), std::move(value));
-        }
 
         boost::optional<initial_message_header> tmp_head;
         ar& tmp_head;
@@ -138,6 +129,15 @@ private:
             initial_secret_key = *tmp_key;
         } else {
             initial_secret_key = std::nullopt;
+        }
+
+        std::unordered_map<std::pair<crypto::public_key, uint64_t>, crypto::shared_key,
+                boost::hash<std::pair<crypto::public_key, uint64_t>>>
+                tmp;
+        ar& tmp;
+
+        for (auto [key, value] : tmp) {
+            skipped_keys.emplace(std::move(key), std::move(value));
         }
     }
     BOOST_SERIALIZATION_SPLIT_MEMBER()
