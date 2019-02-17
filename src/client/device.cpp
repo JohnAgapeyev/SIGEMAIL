@@ -156,23 +156,27 @@ std::optional<std::vector<crypto::secure_vector<std::byte>>> device::receive_sig
         return std::nullopt;
     }
 
-    auto [sess_id, session] = client_db.get_active_session(self_device_id);
-
     std::vector<crypto::secure_vector<std::byte>> plaintext_messages;
 
     for (const auto& [device_id, mesg] : *server_data) {
-        if (device_id != self_device_id) {
-            //Ignore messages we can't decrypt
-            continue;
+        auto [sess_id, session] = client_db.get_active_session(device_id);
+
+        if (std::holds_alternative<initial_message_header>(mesg.header)) {
+            //Initial message
+            auto [tmp_s, plaintext] = decrypt_initial_message(mesg, self_identity, self_prekey);
+            plaintext_messages.emplace_back(std::move(plaintext));
+
+            //Sync the session back to the database
+            client_db.sync_session(sess_id, tmp_s);
+        } else {
+            auto plaintext = session.ratchet_decrypt(mesg);
+            plaintext_messages.emplace_back(std::move(plaintext));
+
+            //Sync the session back to the database
+            client_db.sync_session(sess_id, session);
         }
-        auto plaintext = session.ratchet_decrypt(mesg);
-
-        plaintext_messages.emplace_back(std::move(plaintext));
-
     }
 
-    //Sync the session back to the database
-    client_db.sync_session(sess_id, session);
 
     return plaintext_messages;
 }
