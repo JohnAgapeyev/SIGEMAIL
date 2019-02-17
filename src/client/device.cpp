@@ -217,7 +217,8 @@ std::optional<std::vector<crypto::secure_vector<std::byte>>> device::receive_sig
             //client_db.sync_session(sess_id, tmp_s);
 
             //I need to get the sender email somehow
-            client_db.add_session(self_email, device_id, tmp_s);
+            int session_id = client_db.add_session(self_email, device_id, tmp_s);
+            client_db.activate_session(device_id, session_id);
         } else {
             auto [sess_id, session] = client_db.get_active_session(device_id);
 

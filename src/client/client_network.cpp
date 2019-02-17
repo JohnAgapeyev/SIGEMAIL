@@ -203,6 +203,11 @@ client_network_session::~client_network_session() {
 
     //Verification succeeded
     client_db.save_registration(email, device_id, auth_token, identity_keypair, pre_key);
+
+    //Add self records to other tables
+    client_db.add_user_record(email);
+    client_db.add_device_record(email, device_id, identity_keypair.get_public());
+
     return true;
 }
 
