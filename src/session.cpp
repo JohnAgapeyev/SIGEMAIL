@@ -8,25 +8,18 @@
 
 const uint64_t MAX_SKIP = 100;
 
-session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_ephem, crypto::public_key dest_public_key,
-        crypto::public_key initial_id_public,
+session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_ephem,
+        crypto::public_key dest_public_key, crypto::public_key initial_id_public,
         std::optional<crypto::public_key> initial_otpk_public) :
         self_keypair(std::move(self_ephem)),
         remote_public_key(std::move(dest_public_key)), root_key(shared_secret),
         //send_chain_key(crypto::root_derive(
-                //root_key, self_keypair.generate_shared_secret(remote_public_key))),
+        //root_key, self_keypair.generate_shared_secret(remote_public_key))),
         initial_header_contents({std::move(initial_id_public), self_keypair.get_public(),
                 std::move(initial_otpk_public)}),
         initial_secret_key(std::move(shared_secret)) {
-
-    //spdlog::debug("Init send root {}", root_key);
-    spdlog::debug("Init send self.public {}", self_keypair.get_public());
-    spdlog::debug("Init send diffie {}", self_keypair.generate_shared_secret(remote_public_key));
-    spdlog::debug("Init send remote {}", remote_public_key);
     send_chain_key
             = crypto::root_derive(root_key, self_keypair.generate_shared_secret(remote_public_key));
-
-    spdlog::debug("Init send chain {}", send_chain_key);
 
     //This gives me a nonzero initial receive chain key that relies on the inital secret key
     //but in a way that the recipient can generate without awkward issues
@@ -41,34 +34,19 @@ session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_kp,
         //receive_chain_key(crypto::root_derive(
         //root_key, self_keypair.generate_shared_secret(remote_public_key))),
         initial_header_contents(std::nullopt), initial_secret_key(std::nullopt) {
-
-    //spdlog::debug("Init recv root {}", root_key);
-    spdlog::debug("Init recv self.public {}", self_keypair.get_public());
-    spdlog::debug("Init recv diffie {}", self_keypair.generate_shared_secret(remote_public_key));
-    spdlog::debug("Init recv remote {}", remote_public_key);
     receive_chain_key
             = crypto::root_derive(root_key, self_keypair.generate_shared_secret(remote_public_key));
-
-    spdlog::debug("Init recv chain {}", receive_chain_key);
 
     //This gives me a nonzero initial receive chain key that relies on the inital secret key
     //but in a way that the recipient can generate without awkward issues
     send_chain_key
             = crypto::root_derive(root_key, self_keypair.generate_shared_secret(remote_public_key));
-
-    spdlog::debug("Init recv send chain {}", send_chain_key);
 }
 
 const signal_message session::ratchet_encrypt(const crypto::secure_vector<std::byte>& plaintext,
         const crypto::secure_vector<std::byte>& aad) {
-    //initial_header_contents = std::nullopt;
-    //initial_secret_key = std::nullopt;
-
     if (!initial_header_contents.has_value()) {
-        spdlog::debug("Session encrypt pre send chain {}", send_chain_key);
         const auto message_key = crypto::chain_derive(send_chain_key);
-        spdlog::debug("Session encrypt resulting message key {}", message_key);
-        spdlog::debug("Session encrypt Post send chain {}", send_chain_key);
 
         const signal_message m = [this, &message_key, &plaintext, &aad]() {
             signal_message result;
@@ -86,9 +64,7 @@ const signal_message session::ratchet_encrypt(const crypto::secure_vector<std::b
 
         return m;
     } else {
-        spdlog::debug("Session encrypt pre initial chain {}", send_chain_key);
         const auto message_key = *initial_secret_key;
-        spdlog::debug("Session encrypt initial message key {}", message_key);
 
         const signal_message m = [this, &message_key, &plaintext, &aad]() {
             signal_message result;
@@ -118,17 +94,12 @@ const crypto::secure_vector<std::byte> session::ratchet_decrypt(const signal_mes
             return *skipped_result;
         }
         const auto header = std::get<message_header>(message.header);
-        spdlog::debug("Session decrypt pre ratchet chain {}", receive_chain_key);
         if (header.dh_public_key != remote_public_key) {
-            spdlog::info("We're ratcheting");
             skip_message_keys(header.prev_chain_len);
             DH_ratchet(header.dh_public_key);
         }
-        spdlog::info("Skipping {}", header.message_num);
         skip_message_keys(header.message_num);
-        spdlog::debug("Session decrypt receive chain {}", receive_chain_key);
         const auto message_key = crypto::chain_derive(receive_chain_key);
-        spdlog::debug("Session decrypt resulting key {}", message_key);
         ++receive_message_num;
 
         auto message_copy = message.message;
@@ -173,7 +144,6 @@ void session::skip_message_keys(uint64_t until) {
 }
 
 void session::DH_ratchet(const crypto::public_key& remote_pub_key) {
-    spdlog::info("We're ratcheting");
     previous_send_chain_size = send_message_num;
     send_message_num = 0;
     receive_message_num = 0;

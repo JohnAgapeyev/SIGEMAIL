@@ -40,7 +40,7 @@ public:
 
     const crypto::secure_vector<std::byte> ratchet_decrypt(const signal_message& message);
 
-    //private:
+private:
     void skip_message_keys(uint64_t until);
 
     const std::optional<crypto::secure_vector<std::byte>> try_skipped_message_keys(
