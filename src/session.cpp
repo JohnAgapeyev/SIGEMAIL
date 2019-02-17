@@ -8,20 +8,44 @@
 
 const uint64_t MAX_SKIP = 100;
 
-session::session(crypto::shared_key shared_secret, crypto::public_key dest_public_key,
-        crypto::public_key initial_id_public, crypto::public_key initial_ephem_public,
+session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_ephem, crypto::public_key dest_public_key,
+        crypto::public_key initial_id_public,
         std::optional<crypto::public_key> initial_otpk_public) :
-        self_keypair(),
+        self_keypair(std::move(self_ephem)),
         remote_public_key(std::move(dest_public_key)), root_key(shared_secret),
-        send_chain_key(crypto::root_derive(
-                root_key, self_keypair.generate_shared_secret(remote_public_key))),
-        initial_header_contents({std::move(initial_id_public), std::move(initial_ephem_public),
+        //send_chain_key(crypto::root_derive(
+                //root_key, self_keypair.generate_shared_secret(remote_public_key))),
+        initial_header_contents({std::move(initial_id_public), self_keypair.get_public(),
                 std::move(initial_otpk_public)}),
-        initial_secret_key(std::move(shared_secret)) {}
+        initial_secret_key(std::move(shared_secret)) {
 
-session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_kp) :
-        self_keypair(std::move(self_kp)), root_key(std::move(shared_secret)),
-        initial_header_contents(std::nullopt), initial_secret_key(std::nullopt) {}
+    //spdlog::debug("Init send root {}", root_key);
+    spdlog::debug("Init send self.public {}", self_keypair.get_public());
+    spdlog::debug("Init send diffie {}", self_keypair.generate_shared_secret(remote_public_key));
+    spdlog::debug("Init send remote {}", remote_public_key);
+    send_chain_key
+            = crypto::root_derive(root_key, self_keypair.generate_shared_secret(remote_public_key));
+
+    spdlog::debug("Init send chain {}", send_chain_key);
+}
+
+session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_kp,
+        crypto::public_key dest_public_key) :
+        self_keypair(std::move(self_kp)),
+        remote_public_key(std::move(dest_public_key)), root_key(std::move(shared_secret)),
+        //receive_chain_key(crypto::root_derive(
+        //root_key, self_keypair.generate_shared_secret(remote_public_key))),
+        initial_header_contents(std::nullopt), initial_secret_key(std::nullopt) {
+
+    //spdlog::debug("Init recv root {}", root_key);
+    spdlog::debug("Init recv self.public {}", self_keypair.get_public());
+    spdlog::debug("Init recv diffie {}", self_keypair.generate_shared_secret(remote_public_key));
+    spdlog::debug("Init recv remote {}", remote_public_key);
+    receive_chain_key
+            = crypto::root_derive(root_key, self_keypair.generate_shared_secret(remote_public_key));
+
+    spdlog::debug("Init recv chain {}", receive_chain_key);
+}
 
 const signal_message session::ratchet_encrypt(const crypto::secure_vector<std::byte>& plaintext,
         const crypto::secure_vector<std::byte>& aad) {
@@ -189,7 +213,8 @@ std::pair<session, crypto::secure_vector<std::byte>> decrypt_initial_message(
 
     //I don't like having to copy the message here, but the GCM set tag call in OpenSSL takes a non-const pointer to the tag
     auto message_copy = message.message;
-    return {{secret_key, prekey}, crypto::decrypt(message_copy, secret_key, message.aad)};
+    return {{secret_key, prekey, header.ephemeral_key},
+            crypto::decrypt(message_copy, secret_key, message.aad)};
 }
 
 std::pair<session, crypto::secure_vector<std::byte>> decrypt_initial_message(
@@ -202,5 +227,6 @@ std::pair<session, crypto::secure_vector<std::byte>> decrypt_initial_message(
 
     //I don't like having to copy the message here, but the GCM set tag call in OpenSSL takes a non-const pointer to the tag
     auto message_copy = message.message;
-    return {{secret_key, prekey}, crypto::decrypt(message_copy, secret_key, message.aad)};
+    return {{secret_key, prekey, header.ephemeral_key},
+            crypto::decrypt(message_copy, secret_key, message.aad)};
 }

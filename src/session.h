@@ -21,11 +21,11 @@ extern const uint64_t MAX_SKIP;
 class session {
 public:
     //Sender initialization
-    session(crypto::shared_key shared_secret, crypto::public_key dest_public_key,
-            crypto::public_key initial_id_public, crypto::public_key initial_ephem_public,
+    session(crypto::shared_key shared_secret, crypto::DH_Keypair self_ephem,
+            crypto::public_key dest_public_key, crypto::public_key initial_id_public,
             std::optional<crypto::public_key> initial_otpk_public);
     //Receiver initialization
-    session(crypto::shared_key shared_secret, crypto::DH_Keypair self_kp);
+    session(crypto::shared_key shared_secret, crypto::DH_Keypair self_kp, crypto::public_key);
     ~session() = default;
     session(const session&) = default;
     session(session&&) = default;
@@ -40,7 +40,7 @@ public:
 
     const crypto::secure_vector<std::byte> ratchet_decrypt(const signal_message& message);
 
-//private:
+    //private:
     void skip_message_keys(uint64_t until);
 
     const std::optional<crypto::secure_vector<std::byte>> try_skipped_message_keys(
@@ -139,7 +139,6 @@ public:
         } else {
             initial_secret_key = std::nullopt;
         }
-
     }
     BOOST_SERIALIZATION_SPLIT_MEMBER()
 };

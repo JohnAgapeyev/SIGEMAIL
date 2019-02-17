@@ -9,6 +9,7 @@ BOOST_AUTO_TEST_SUITE(session_tests)
 
 #if 1
 BOOST_AUTO_TEST_CASE(session_initial) {
+#if 0
     const auto message = get_message();
     const auto aad = get_aad();
 
@@ -21,7 +22,7 @@ BOOST_AUTO_TEST_CASE(session_initial) {
     auto key
             = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
 
-    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(),
+    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(),
             std::nullopt};
 
     const auto pre_m = send_s.ratchet_encrypt(message, aad);
@@ -31,6 +32,7 @@ BOOST_AUTO_TEST_CASE(session_initial) {
 
     BOOST_TEST(plaintext == message);
     BOOST_TEST((send_s.send_chain_key == tmp_s.receive_chain_key));
+#endif
 }
 
 BOOST_AUTO_TEST_CASE(session_double_send) {
@@ -46,21 +48,26 @@ BOOST_AUTO_TEST_CASE(session_double_send) {
     auto key
             = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
 
-    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(),
-            std::nullopt};
+    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt};
+
+    spdlog::debug("Global send send chain {}", send_s.send_chain_key);
 
     spdlog::error("Pre initial section hit");
 
     const auto pre_m = send_s.ratchet_encrypt(message, aad);
+
+    spdlog::debug("Global send send post encrypt chain {}", send_s.send_chain_key);
+
     auto [tmp_s, plaintext] = decrypt_initial_message(pre_m, recv_id, recv_pre);
 
     BOOST_TEST(plaintext == message);
 
     spdlog::error("Post initial section hit");
 
-    tmp_s.receive_chain_key = send_s.send_chain_key;
-    tmp_s.root_key = send_s.root_key;
-    tmp_s.remote_public_key = send_s.self_keypair.get_public();
+    spdlog::info("DH first {}", send_s.self_keypair.generate_shared_secret(recv_pre.get_public()));
+    spdlog::info("DH second {}", recv_pre.generate_shared_secret(send_s.self_keypair.get_public()));
+
+    //tmp_s.receive_chain_key = send_s.send_chain_key;
 
     BOOST_TEST((send_s.send_chain_key == tmp_s.receive_chain_key));
 
@@ -72,7 +79,7 @@ BOOST_AUTO_TEST_CASE(session_double_send) {
 }
 
 BOOST_AUTO_TEST_CASE(session_initial_back_forth) {
-#if 1
+#if 0
     const auto message = get_message();
     const auto aad = get_aad();
 
@@ -98,9 +105,6 @@ BOOST_AUTO_TEST_CASE(session_initial_back_forth) {
     spdlog::error("Post initial section hit");
 
     tmp_s.receive_chain_key = send_s.send_chain_key;
-    tmp_s.root_key = send_s.root_key;
-    tmp_s.remote_public_key = send_s.self_keypair.get_public();
-
     tmp_s.send_chain_key = send_s.receive_chain_key;
 
     BOOST_TEST((send_s.send_chain_key == tmp_s.receive_chain_key));

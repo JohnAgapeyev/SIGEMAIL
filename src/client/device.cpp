@@ -99,7 +99,7 @@ void device::prep_for_encryption(
         secret_key = crypto::X3DH_sender(self_identity, ephemeral_keypair, identity_key, pre_key);
     }
 
-    session s{std::move(secret_key), std::move(pre_key), std::move(self_identity.get_public()), std::move(ephemeral_keypair.get_public()), one_time_key};
+    session s{std::move(secret_key), std::move(ephemeral_keypair), std::move(pre_key), std::move(self_identity.get_public()), one_time_key};
 
     insert_session(email, device_id, std::move(s));
 }

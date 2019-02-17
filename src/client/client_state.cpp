@@ -448,7 +448,7 @@ std::vector<std::pair<int, session>> client::database::get_sessions_by_device(co
         std::stringstream ss{read_db_string(db_conn, sessions_select, 1)};
 
         //This is annoying but I have to do this for deserialization
-        session s{crypto::public_key{}, crypto::DH_Keypair{}};
+        session s{crypto::public_key{}, crypto::DH_Keypair{}, crypto::public_key{}};
         {
             boost::archive::text_iarchive arch{ss};
             arch >> s;
@@ -478,7 +478,7 @@ std::pair<int, session> client::database::get_active_session(const int device_id
     std::stringstream ss{read_db_string(db_conn, active_select, 1)};
 
     //This is annoying but I have to do this for deserialization
-    session s{crypto::public_key{}, crypto::DH_Keypair{}};
+    session s{crypto::public_key{}, crypto::DH_Keypair{}, crypto::public_key{}};
     {
         boost::archive::text_iarchive arch{ss};
         arch >> s;
