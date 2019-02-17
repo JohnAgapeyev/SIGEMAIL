@@ -36,6 +36,7 @@ BOOST_AUTO_TEST_CASE(session_initial) {
 }
 
 BOOST_AUTO_TEST_CASE(session_double_send) {
+#if 1
     const auto message = get_message();
     const auto aad = get_aad();
 
@@ -76,10 +77,11 @@ BOOST_AUTO_TEST_CASE(session_double_send) {
     const auto second_plain = tmp_s.ratchet_decrypt(second_m);
 
     BOOST_TEST(second_plain == message);
+#endif
 }
 
 BOOST_AUTO_TEST_CASE(session_initial_back_forth) {
-#if 0
+#if 1
     const auto message = get_message();
     const auto aad = get_aad();
 
@@ -92,8 +94,7 @@ BOOST_AUTO_TEST_CASE(session_initial_back_forth) {
     auto key
             = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
 
-    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(),
-            std::nullopt};
+    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt};
 
     spdlog::error("Pre initial section hit");
 
@@ -104,14 +105,19 @@ BOOST_AUTO_TEST_CASE(session_initial_back_forth) {
 
     spdlog::error("Post initial section hit");
 
-    tmp_s.receive_chain_key = send_s.send_chain_key;
-    tmp_s.send_chain_key = send_s.receive_chain_key;
-
     BOOST_TEST((send_s.send_chain_key == tmp_s.receive_chain_key));
+
+    spdlog::info("Global send chain {}", tmp_s.send_chain_key);
+
+    //send_s.receive_chain_key = tmp_s.send_chain_key;
 
     auto back_m = tmp_s.ratchet_encrypt(message, aad);
 
+    //std::get<message_header>(back_m.header).message_num = 1;
+
     auto next_plain = send_s.ratchet_decrypt(back_m);
+
+    spdlog::error("End critical section");
 
     BOOST_TEST(next_plain == message);
 

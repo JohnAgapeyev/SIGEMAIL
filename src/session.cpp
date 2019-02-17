@@ -27,6 +27,11 @@ session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_ephem
             = crypto::root_derive(root_key, self_keypair.generate_shared_secret(remote_public_key));
 
     spdlog::debug("Init send chain {}", send_chain_key);
+
+    //This gives me a nonzero initial receive chain key that relies on the inital secret key
+    //but in a way that the recipient can generate without awkward issues
+    receive_chain_key
+            = crypto::root_derive(root_key, self_keypair.generate_shared_secret(remote_public_key));
 }
 
 session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_kp,
@@ -45,6 +50,13 @@ session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_kp,
             = crypto::root_derive(root_key, self_keypair.generate_shared_secret(remote_public_key));
 
     spdlog::debug("Init recv chain {}", receive_chain_key);
+
+    //This gives me a nonzero initial receive chain key that relies on the inital secret key
+    //but in a way that the recipient can generate without awkward issues
+    send_chain_key
+            = crypto::root_derive(root_key, self_keypair.generate_shared_secret(remote_public_key));
+
+    spdlog::debug("Init recv send chain {}", send_chain_key);
 }
 
 const signal_message session::ratchet_encrypt(const crypto::secure_vector<std::byte>& plaintext,
@@ -161,6 +173,7 @@ void session::skip_message_keys(uint64_t until) {
 }
 
 void session::DH_ratchet(const crypto::public_key& remote_pub_key) {
+    spdlog::info("We're ratcheting");
     previous_send_chain_size = send_message_num;
     send_message_num = 0;
     receive_message_num = 0;
