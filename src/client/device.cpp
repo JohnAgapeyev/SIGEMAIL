@@ -101,7 +101,51 @@ void device::prep_for_encryption(
 
     session s{std::move(secret_key), std::move(ephemeral_keypair), std::move(pre_key), std::move(self_identity.get_public()), one_time_key};
 
-    insert_session(email, device_id, std::move(s));
+    int session_id = client_db.add_session(email, device_index, std::move(s));
+    client_db.activate_session(device_index, session_id);
+}
+
+void device::prep_for_encryption(const std::string& email) {
+    //This purges stale users and device records
+    client_db.purge_stale_records();
+
+    //Grab all devices for that email
+    const auto dest_data = network_session->lookup_prekey(email, -1);
+    if (!dest_data.has_value()) {
+        //Server returned an error
+        throw std::runtime_error("Server could not retrieve destination data");
+    }
+    const auto server_data = *dest_data;
+
+    const auto [self_email, self_device_id, auth_token, self_identity, self_prekey] = client_db.get_self_data();
+
+    for (const auto [device_id, identity_key, pre_key, one_time_key] : server_data) {
+        if (device_id == self_device_id) {
+            //Don't try and do anything for localhost messages
+            continue;
+        }
+        try {
+            client_db.get_active_session(device_id);
+            continue;
+        } catch(const db_error&) {}
+
+        conditionally_update(email, device_id, identity_key);
+
+        const crypto::DH_Keypair ephemeral_keypair;
+
+        crypto::shared_key secret_key;
+
+        if (one_time_key.has_value()) {
+            secret_key = crypto::X3DH_sender(self_identity, ephemeral_keypair, identity_key, pre_key, *one_time_key);
+        } else {
+            secret_key = crypto::X3DH_sender(self_identity, ephemeral_keypair, identity_key, pre_key);
+        }
+
+        session s{std::move(secret_key), std::move(ephemeral_keypair), std::move(pre_key), std::move(self_identity.get_public()), one_time_key};
+
+        int session_id = client_db.add_session(email, device_id, std::move(s));
+        client_db.activate_session(device_id, session_id);
+    }
 }
 
 void device::send_signal_message(const crypto::secure_vector<std::byte>& plaintext,
@@ -109,6 +153,8 @@ void device::send_signal_message(const crypto::secure_vector<std::byte>& plainte
 
     //TODO This needs to be retrieved from the X3DH agreement somehow
     const crypto::secure_vector<std::byte> aad;
+
+    const auto [self_email, self_device_id, auth_token, self_identity, self_prekey] = client_db.get_self_data();
 
     /*
      * This needs to follow the following set of steps:
@@ -126,11 +172,13 @@ void device::send_signal_message(const crypto::secure_vector<std::byte>& plainte
      */
     for (const auto& email : recipients) {
         std::vector<std::pair<int, signal_message>> message_list;
-        const auto dest_devices = client_db.get_device_ids(email);
-        for (const auto device_id : dest_devices) {
-            //This ensures we always have an active session
-            prep_for_encryption(email, device_id);
 
+        //This ensures we always have an active session
+        prep_for_encryption(email);
+
+        const auto dest_devices = client_db.get_device_ids(email);
+
+        for (const auto device_id : dest_devices) {
             auto [sess_id, session] = client_db.get_active_session(device_id);
 
             const auto mesg = session.ratchet_encrypt(plaintext, aad);
@@ -159,7 +207,6 @@ std::optional<std::vector<crypto::secure_vector<std::byte>>> device::receive_sig
     std::vector<crypto::secure_vector<std::byte>> plaintext_messages;
 
     for (const auto& [device_id, mesg] : *server_data) {
-        auto [sess_id, session] = client_db.get_active_session(device_id);
 
         if (std::holds_alternative<initial_message_header>(mesg.header)) {
             //Initial message
@@ -167,8 +214,13 @@ std::optional<std::vector<crypto::secure_vector<std::byte>>> device::receive_sig
             plaintext_messages.emplace_back(std::move(plaintext));
 
             //Sync the session back to the database
-            client_db.sync_session(sess_id, tmp_s);
+            //client_db.sync_session(sess_id, tmp_s);
+
+            //I need to get the sender email somehow
+            client_db.add_session(self_email, device_id, tmp_s);
         } else {
+            auto [sess_id, session] = client_db.get_active_session(device_id);
+
             auto plaintext = session.ratchet_decrypt(mesg);
             plaintext_messages.emplace_back(std::move(plaintext));
 

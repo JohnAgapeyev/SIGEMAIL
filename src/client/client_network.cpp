@@ -81,14 +81,14 @@ client_network_session::~client_network_session() {
         return std::string{ss.str()};
     }();
 
-    spdlog::debug("Request target string {}", target_str);
-
     req.method(http::verb::get);
     req.target(target_str);
     req.prepare_payload();
 
     http::write(stream, req);
     http::read(stream, buffer, res);
+
+    spdlog::debug("Got a server response:\n{}", res);
 
     return res.result() == http::status::ok;
 }
@@ -167,21 +167,14 @@ client_network_session::~client_network_session() {
     boost::property_tree::write_json(ss, ptr);
 
     req.body() = ss.str();
-
-    //Clear the stringstream
-    ss.str(std::string{});
-    ss << req;
-    spdlog::info("Sending request \n{}", ss.str());
-
     req.prepare_payload();
+
+    spdlog::debug("Sending request \n{}", req);
 
     http::write(stream, req);
     http::read(stream, buffer, res);
 
-    //Clear the stringstream
-    ss.str(std::string{});
-    ss << res;
-    spdlog::debug("Got a server response:\n{}", ss.str());
+    spdlog::debug("Got a server response:\n{}", res);
 
     if (res.result() != http::status::ok) {
         return false;
@@ -256,18 +249,12 @@ client_network_session::~client_network_session() {
     req.body() = ss.str();
     req.prepare_payload();
 
-    //Clear the stringstream
-    ss.str(std::string{});
-    ss << req;
-    spdlog::debug("Sending request \n{}", ss.str());
+    spdlog::debug("Sending request \n{}", req);
 
     http::write(stream, req);
     http::read(stream, buffer, res);
 
-    //Clear the stringstream
-    ss.str(std::string{});
-    ss << res;
-    spdlog::debug("Got a server response:\n{}", ss.str());
+    spdlog::debug("Got a server response:\n{}", res);
 
     return res.result() == http::status::ok;
 }
@@ -286,7 +273,11 @@ client_network_session::~client_network_session() {
         ss << target_prefix;
         ss << user_id;
         ss << '/';
-        ss << device_id;
+        if (device_id == -1) {
+            ss << '*';
+        } else {
+            ss << device_id;
+        }
         return ss.str();
     }();
 
@@ -296,18 +287,12 @@ client_network_session::~client_network_session() {
 
     req.prepare_payload();
 
-    //Clear the stringstream
-    std::stringstream ss;
-    ss << req;
-    spdlog::debug("Sending client request\n{}", ss.str());
+    spdlog::debug("Sending client request\n{}", req);
 
     http::write(stream, req);
     http::read(stream, buffer, res);
 
-    //Clear the stringstream
-    ss.str(std::string{});
-    ss << res;
-    spdlog::debug("Got a server response:\n{}", ss.str());
+    spdlog::debug("Got a server response:\n{}", res);
 
     if (res.result() != http::status::ok) {
         return std::nullopt;
@@ -449,13 +434,12 @@ client_network_session::~client_network_session() {
     req.body() = ss.str();
     req.prepare_payload();
 
+    spdlog::debug("Sending client request \n{}", req);
+
     http::write(stream, req);
     http::read(stream, buffer, res);
 
-    //Clear the stringstream
-    ss.str(std::string{});
-    ss << res;
-    spdlog::debug("Got a server response:\n{}", ss.str());
+    spdlog::debug("Got a server response:\n{}", res);
 
     if (res.result() != http::status::ok) {
         return std::nullopt;
@@ -566,13 +550,13 @@ client_network_session::~client_network_session() {
     req.body() = ss.str();
     req.prepare_payload();
 
+    spdlog::debug("Sending a client request \n{}", req);
+
     http::write(stream, req);
     http::read(stream, buffer, res);
 
-    //Clear the stringstream
-    ss.str(std::string{});
-    ss << res;
-    spdlog::debug("Got a server response:\n{}", ss.str());
+    spdlog::debug("Got a server response:\n{}", res);
+
     return res.result() == http::status::ok;
 }
 
@@ -599,9 +583,7 @@ client_network_session::~client_network_session() {
     http::write(stream, req);
     http::read(stream, buffer, res);
 
-    std::stringstream ss;
-    ss << res;
-    spdlog::debug("Got a server response:\n{}", ss.str());
+    spdlog::debug("Got a server response:\n{}", res);
 
     if (res.result() != http::status::ok) {
         return std::nullopt;
@@ -695,7 +677,6 @@ std::optional<boost::property_tree::ptree> client_network_session::parse_json_re
         std::stringstream ss{body};
         boost::property_tree::ptree ptr;
         boost::property_tree::read_json(ss, ptr);
-        spdlog::debug("Received response contents {}", ss.str());
         return ptr;
     } catch (const boost::property_tree::json_parser_error& e) {
         spdlog::error("Failed to convert JSON to Property Tree: {}", e.what());

@@ -42,7 +42,8 @@ public:
             const std::vector<std::pair<int, signal_message>>& messages);
 
     //I'll wait to modify this return type until the full final integration is inplace
-    [[nodiscard]] std::optional<std::vector<std::pair<int, signal_message>>> retrieve_messages(const std::string& user_id);
+    [[nodiscard]] std::optional<std::vector<std::pair<int, signal_message>>> retrieve_messages(
+            const std::string& user_id);
 
 private:
     tcp::resolver resolver;
