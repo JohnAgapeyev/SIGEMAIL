@@ -2,6 +2,7 @@
 #include <optional>
 
 #include "crypto.h"
+#include "logging.h"
 #include "message.h"
 #include "session.h"
 
@@ -19,17 +20,19 @@ session::session(crypto::shared_key shared_secret, crypto::public_key dest_publi
         initial_secret_key(std::move(shared_secret)) {}
 
 session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_kp) :
-        self_keypair(std::move(self_kp)),
-        root_key(std::move(shared_secret)), initial_header_contents{std::nullopt} {}
+        self_keypair(std::move(self_kp)), root_key(std::move(shared_secret)),
+        initial_header_contents(std::nullopt), initial_secret_key(std::nullopt) {}
 
 const signal_message session::ratchet_encrypt(const crypto::secure_vector<std::byte>& plaintext,
         const crypto::secure_vector<std::byte>& aad) {
-
-        initial_header_contents = std::nullopt;
-        initial_secret_key = std::nullopt;
+    //initial_header_contents = std::nullopt;
+    //initial_secret_key = std::nullopt;
 
     if (!initial_header_contents.has_value()) {
+        spdlog::debug("Session encrypt pre send chain {}", send_chain_key);
         const auto message_key = crypto::chain_derive(send_chain_key);
+        spdlog::debug("Session encrypt resulting message key {}", message_key);
+        spdlog::debug("Session encrypt Post send chain {}", send_chain_key);
 
         const signal_message m = [this, &message_key, &plaintext, &aad]() {
             signal_message result;
@@ -47,7 +50,9 @@ const signal_message session::ratchet_encrypt(const crypto::secure_vector<std::b
 
         return m;
     } else {
+        spdlog::debug("Session encrypt pre initial chain {}", send_chain_key);
         const auto message_key = *initial_secret_key;
+        spdlog::debug("Session encrypt initial message key {}", message_key);
 
         const signal_message m = [this, &message_key, &plaintext, &aad]() {
             signal_message result;
@@ -60,8 +65,6 @@ const signal_message session::ratchet_encrypt(const crypto::secure_vector<std::b
             result.aad = crypto::secure_vector<std::byte>{aad};
             return result;
         }();
-
-        ++send_message_num;
 
         initial_header_contents = std::nullopt;
         initial_secret_key = std::nullopt;
@@ -79,12 +82,17 @@ const crypto::secure_vector<std::byte> session::ratchet_decrypt(const signal_mes
             return *skipped_result;
         }
         const auto header = std::get<message_header>(message.header);
+        spdlog::debug("Session decrypt pre ratchet chain {}", receive_chain_key);
         if (header.dh_public_key != remote_public_key) {
+            spdlog::info("We're ratcheting");
             skip_message_keys(header.prev_chain_len);
             DH_ratchet(header.dh_public_key);
         }
+        spdlog::info("Skipping {}", header.message_num);
         skip_message_keys(header.message_num);
+        spdlog::debug("Session decrypt receive chain {}", receive_chain_key);
         const auto message_key = crypto::chain_derive(receive_chain_key);
+        spdlog::debug("Session decrypt resulting key {}", message_key);
         ++receive_message_num;
 
         auto message_copy = message.message;

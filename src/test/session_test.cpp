@@ -7,7 +7,7 @@
 
 BOOST_AUTO_TEST_SUITE(session_tests)
 
-#if 0
+#if 1
 BOOST_AUTO_TEST_CASE(session_initial) {
     const auto message = get_message();
     const auto aad = get_aad();
@@ -18,15 +18,19 @@ BOOST_AUTO_TEST_CASE(session_initial) {
     crypto::DH_Keypair recv_id;
     crypto::DH_Keypair recv_pre;
 
-    auto key = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
+    auto key
+            = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
 
-    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(), std::nullopt};
-    session recv_s{key, recv_pre};
+    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(),
+            std::nullopt};
 
     const auto pre_m = send_s.ratchet_encrypt(message, aad);
-    const auto [tmp_s, plaintext] = decrypt_initial_message(pre_m, recv_id, recv_pre);
+    auto [tmp_s, plaintext] = decrypt_initial_message(pre_m, recv_id, recv_pre);
+
+    tmp_s.receive_chain_key = send_s.send_chain_key;
 
     BOOST_TEST(plaintext == message);
+    BOOST_TEST((send_s.send_chain_key == tmp_s.receive_chain_key));
 }
 
 BOOST_AUTO_TEST_CASE(session_double_send) {
@@ -39,15 +43,26 @@ BOOST_AUTO_TEST_CASE(session_double_send) {
     crypto::DH_Keypair recv_id;
     crypto::DH_Keypair recv_pre;
 
-    auto key = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
+    auto key
+            = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
 
-    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(), std::nullopt};
-    session recv_s{key, recv_pre};
+    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(),
+            std::nullopt};
+
+    spdlog::error("Pre initial section hit");
 
     const auto pre_m = send_s.ratchet_encrypt(message, aad);
     auto [tmp_s, plaintext] = decrypt_initial_message(pre_m, recv_id, recv_pre);
 
     BOOST_TEST(plaintext == message);
+
+    spdlog::error("Post initial section hit");
+
+    tmp_s.receive_chain_key = send_s.send_chain_key;
+    tmp_s.root_key = send_s.root_key;
+    tmp_s.remote_public_key = send_s.self_keypair.get_public();
+
+    BOOST_TEST((send_s.send_chain_key == tmp_s.receive_chain_key));
 
     const auto second_m = send_s.ratchet_encrypt(message, aad);
 
@@ -57,6 +72,7 @@ BOOST_AUTO_TEST_CASE(session_double_send) {
 }
 
 BOOST_AUTO_TEST_CASE(session_initial_back_forth) {
+#if 1
     const auto message = get_message();
     const auto aad = get_aad();
 
@@ -66,23 +82,38 @@ BOOST_AUTO_TEST_CASE(session_initial_back_forth) {
     crypto::DH_Keypair recv_id;
     crypto::DH_Keypair recv_pre;
 
-    auto key = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
+    auto key
+            = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
 
-    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(), std::nullopt};
-    session recv_s{key, recv_pre};
+    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(),
+            std::nullopt};
+
+    spdlog::error("Pre initial section hit");
 
     auto pre_m = send_s.ratchet_encrypt(message, aad);
     auto [tmp_s, plaintext] = decrypt_initial_message(pre_m, recv_id, recv_pre);
 
     BOOST_TEST(plaintext == message);
 
-    BOOST_TEST((tmp_s == recv_s));
+    spdlog::error("Post initial section hit");
+
+    tmp_s.receive_chain_key = send_s.send_chain_key;
+    tmp_s.root_key = send_s.root_key;
+    tmp_s.remote_public_key = send_s.self_keypair.get_public();
+
+    tmp_s.send_chain_key = send_s.receive_chain_key;
+
+    BOOST_TEST((send_s.send_chain_key == tmp_s.receive_chain_key));
 
     auto back_m = tmp_s.ratchet_encrypt(message, aad);
 
     auto next_plain = send_s.ratchet_decrypt(back_m);
 
     BOOST_TEST(next_plain == message);
+
+    BOOST_TEST(tmp_s.ratchet_decrypt(send_s.ratchet_encrypt(message, aad)) == message);
+    BOOST_TEST(send_s.ratchet_decrypt(tmp_s.ratchet_encrypt(message, aad)) == message);
+#endif
 }
 
 #else
@@ -140,12 +171,15 @@ BOOST_AUTO_TEST_CASE(session_double_decrypt) {
     crypto::DH_Keypair recv_pre;
     crypto::DH_Keypair recv_one;
 
-    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(), std::nullopt};
+    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(),
+            std::nullopt};
     session recv_s{key, recv_pre};
 #endif
 
     BOOST_TEST(recv_s.ratchet_decrypt(send_s.ratchet_encrypt(message_1, aad_1)) == message_1);
     BOOST_TEST(recv_s.ratchet_decrypt(send_s.ratchet_encrypt(message_2, aad_2)) == message_2);
+
+    BOOST_TEST((send_s.send_chain_key == recv_s.receive_chain_key));
 }
 
 BOOST_AUTO_TEST_CASE(session_back_and_forth) {
@@ -170,7 +204,8 @@ BOOST_AUTO_TEST_CASE(session_back_and_forth) {
     crypto::DH_Keypair recv_pre;
     crypto::DH_Keypair recv_one;
 
-    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(), std::nullopt};
+    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(),
+            std::nullopt};
     session recv_s{key, recv_pre};
 #endif
 
@@ -200,7 +235,8 @@ BOOST_AUTO_TEST_CASE(out_of_order_messages) {
     crypto::DH_Keypair recv_pre;
     crypto::DH_Keypair recv_one;
 
-    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(), std::nullopt};
+    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(),
+            std::nullopt};
     session recv_s{key, recv_pre};
 #endif
 
@@ -236,7 +272,8 @@ BOOST_AUTO_TEST_CASE(out_of_order_back_and_forth) {
     crypto::DH_Keypair recv_pre;
     crypto::DH_Keypair recv_one;
 
-    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(), std::nullopt};
+    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(),
+            std::nullopt};
     session recv_s{key, recv_pre};
 #endif
 
@@ -264,7 +301,8 @@ BOOST_AUTO_TEST_CASE(many_sends) {
     crypto::DH_Keypair recv_pre;
     crypto::DH_Keypair recv_one;
 
-    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(), std::nullopt};
+    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(),
+            std::nullopt};
     session recv_s{key, recv_pre};
 #endif
 
@@ -292,7 +330,8 @@ BOOST_AUTO_TEST_CASE(many_alternating) {
     crypto::DH_Keypair recv_pre;
     crypto::DH_Keypair recv_one;
 
-    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(), std::nullopt};
+    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(),
+            std::nullopt};
     session recv_s{key, recv_pre};
 #endif
 
@@ -329,7 +368,8 @@ BOOST_AUTO_TEST_CASE(dh_old_message) {
     crypto::DH_Keypair recv_pre;
     crypto::DH_Keypair recv_one;
 
-    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(), std::nullopt};
+    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(),
+            std::nullopt};
     session recv_s{key, recv_pre};
 #endif
 
@@ -370,7 +410,8 @@ BOOST_AUTO_TEST_CASE(signal_out_of_order_example) {
     crypto::DH_Keypair recv_pre;
     crypto::DH_Keypair recv_one;
 
-    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(), std::nullopt};
+    session send_s{key, recv_pre.get_public(), send_id.get_public(), send_ephem.get_public(),
+            std::nullopt};
     session recv_s{key, recv_pre};
 #endif
 

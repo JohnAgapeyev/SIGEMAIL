@@ -6,10 +6,12 @@
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/array.hpp>
 #include <boost/serialization/base_object.hpp>
+#include <iostream>
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <type_traits>
+#include <cstddef>
 
 #include "zallocator.h"
 
@@ -29,10 +31,18 @@ namespace crypto {
             boost::ignore_unused_variable_warning(version);
             const auto data = this->data();
             for (size_t i = 0; i < N; ++i) {
-                ar & data[i];
+                ar& data[i];
             }
         }
     };
+    template<std::size_t N>
+    std::ostream& operator<<(std::ostream& os, const secure_array<std::byte, N>& arr) {
+        const auto data = arr.data();
+        for (size_t i = 0; i < N; ++i) {
+            os << std::hex << std::to_integer<unsigned int>(data[i]);
+        }
+        return os;
+    }
 
     template<typename T>
     using secure_vector = std::vector<T, zallocator<T>>;
@@ -86,8 +96,7 @@ namespace crypto {
     }
 
     //Use SHA256 since it's a good universal hash, and anything that needs SHA512 or equivalent will use it inline, rather than using this interface
-    std::array<std::byte, 32> hash_data_impl(
-            const unsigned char* data, const std::size_t len);
+    std::array<std::byte, 32> hash_data_impl(const unsigned char* data, const std::size_t len);
 
     template<typename T>
     std::array<std::byte, 32> hash_data(const std::vector<T>& data) {
