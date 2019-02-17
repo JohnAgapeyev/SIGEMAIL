@@ -1,5 +1,5 @@
-#ifndef PROTOCOL_STATE_H
-#define PROTOCOL_STATE_H
+#ifndef SESSION_H
+#define SESSION_H
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/array.hpp>
@@ -12,7 +12,6 @@
 
 #include "crypto.h"
 #include "dh.h"
-#include "key_pack.h"
 #include "logging.h"
 #include "message.h"
 
@@ -150,4 +149,4 @@ std::pair<session, crypto::secure_vector<std::byte>> decrypt_initial_message(
         const signal_message& message, const crypto::DH_Keypair& identity,
         const crypto::DH_Keypair& prekey);
 
-#endif /* end of include guard: PROTOCOL_STATE_H */
+#endif /* end of include guard: SESSION_H */

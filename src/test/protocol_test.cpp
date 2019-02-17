@@ -4,7 +4,6 @@
 #include "test.h"
 #include "crypto.h"
 #include "dh.h"
-#include "key_pack.h"
 #include "message.h"
 #include "session.h"
 
