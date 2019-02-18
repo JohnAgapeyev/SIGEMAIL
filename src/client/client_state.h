@@ -51,7 +51,7 @@ namespace client {
         void add_one_time(const crypto::DH_Keypair& one_time);
         void add_user_record(const std::string& email);
         void add_device_record(const std::string& email, const int device_record, const crypto::public_key& pub_key);
-        int add_session(const std::string& email, const int device_index, const session& s);
+        int add_session(const int device_index, const session& s);
 
         void remove_user_record(const std::string& email);
         void remove_device_record(const int device_index);
@@ -140,12 +140,10 @@ namespace client {
         static constexpr auto create_sessions = "\
         CREATE TABLE IF NOT EXISTS sessions (\
            session_id   INTEGER PRIMARY KEY,\
-           user_id      TEXT    NOT NULL,\
            device_id    INTEGER NOT NULL,\
            contents     BLOB    NOT NULL UNIQUE,\
-           FOREIGN KEY(user_id) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE,\
            FOREIGN KEY(device_id) REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE,\
-           CHECK(length(user_id) > 0 and length(contents) > 0)\
+           CHECK(length(contents) > 0)\
         );";
 
         static constexpr auto insert_self = "INSERT INTO self VALUES (?1, ?2, ?3, ?4, ?5);";
@@ -154,7 +152,7 @@ namespace client {
         static constexpr auto insert_devices
                 = "INSERT INTO devices(device_id, user_id, public_key, active_session, stale) VALUES (?2, ?1, ?3, NULL, 0);";
         static constexpr auto insert_sessions
-                = "INSERT INTO sessions(user_id, device_id, contents) VALUES (?1, ?2, ?3);";
+                = "INSERT INTO sessions(device_id, contents) VALUES (?1, ?2);";
 
         static constexpr auto rowid_insert = "SELECT last_insert_rowid();";
 

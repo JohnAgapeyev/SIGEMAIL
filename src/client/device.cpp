@@ -29,7 +29,8 @@ void device::delete_session(const std::string& email, int device_index, const in
 }
 
 void device::insert_session(const std::string& email, int device_index, const session& s) {
-    client_db.add_session(email, device_index, s);
+    (void)email;
+    client_db.add_session(device_index, s);
 }
 
 void device::activate_session(const std::string& email, int device_index, const int session_id) {
@@ -101,7 +102,7 @@ void device::prep_for_encryption(
 
     session s{std::move(secret_key), std::move(ephemeral_keypair), std::move(pre_key), std::move(self_identity.get_public()), one_time_key};
 
-    int session_id = client_db.add_session(email, device_index, std::move(s));
+    int session_id = client_db.add_session(device_index, std::move(s));
     client_db.activate_session(device_index, session_id);
 }
 
@@ -143,7 +144,7 @@ void device::prep_for_encryption(const std::string& email) {
 
         session s{std::move(secret_key), std::move(ephemeral_keypair), std::move(pre_key), std::move(self_identity.get_public()), one_time_key};
 
-        int session_id = client_db.add_session(email, device_id, std::move(s));
+        int session_id = client_db.add_session(device_id, std::move(s));
         client_db.activate_session(device_id, session_id);
     }
 }
@@ -216,8 +217,7 @@ std::optional<std::vector<crypto::secure_vector<std::byte>>> device::receive_sig
             //Sync the session back to the database
             //client_db.sync_session(sess_id, tmp_s);
 
-            //I need to get the sender email somehow
-            int session_id = client_db.add_session(self_email, device_id, tmp_s);
+            int session_id = client_db.add_session(device_id, tmp_s);
             client_db.activate_session(device_id, session_id);
         } else {
             auto [sess_id, session] = client_db.get_active_session(device_id);

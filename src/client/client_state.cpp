@@ -186,16 +186,11 @@ void client::database::add_device_record(
     }
 }
 
-int client::database::add_session(
-        const std::string& email, const int device_index, const session& s) {
+int client::database::add_session(const int device_index, const session& s) {
     sqlite3_reset(sessions_insert);
     sqlite3_clear_bindings(sessions_insert);
 
-    if (sqlite3_bind_text(sessions_insert, 1, email.c_str(), email.size(), SQLITE_TRANSIENT)
-            != SQLITE_OK) {
-        throw_db_error(db_conn);
-    }
-    if (sqlite3_bind_int(sessions_insert, 2, device_index) != SQLITE_OK) {
+    if (sqlite3_bind_int(sessions_insert, 1, device_index) != SQLITE_OK) {
         throw_db_error(db_conn);
     }
 
@@ -206,7 +201,7 @@ int client::database::add_session(
     }
     auto serialized = ss.str();
     if (sqlite3_bind_text(
-                sessions_insert, 3, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
+                sessions_insert, 2, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
         throw_db_error(db_conn);
     }

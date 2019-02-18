@@ -87,27 +87,13 @@ BOOST_AUTO_TEST_CASE(add_session) {
     auto db = get_client_db();
     db.add_user_record("foobar@test.com");
     db.add_device_record("foobar@test.com", 1, {});
-    BOOST_TEST(db.add_session("foobar@test.com", 1, get_session()) == 1);
+    BOOST_TEST(db.add_session(1, get_session()) == 1);
 }
 
 BOOST_AUTO_TEST_CASE(add_session_bad_device) {
     auto db = get_client_db();
     db.add_user_record("foobar@test.com");
-    BOOST_REQUIRE_THROW(db.add_session("foobar@test.com", -1, get_session()), db_error);
-}
-
-BOOST_AUTO_TEST_CASE(add_session_bad_user) {
-    auto db = get_client_db();
-    db.add_user_record("foobar@test.com");
-    db.add_device_record("foobar@test.com", 1, {});
-    BOOST_REQUIRE_THROW(db.add_session("foobar@foobar.com", 1, get_session()), db_error);
-}
-
-BOOST_AUTO_TEST_CASE(add_session_empty_user) {
-    auto db = get_client_db();
-    db.add_user_record("foobar@test.com");
-    db.add_device_record("foobar@test.com", 1, {});
-    BOOST_REQUIRE_THROW(db.add_session("", 1, get_session()), db_error);
+    BOOST_REQUIRE_THROW(db.add_session(-1, get_session()), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(add_session_duplicate) {
@@ -115,8 +101,8 @@ BOOST_AUTO_TEST_CASE(add_session_duplicate) {
     db.add_user_record("foobar@test.com");
     db.add_device_record("foobar@test.com", 1, {});
     const auto s = get_session();
-    db.add_session("foobar@test.com", 1, s);
-    BOOST_REQUIRE_THROW(db.add_session("foobar@test.com", 1, s), db_error);
+    db.add_session(1, s);
+    BOOST_REQUIRE_THROW(db.add_session(1, s), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(remove_user_record) {
@@ -183,7 +169,7 @@ BOOST_AUTO_TEST_CASE(remove_session) {
     auto db = get_client_db();
     db.add_user_record("foobar@test.com");
     db.add_device_record("foobar@test.com", 1, {});
-    const int sid = db.add_session("foobar@test.com", 1, get_session());
+    const int sid = db.add_session(1, get_session());
     BOOST_TEST(sid == 1);
     db.remove_session(sid);
 }
@@ -192,7 +178,7 @@ BOOST_AUTO_TEST_CASE(remove_session_bad_id) {
     auto db = get_client_db();
     db.add_user_record("foobar@test.com");
     db.add_device_record("foobar@test.com", 1, {});
-    db.add_session("foobar@test.com", 1, get_session());
+    db.add_session(1, get_session());
     db.remove_session(-1);
 }
 
@@ -206,7 +192,7 @@ BOOST_AUTO_TEST_CASE(activate_session) {
     db.add_user_record("foobar@test.com");
     const int did = 1;
     db.add_device_record("foobar@test.com", did, {});
-    const int sid = db.add_session("foobar@test.com", did, get_session());
+    const int sid = db.add_session(did, get_session());
     db.activate_session(did, sid);
 }
 
@@ -215,7 +201,7 @@ BOOST_AUTO_TEST_CASE(activate_session_existing) {
     db.add_user_record("foobar@test.com");
     const int did = 1;
     db.add_device_record("foobar@test.com", did, {});
-    const int sid = db.add_session("foobar@test.com", did, get_session());
+    const int sid = db.add_session(did, get_session());
     db.activate_session(did, sid);
     db.activate_session(did, sid);
 }
@@ -224,7 +210,7 @@ BOOST_AUTO_TEST_CASE(activate_session_bad_session) {
     auto db = get_client_db();
     db.add_user_record("foobar@test.com");
     db.add_device_record("foobar@test.com", 1, {});
-    db.add_session("foobar@test.com", 1, get_session());
+    db.add_session(1, get_session());
     BOOST_REQUIRE_THROW(db.activate_session(1, -1), db_error);
 }
 
@@ -232,7 +218,7 @@ BOOST_AUTO_TEST_CASE(activate_session_bad_device) {
     auto db = get_client_db();
     db.add_user_record("foobar@test.com");
     db.add_device_record("foobar@test.com", 1, {});
-    const int sid = db.add_session("foobar@test.com", 1, get_session());
+    const int sid = db.add_session(1, get_session());
     db.activate_session(-1, sid);
 }
 
@@ -247,8 +233,8 @@ BOOST_AUTO_TEST_CASE(activate_session_two) {
     auto db = get_client_db();
     db.add_user_record("foobar@test.com");
     db.add_device_record("foobar@test.com", 1, {});
-    const int sid1 = db.add_session("foobar@test.com", 1, get_session());
-    const int sid2 = db.add_session("foobar@test.com", 1, get_session());
+    const int sid1 = db.add_session(1, get_session());
+    const int sid2 = db.add_session(1, get_session());
     db.activate_session(1, sid1);
     db.activate_session(1, sid2);
 }
@@ -415,7 +401,7 @@ BOOST_AUTO_TEST_CASE(get_sessions) {
     db.add_user_record("foobar@test.com");
     db.add_device_record("foobar@test.com", 1, {});
     const auto s = get_session();
-    db.add_session("foobar@test.com", 1, s);
+    db.add_session(1, s);
     const auto sess_list = db.get_sessions_by_device(1);
     BOOST_TEST((sess_list.size() == 1 && sess_list.front().second == s));
 }
@@ -425,7 +411,7 @@ BOOST_AUTO_TEST_CASE(get_sessions_multiple) {
     db.add_user_record("foobar@test.com");
     db.add_device_record("foobar@test.com", 1, {});
     for (int i = 0; i < 10; ++i) {
-        db.add_session("foobar@test.com", 1, get_session());
+        db.add_session(1, get_session());
     }
     const auto sess_list = db.get_sessions_by_device(1);
     BOOST_TEST((sess_list.size() == 10));
@@ -436,7 +422,7 @@ BOOST_AUTO_TEST_CASE(get_sessions_bad_device) {
     db.add_user_record("foobar@test.com");
     db.add_device_record("foobar@test.com", 1, {});
     for (int i = 0; i < 10; ++i) {
-        db.add_session("foobar@test.com", 1, get_session());
+        db.add_session(1, get_session());
     }
     const auto sess_list = db.get_sessions_by_device(-1);
     BOOST_TEST((sess_list.size() == 0));
@@ -462,7 +448,7 @@ BOOST_AUTO_TEST_CASE(get_active_session) {
     db.add_user_record("foobar@test.com");
     db.add_device_record("foobar@test.com", 1, {});
     const auto s = get_session();
-    const int sid = db.add_session("foobar@test.com", 1, s);
+    const int sid = db.add_session(1, s);
     db.activate_session(1, sid);
     const auto [session_id, active] = db.get_active_session(1);
     BOOST_TEST((s == active));
@@ -473,7 +459,7 @@ BOOST_AUTO_TEST_CASE(get_active_session_empty) {
     db.add_user_record("foobar@test.com");
     db.add_device_record("foobar@test.com", 1, {});
     const auto s = get_session();
-    db.add_session("foobar@test.com", 1, s);
+    db.add_session(1, s);
     BOOST_REQUIRE_THROW(db.get_active_session(1), db_error);
 }
 
@@ -482,7 +468,7 @@ BOOST_AUTO_TEST_CASE(get_active_session_bad_device_id) {
     db.add_user_record("foobar@test.com");
     db.add_device_record("foobar@test.com", 1, {});
     const auto s = get_session();
-    const int sid = db.add_session("foobar@test.com", 1, s);
+    const int sid = db.add_session(1, s);
     db.activate_session(1, sid);
     BOOST_REQUIRE_THROW(db.get_active_session(-1), db_error);
 }
@@ -492,7 +478,7 @@ BOOST_AUTO_TEST_CASE(sync_session) {
     db.add_user_record("foobar@test.com");
     db.add_device_record("foobar@test.com", 1, {});
     auto s = get_session();
-    const int sid = db.add_session("foobar@test.com", 1, s);
+    const int sid = db.add_session(1, s);
     db.activate_session(1, sid);
     auto [sess_id, active] = db.get_active_session(1);
     BOOST_TEST((s == active));
