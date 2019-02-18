@@ -298,4 +298,47 @@ BOOST_AUTO_TEST_CASE(many_staggered_alternating) {
     }
 }
 
+BOOST_AUTO_TEST_CASE(many_staggered_2_to_1) {
+    auto server_db = get_server_db();
+    auto alice_db = get_client_db();
+    auto bob_db = get_client_db();
+    const auto server_wrapper = get_server(server_db);
+    const auto alice_wrapper = get_client(alice_db);
+    const auto bob_wrapper = get_client(bob_db);
+    auto alice = alice_wrapper->client;
+    auto bob = bob_wrapper->client;
+
+    const auto alice_email = "foobar@test.com";
+    const auto bob_email = "baz@foobar.com";
+
+    server_db.add_registration_code(alice_email, 12345);
+    server_db.add_registration_code(bob_email, 23456);
+    BOOST_TEST(alice->verify_verification_code(alice_email, 12345));
+    BOOST_TEST(bob->verify_verification_code(bob_email, 23456));
+
+    device alice_dev{"localhost", "8443", alice_db};
+    device bob_dev{"localhost", "8443", bob_db};
+
+    const auto plaintext = get_message();
+
+    const auto count = 20;
+
+    for (int i = 0; i < count; ++i) {
+        alice_dev.send_signal_message(plaintext, {bob_email});
+        alice_dev.send_signal_message(plaintext, {bob_email});
+
+        auto decrypted = bob_dev.receive_signal_message();
+
+        BOOST_TEST(decrypted.has_value());
+        BOOST_TEST(decrypted->size() == 2);
+
+        bob_dev.send_signal_message(plaintext, {alice_email});
+
+        decrypted = alice_dev.receive_signal_message();
+
+        BOOST_TEST(decrypted.has_value());
+        BOOST_TEST(decrypted->size() == 1);
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
