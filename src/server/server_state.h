@@ -47,8 +47,8 @@ namespace server {
         int add_device(const std::string_view user_id, const crypto::public_key& identity,
                 const crypto::public_key& pre_key, const crypto::signature& signature);
         void add_one_time_key(const int device_id, const crypto::public_key& one_time);
-        void add_message(const std::string_view user_id, const int device_id,
-                const std::vector<std::byte>& message_contents);
+        void add_message(const std::string_view from_user_id, const std::string_view dest_user_id, const int from_device_id,
+                const int dest_device_id, const std::vector<std::byte>& message_contents);
         void add_registration_code(const std::string_view email, const int code);
 
         void update_pre_key(const int device_id, const crypto::public_key& pre_key,
@@ -73,7 +73,7 @@ namespace server {
 
         std::tuple<int, crypto::public_key> get_one_time_key(const int device_id);
 
-        std::vector<std::tuple<int, int, std::string>> retrieve_messages(
+        std::vector<std::tuple<int, std::string, int, int, std::string>> retrieve_messages(
                 const std::string_view user_id);
 
         [[nodiscard]] std::string confirm_registration_code(const int reg_code);
@@ -133,12 +133,16 @@ namespace server {
         );";
         static constexpr auto create_mailboxes = "\
         CREATE TABLE IF NOT EXISTS mailbox (\
-           message_id   INTEGER PRIMARY KEY,\
-           user_id      TEXT    NOT NULL,\
-           device_id    INTEGER NOT NULL,\
-           contents     BLOB    NOT NULL,\
-           FOREIGN KEY (user_id) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE\
-           FOREIGN KEY (device_id) REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE,\
+           message_id     INTEGER PRIMARY KEY,\
+           from_user_id   TEXT    NOT NULL,\
+           dest_user_id   TEXT    NOT NULL,\
+           from_device_id INTEGER NOT NULL,\
+           dest_device_id INTEGER NOT NULL,\
+           contents       BLOB    NOT NULL,\
+           FOREIGN KEY (from_user_id) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE,\
+           FOREIGN KEY (dest_user_id) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE,\
+           FOREIGN KEY (from_device_id) REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE,\
+           FOREIGN KEY (dest_device_id) REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE,\
            CHECK(length(contents) > 0)\
         );";
         static constexpr auto create_registration_codes = "\
@@ -153,8 +157,8 @@ namespace server {
                 = "INSERT INTO devices(user_id, identity_key, pre_key, signature) \
                                     VALUES (?1, ?2, ?3, ?4);";
         static constexpr auto insert_one_time = "INSERT INTO otpk(device_id, key) VALUES (?1, ?2);";
-        static constexpr auto insert_message
-                = "INSERT INTO mailbox(user_id, device_id, contents) VALUES (?1, ?2, ?3);";
+        static constexpr auto insert_message = "INSERT INTO mailbox(from_user_id, dest_user_id, from_device_id, "
+                                               "dest_device_id, contents) VALUES (?1, ?2, ?3, ?4, ?5);";
         static constexpr auto insert_registration
                 = "INSERT INTO registration_codes VALUES (?1, ?2, "
                   "strftime('%s', 'now', '+1 day'));";
@@ -181,8 +185,8 @@ namespace server {
                   "signature FROM devices WHERE device_id = ?1;";
         static constexpr auto select_one_time
                 = "SELECT key_id, key FROM otpk WHERE device_id = ?1 ORDER BY RANDOM() LIMIT 1;";
-        static constexpr auto select_message
-                = "SELECT message_id, device_id, contents FROM mailbox WHERE user_id = ?1;";
+        static constexpr auto select_message = "SELECT message_id, from_user_id, from_device_id, dest_device_id, "
+                                               "contents FROM mailbox WHERE dest_user_id = ?1;";
         static constexpr auto select_registration
                 = "SELECT email, expiration FROM registration_codes WHERE code = ?1;";
     };

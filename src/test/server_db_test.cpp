@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(add_message) {
 
     std::vector<std::byte> m{18, std::byte{0xef}};
 
-    db.add_message("foobar@test.com", 1, m);
+    db.add_message("foobar@test.com", "foobar@test.com", 1, 1, m);
 }
 
 BOOST_AUTO_TEST_CASE(add_message_bad_device_id) {
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(add_message_bad_device_id) {
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     std::vector<std::byte> m{18, std::byte{0xef}};
-    BOOST_REQUIRE_THROW(db.add_message("foobar@test.com", -1, m), db_error);
+    BOOST_REQUIRE_THROW(db.add_message("foobar@test.com", "foobar@test.com", -1, -1, m), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(add_message_bad_user_id) {
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(add_message_bad_user_id) {
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     std::vector<std::byte> m{18, std::byte{0xef}};
-    BOOST_REQUIRE_THROW(db.add_message("foobar@com", 1, m), db_error);
+    BOOST_REQUIRE_THROW(db.add_message("foobar@com", "foobar@test.com", 1, 1, m), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(add_message_empty_user) {
@@ -102,14 +102,30 @@ BOOST_AUTO_TEST_CASE(add_message_empty_user) {
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
     std::vector<std::byte> m{18, std::byte{0xef}};
-    BOOST_REQUIRE_THROW(db.add_message("", 1, m), db_error);
+    BOOST_REQUIRE_THROW(db.add_message("", "foobar@test.com", 1, 1, m), db_error);
+}
+
+BOOST_AUTO_TEST_CASE(add_message_empty_dest) {
+    auto db = get_server_db();
+    db.add_user("foobar@test.com", "abcde");
+    db.add_device("foobar@test.com", {}, {}, {});
+    std::vector<std::byte> m{18, std::byte{0xef}};
+    BOOST_REQUIRE_THROW(db.add_message("foobar@test.com", "", 1, 1, m), db_error);
+}
+
+BOOST_AUTO_TEST_CASE(add_message_empty_both_users) {
+    auto db = get_server_db();
+    db.add_user("foobar@test.com", "abcde");
+    db.add_device("foobar@test.com", {}, {}, {});
+    std::vector<std::byte> m{18, std::byte{0xef}};
+    BOOST_REQUIRE_THROW(db.add_message("", "", 1, 1, m), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(add_message_empty_message) {
     auto db = get_server_db();
     db.add_user("foobar@test.com", "abcde");
     db.add_device("foobar@test.com", {}, {}, {});
-    BOOST_REQUIRE_THROW(db.add_message("foobar@test.com", 1, {}), db_error);
+    BOOST_REQUIRE_THROW(db.add_message("foobar@test.com", "foobar@test.com", 1, 1, {}), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(add_registration_code) {
@@ -234,7 +250,7 @@ BOOST_AUTO_TEST_CASE(remove_message) {
 
     std::vector<std::byte> m{18, std::byte{0xef}};
 
-    db.add_message("foobar@test.com", 1, m);
+    db.add_message("foobar@test.com", "foobar@test.com", 1, 1, m);
     db.remove_message(1);
 }
 
@@ -245,7 +261,7 @@ BOOST_AUTO_TEST_CASE(remove_message_bad_id) {
 
     std::vector<std::byte> m{18, std::byte{0xef}};
 
-    db.add_message("foobar@test.com", 1, m);
+    db.add_message("foobar@test.com", "foobar@test.com", 1, 1, m);
     db.remove_message(-1);
 }
 
@@ -598,7 +614,7 @@ BOOST_AUTO_TEST_CASE(retrieve_messages) {
     db.add_device("foobar@test.com", {}, {}, {});
 
     std::vector<std::byte> m{18, std::byte{0xef}};
-    db.add_message("foobar@test.com", 1, m);
+    db.add_message("foobar@test.com", "foobar@test.com", 1, 1, m);
 
     const auto messages = db.retrieve_messages("foobar@test.com");
     BOOST_TEST(messages.size() == 1);
@@ -629,7 +645,7 @@ BOOST_AUTO_TEST_CASE(retrieve_message_multiple) {
 
     for (unsigned long i = 0; i < 20; ++i) {
         std::vector<std::byte> m{18 + i, std::byte{static_cast<std::byte>(i)}};
-        db.add_message("foobar@test.com", 1, m);
+        db.add_message("foobar@test.com", "foobar@test.com", 1, 1, m);
     }
 
     const auto messages = db.retrieve_messages("foobar@test.com");
@@ -642,7 +658,7 @@ BOOST_AUTO_TEST_CASE(retrieve_message_empty_user) {
     db.add_device("foobar@test.com", {}, {}, {});
 
     std::vector<std::byte> m{18, std::byte{0xc8}};
-    db.add_message("foobar@test.com", 1, m);
+    db.add_message("foobar@test.com", "foobar@test.com", 1, 1, m);
 
     const auto messages = db.retrieve_messages("");
     BOOST_TEST(messages.size() == 0);

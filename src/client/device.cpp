@@ -207,7 +207,21 @@ std::optional<std::vector<crypto::secure_vector<std::byte>>> device::receive_sig
 
     std::vector<crypto::secure_vector<std::byte>> plaintext_messages;
 
-    for (const auto& [device_id, mesg] : *server_data) {
+    for (const auto& [from_email, from_device_id, dest_device_id, mesg] : *server_data) {
+
+        /*
+         * This will create all database records for the user
+         * So assuming there aren't any invalid device ids, this will work
+         * A consequence is that it will create sessions for the devices
+         *
+         * For existing sessions, I handle it there, so that's fine
+         *
+         * But for devices we haven't seen yet, it will create a session
+         * This session will then have to be overwritten
+         */
+        prep_for_encryption(from_email);
+
+        auto [sess_id, session] = client_db.get_active_session(from_device_id);
 
         if (std::holds_alternative<initial_message_header>(mesg.header)) {
             //Initial message
@@ -215,13 +229,8 @@ std::optional<std::vector<crypto::secure_vector<std::byte>>> device::receive_sig
             plaintext_messages.emplace_back(std::move(plaintext));
 
             //Sync the session back to the database
-            //client_db.sync_session(sess_id, tmp_s);
-
-            int session_id = client_db.add_session(device_id, tmp_s);
-            client_db.activate_session(device_id, session_id);
+            client_db.sync_session(sess_id, tmp_s);
         } else {
-            auto [sess_id, session] = client_db.get_active_session(device_id);
-
             auto plaintext = session.ratchet_decrypt(mesg);
             plaintext_messages.emplace_back(std::move(plaintext));
 
@@ -229,8 +238,6 @@ std::optional<std::vector<crypto::secure_vector<std::byte>>> device::receive_sig
             client_db.sync_session(sess_id, session);
         }
     }
-
-
     return plaintext_messages;
 }
 

@@ -101,9 +101,8 @@ void server::database::add_user(const std::string_view user_id, const std::strin
     }
 }
 
-int server::database::add_device(const std::string_view user_id,
-        const crypto::public_key& identity, const crypto::public_key& pre_key,
-        const crypto::signature& signature) {
+int server::database::add_device(const std::string_view user_id, const crypto::public_key& identity,
+        const crypto::public_key& pre_key, const crypto::signature& signature) {
     sqlite3_reset(devices_insert);
     sqlite3_clear_bindings(devices_insert);
 
@@ -160,21 +159,32 @@ void server::database::add_one_time_key(const int device_id, const crypto::publi
     }
 }
 
-void server::database::add_message(const std::string_view user_id, const int device_id,
+void server::database::add_message(const std::string_view from_user_id,
+        const std::string_view dest_user_id, const int from_device_id, const int dest_device_id,
         const std::vector<std::byte>& message_contents) {
     sqlite3_reset(mailbox_insert);
     sqlite3_clear_bindings(mailbox_insert);
 
-    if (sqlite3_bind_text(mailbox_insert, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT)
+    if (sqlite3_bind_text(
+                mailbox_insert, 1, from_user_id.data(), from_user_id.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+    if (sqlite3_bind_text(
+                mailbox_insert, 2, dest_user_id.data(), dest_user_id.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
         throw_db_error(db_conn);
     }
 
-    if (sqlite3_bind_int(mailbox_insert, 2, device_id) != SQLITE_OK) {
+    if (sqlite3_bind_int(mailbox_insert, 3, from_device_id) != SQLITE_OK) {
         throw_db_error(db_conn);
     }
 
-    if (sqlite3_bind_blob(mailbox_insert, 3, message_contents.data(), message_contents.size(),
+    if (sqlite3_bind_int(mailbox_insert, 4, dest_device_id) != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_bind_blob(mailbox_insert, 5, message_contents.data(), message_contents.size(),
                 SQLITE_TRANSIENT)
             != SQLITE_OK) {
         throw_db_error(db_conn);
@@ -499,12 +509,12 @@ std::tuple<int, crypto::public_key> server::database::get_one_time_key(const int
     return {std::move(key_id), std::move(output)};
 }
 
-std::vector<std::tuple<int, int, std::string>> server::database::retrieve_messages(
-        const std::string_view user_id) {
+std::vector<std::tuple<int, std::string, int, int, std::string>>
+        server::database::retrieve_messages(const std::string_view user_id) {
     sqlite3_reset(mailbox_select);
     sqlite3_clear_bindings(mailbox_select);
 
-    std::vector<std::tuple<int, int, std::string>> records;
+    std::vector<std::tuple<int, std::string, int, int, std::string>> records;
 
     if (sqlite3_bind_text(mailbox_select, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
@@ -514,10 +524,13 @@ std::vector<std::tuple<int, int, std::string>> server::database::retrieve_messag
     int err;
     while ((err = sqlite3_step(mailbox_select)) == SQLITE_ROW) {
         const auto message_id = sqlite3_column_int(mailbox_select, 0);
-        const auto device_id = sqlite3_column_int(mailbox_select, 1);
-        const auto m_data = read_db_string(db_conn, mailbox_select, 2);
+        const auto from_user_id = read_db_string(db_conn, mailbox_select, 1);
+        const auto from_device_id = sqlite3_column_int(mailbox_select, 2);
+        const auto dest_device_id = sqlite3_column_int(mailbox_select, 3);
+        const auto m_data = read_db_string(db_conn, mailbox_select, 4);
 
-        records.emplace_back(std::move(message_id), std::move(device_id), std::move(m_data));
+        records.emplace_back(std::move(message_id), std::move(from_user_id),
+                std::move(from_device_id), std::move(dest_device_id), std::move(m_data));
     }
     if (err != SQLITE_DONE) {
         throw_db_error(db_conn);

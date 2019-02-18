@@ -501,7 +501,9 @@ client_network_session::~client_network_session() {
  * {
  *    messages: [
  *      {
- *             dest_device: {destination_device_id},
+ *             from_user: {sender_email},
+ *             from_id: {sender_device_id},
+ *             dest_id: {destination_device_id},
  *             contents: "{serialized message}",
  *      },
  *      ...
@@ -529,12 +531,21 @@ client_network_session::~client_network_session() {
     boost::property_tree::ptree ptr;
     boost::property_tree::ptree message_data;
 
+    const auto [self_email, self_device_id, auth_token, self_identity, self_prekey] = client_db.get_self_data();
+
     for (const auto& [device_id, contents] : messages) {
         boost::property_tree::ptree child;
 
+        child.add("from_user", self_email);
+
         std::stringstream ss;
+        ss << self_device_id;
+        child.add("from_id", ss.str());
+
+        //Clear the stringstream
+        ss.str(std::string{});
         ss << device_id;
-        child.add("device_id", ss.str());
+        child.add("dest_id", ss.str());
 
         //Clear the stringstream
         ss.str(std::string{});
@@ -565,7 +576,7 @@ client_network_session::~client_network_session() {
     return res.result() == http::status::ok;
 }
 
-[[nodiscard]] std::optional<std::vector<std::pair<int, signal_message>>> client_network_session::retrieve_messages(const std::string& user_id) {
+[[nodiscard]] std::optional<std::vector<std::tuple<std::string, int, int, signal_message>>> client_network_session::retrieve_messages(const std::string& user_id) {
     req.clear();
     req.body() = "";
     res.clear();
@@ -606,19 +617,40 @@ client_network_session::~client_network_session() {
         return std::nullopt;
     }
 
-    std::vector<std::pair<int, signal_message>> messages;
+    std::vector<std::tuple<std::string, int, int, signal_message>> messages;
 
     for (const auto& [key, value] : *message_ptr) {
-        const auto id_child = value.get_child_optional("device_id");
-        if (!id_child) {
+        const auto email_child = value.get_child_optional("from_user");
+        if (!email_child) {
             //Got a badly formattted server response
             return std::nullopt;
         }
-        const auto device_id_str = id_child->get_value<std::string>();
+        const auto from_email = email_child->get_value<std::string>();
 
-        int device_id;
+        const auto from_id_child = value.get_child_optional("from_id");
+        if (!from_id_child) {
+            //Got a badly formattted server response
+            return std::nullopt;
+        }
+        const auto from_device_id_str = from_id_child->get_value<std::string>();
+
+        int from_device_id;
         try {
-            device_id = std::stoi(device_id_str);
+            from_device_id = std::stoi(from_device_id_str);
+        } catch(const std::exception&) {
+            //Failed to convert device id to int
+            return std::nullopt;
+        }
+        const auto dest_id_child = value.get_child_optional("dest_id");
+        if (!dest_id_child) {
+            //Got a badly formattted server response
+            return std::nullopt;
+        }
+        const auto dest_device_id_str = dest_id_child->get_value<std::string>();
+
+        int dest_device_id;
+        try {
+            dest_device_id = std::stoi(dest_device_id_str);
         } catch(const std::exception&) {
             //Failed to convert device id to int
             return std::nullopt;
@@ -638,7 +670,7 @@ client_network_session::~client_network_session() {
 
         arch >> m;
 
-        messages.emplace_back(device_id, std::move(m));
+        messages.emplace_back(from_email, from_device_id, dest_device_id, std::move(m));
     }
 
     return messages;

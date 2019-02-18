@@ -41,8 +41,7 @@ public:
     [[nodiscard]] bool submit_message(const std::string& user_id,
             const std::vector<std::pair<int, signal_message>>& messages);
 
-    //I'll wait to modify this return type until the full final integration is inplace
-    [[nodiscard]] std::optional<std::vector<std::pair<int, signal_message>>> retrieve_messages(
+    [[nodiscard]] std::optional<std::vector<std::tuple<std::string, int, int, signal_message>>> retrieve_messages(
             const std::string& user_id);
 
 private:

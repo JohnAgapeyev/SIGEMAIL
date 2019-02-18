@@ -637,12 +637,21 @@ const http::response<http::string_body> http_session::submit_message(
         if (!message_child) {
             return bad_json();
         }
-        const auto device_id_str = message_child->get_child("device_id").get_value<std::string>();
+        const auto from_user_email = message_child->get_child("from_user").get_value<std::string>();
+        const auto from_device_id_str = message_child->get_child("from_id").get_value<std::string>();
+        const auto dest_device_id_str = message_child->get_child("dest_id").get_value<std::string>();
         const auto contents_str = message_child->get_child("contents").get_value<std::string>();
 
-        int device_id;
+        int from_device_id;
         try {
-            device_id = std::stoi(device_id_str);
+            from_device_id = std::stoi(from_device_id_str);
+        } catch (const std::exception&) {
+            //Bad request
+            return bad_request("Sender Device ID is not a number");
+        }
+        int dest_device_id;
+        try {
+            dest_device_id = std::stoi(dest_device_id_str);
         } catch (const std::exception&) {
             //Bad request
             return bad_request("Destination Device ID is not a number");
@@ -653,7 +662,7 @@ const http::response<http::string_body> http_session::submit_message(
             m.emplace_back(static_cast<std::byte>(c));
         }
 
-        server_db.add_message(email, device_id, m);
+        server_db.add_message(from_user_email, email, from_device_id, dest_device_id, m);
     }
 
     return http_ok();
@@ -664,7 +673,9 @@ const http::response<http::string_body> http_session::submit_message(
  * {
  *  messages : [
  *      {
- *      device_id : {device_id},
+ *      from_user : {sender_email},
+ *      from_id : {from_device_id},
+ *      dest_id : {dest_device_id},
  *      contents : {contents}
  *      },
  *      ...
@@ -683,15 +694,22 @@ const http::response<http::string_body> http_session::retrieve_messages(
     }
     const auto data = server_db.retrieve_messages(email);
 
-        boost::property_tree::ptree out_ptr;
-        boost::property_tree::ptree message_data;
+    boost::property_tree::ptree out_ptr;
+    boost::property_tree::ptree message_data;
 
-    for (const auto& [message_id, device_id, contents] : data) {
+    std::vector<int> message_ids;
+
+    for (const auto& [message_id, from_email, from_device_id, dest_device_id, contents] : data) {
         boost::property_tree::ptree child;
 
-        child.put("device_id", device_id);
+        child.put("from_user", from_email);
+        child.put("from_id", from_device_id);
+        child.put("dest_id", dest_device_id);
         child.put("contents", contents);
         message_data.push_back(std::make_pair("", child));
+
+        //This technically should be later, once I know the request was sent without errors
+        server_db.remove_message(message_id);
     }
 
     out_ptr.add_child("messages", message_data);
