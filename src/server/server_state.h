@@ -6,6 +6,7 @@
 
 #include "crypto.h"
 #include "message.h"
+#include "db_utils.h"
 
 /**
  * DATABASE SCHEMA
@@ -47,8 +48,9 @@ namespace server {
         int add_device(const std::string_view user_id, const crypto::public_key& identity,
                 const crypto::public_key& pre_key, const crypto::signature& signature);
         void add_one_time_key(const int device_id, const crypto::public_key& one_time);
-        void add_message(const std::string_view from_user_id, const std::string_view dest_user_id, const int from_device_id,
-                const int dest_device_id, const std::vector<std::byte>& message_contents);
+        void add_message(const std::string_view from_user_id, const std::string_view dest_user_id,
+                const int from_device_id, const int dest_device_id,
+                const std::vector<std::byte>& message_contents);
         void add_registration_code(const std::string_view email, const int code);
 
         void update_pre_key(const int device_id, const crypto::public_key& pre_key,
@@ -81,39 +83,39 @@ namespace server {
     private:
         sqlite3* db_conn;
 
-        sqlite3_stmt* users_insert;
-        sqlite3_stmt* devices_insert;
-        sqlite3_stmt* otpk_insert;
-        sqlite3_stmt* mailbox_insert;
-        sqlite3_stmt* registration_codes_insert;
+        db_statement users_insert;
+        db_statement devices_insert;
+        db_statement otpk_insert;
+        db_statement mailbox_insert;
+        db_statement registration_codes_insert;
 
-        sqlite3_stmt* devices_update;
+        db_statement devices_update;
 
-        sqlite3_stmt* users_delete;
-        sqlite3_stmt* devices_delete;
-        sqlite3_stmt* otpk_delete;
-        sqlite3_stmt* mailbox_delete;
-        sqlite3_stmt* registration_codes_delete;
+        db_statement users_delete;
+        db_statement devices_delete;
+        db_statement otpk_delete;
+        db_statement mailbox_delete;
+        db_statement registration_codes_delete;
 
-        sqlite3_stmt* users_hash_select;
-        sqlite3_stmt* users_auth_select;
+        db_statement users_hash_select;
+        db_statement users_auth_select;
 
-        sqlite3_stmt* devices_user_select;
-        sqlite3_stmt* devices_id_select;
-        sqlite3_stmt* otpk_select;
-        sqlite3_stmt* mailbox_select;
-        sqlite3_stmt* registration_codes_select;
+        db_statement devices_user_select;
+        db_statement devices_id_select;
+        db_statement otpk_select;
+        db_statement mailbox_select;
+        db_statement registration_codes_select;
 
-        sqlite3_stmt* last_rowid_insert;
-
-        static constexpr auto create_users = "\
+        db_statement last_rowid_insert;
+    };
+    static constexpr auto create_users = "\
         CREATE TABLE IF NOT EXISTS users (\
            user_id    TEXT PRIMARY KEY,\
            trunc_hash BLOB NOT NULL UNIQUE,\
            auth_token TEXT NOT NULL UNIQUE\
            CHECK(length(user_id) > 0 and length(auth_token) > 0 and length(trunc_hash) > 0)\
         ) WITHOUT ROWID;";
-        static constexpr auto create_devices = "\
+    static constexpr auto create_devices = "\
         CREATE TABLE IF NOT EXISTS devices (\
            device_id    INTEGER PRIMARY KEY,\
            user_id      TEXT    NOT NULL,\
@@ -123,7 +125,7 @@ namespace server {
            FOREIGN KEY (user_id) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE\
            CHECK(length(identity_key) > 0 and length(pre_key) > 0 and length(signature) > 0)\
         );";
-        static constexpr auto create_one_time = "\
+    static constexpr auto create_one_time = "\
         CREATE TABLE IF NOT EXISTS otpk (\
            key_id       INTEGER PRIMARY KEY,\
            device_id    INTEGER NOT NULL,\
@@ -131,7 +133,7 @@ namespace server {
            FOREIGN KEY (device_id) REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE\
            CHECK(length(key) > 0)\
         );";
-        static constexpr auto create_mailboxes = "\
+    static constexpr auto create_mailboxes = "\
         CREATE TABLE IF NOT EXISTS mailbox (\
            message_id     INTEGER PRIMARY KEY,\
            from_user_id   TEXT    NOT NULL,\
@@ -145,51 +147,50 @@ namespace server {
            FOREIGN KEY (dest_device_id) REFERENCES devices(device_id) ON UPDATE CASCADE ON DELETE CASCADE,\
            CHECK(length(contents) > 0)\
         );";
-        static constexpr auto create_registration_codes = "\
+    static constexpr auto create_registration_codes = "\
         CREATE TABLE IF NOT EXISTS registration_codes (\
            email        TEXT    PRIMARY KEY,\
            code         INTEGER NOT NULL UNIQUE,\
            expiration   TEXT    NOT NULL\
            CHECK(length(email) > 0 and length(expiration) > 0)\
         );";
-        static constexpr auto insert_user = "INSERT INTO users VALUES (?1, ?2, ?3);";
-        static constexpr auto insert_device
-                = "INSERT INTO devices(user_id, identity_key, pre_key, signature) \
+    static constexpr auto insert_user = "INSERT INTO users VALUES (?1, ?2, ?3);";
+    static constexpr auto insert_device
+            = "INSERT INTO devices(user_id, identity_key, pre_key, signature) \
                                     VALUES (?1, ?2, ?3, ?4);";
-        static constexpr auto insert_one_time = "INSERT INTO otpk(device_id, key) VALUES (?1, ?2);";
-        static constexpr auto insert_message = "INSERT INTO mailbox(from_user_id, dest_user_id, from_device_id, "
-                                               "dest_device_id, contents) VALUES (?1, ?2, ?3, ?4, ?5);";
-        static constexpr auto insert_registration
-                = "INSERT INTO registration_codes VALUES (?1, ?2, "
-                  "strftime('%s', 'now', '+1 day'));";
+    static constexpr auto insert_one_time = "INSERT INTO otpk(device_id, key) VALUES (?1, ?2);";
+    static constexpr auto insert_message
+            = "INSERT INTO mailbox(from_user_id, dest_user_id, from_device_id, "
+              "dest_device_id, contents) VALUES (?1, ?2, ?3, ?4, ?5);";
+    static constexpr auto insert_registration = "INSERT INTO registration_codes VALUES (?1, ?2, "
+                                                "strftime('%s', 'now', '+1 day'));";
 
-        static constexpr auto rowid_insert = "SELECT last_insert_rowid();";
+    static constexpr auto rowid_insert = "SELECT last_insert_rowid();";
 
-        static constexpr auto update_pre_key_stmt
-                = "UPDATE devices SET pre_key = ?1, signature = ?2 WHERE device_id = ?3;";
+    static constexpr auto update_pre_key_stmt
+            = "UPDATE devices SET pre_key = ?1, signature = ?2 WHERE device_id = ?3;";
 
-        static constexpr auto delete_user = "DELETE FROM users WHERE user_id = ?1;";
-        static constexpr auto delete_device = "DELETE FROM devices WHERE device_id = ?1;";
-        static constexpr auto delete_one_time = "DELETE FROM otpk WHERE key_id = ?1;";
-        static constexpr auto delete_message = "DELETE FROM mailbox WHERE message_id = ?1;";
-        static constexpr auto delete_registration_code
-                = "DELETE FROM registration_codes WHERE email = ?1;";
+    static constexpr auto delete_user = "DELETE FROM users WHERE user_id = ?1;";
+    static constexpr auto delete_device = "DELETE FROM devices WHERE device_id = ?1;";
+    static constexpr auto delete_one_time = "DELETE FROM otpk WHERE key_id = ?1;";
+    static constexpr auto delete_message = "DELETE FROM mailbox WHERE message_id = ?1;";
+    static constexpr auto delete_registration_code
+            = "DELETE FROM registration_codes WHERE email = ?1;";
 
-        static constexpr auto select_trunc_hash = "SELECT trunc_hash FROM users;";
-        static constexpr auto select_user_auth_token
-                = "SELECT auth_token FROM users WHERE user_id = ?1;";
-        static constexpr auto select_devices_user_id = "SELECT device_id, identity_key, pre_key, "
-                                                       "signature FROM devices WHERE user_id = ?1;";
-        static constexpr auto select_devices_device_id
-                = "SELECT device_id, identity_key, pre_key, "
-                  "signature FROM devices WHERE device_id = ?1;";
-        static constexpr auto select_one_time
-                = "SELECT key_id, key FROM otpk WHERE device_id = ?1 ORDER BY RANDOM() LIMIT 1;";
-        static constexpr auto select_message = "SELECT message_id, from_user_id, from_device_id, dest_device_id, "
-                                               "contents FROM mailbox WHERE dest_user_id = ?1;";
-        static constexpr auto select_registration
-                = "SELECT email, expiration FROM registration_codes WHERE code = ?1;";
-    };
+    static constexpr auto select_trunc_hash = "SELECT trunc_hash FROM users;";
+    static constexpr auto select_user_auth_token
+            = "SELECT auth_token FROM users WHERE user_id = ?1;";
+    static constexpr auto select_devices_user_id = "SELECT device_id, identity_key, pre_key, "
+                                                   "signature FROM devices WHERE user_id = ?1;";
+    static constexpr auto select_devices_device_id = "SELECT device_id, identity_key, pre_key, "
+                                                     "signature FROM devices WHERE device_id = ?1;";
+    static constexpr auto select_one_time
+            = "SELECT key_id, key FROM otpk WHERE device_id = ?1 ORDER BY RANDOM() LIMIT 1;";
+    static constexpr auto select_message
+            = "SELECT message_id, from_user_id, from_device_id, dest_device_id, "
+              "contents FROM mailbox WHERE dest_user_id = ?1;";
+    static constexpr auto select_registration
+            = "SELECT email, expiration FROM registration_codes WHERE code = ?1;";
 } // namespace server
 
 #endif /* end of include guard: SERVER_STATE_H */

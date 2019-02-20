@@ -25,29 +25,29 @@ client::database::database(const char* db_name) {
     exec_statement(db_conn, create_one_time);
     exec_statement(db_conn, create_sessions);
 
-    prepare_statement(db_conn, insert_self, &self_insert);
-    prepare_statement(db_conn, insert_users, &users_insert);
-    prepare_statement(db_conn, insert_devices, &devices_insert);
-    prepare_statement(db_conn, insert_one_time, &one_time_insert);
-    prepare_statement(db_conn, insert_sessions, &sessions_insert);
+    self_insert = prepare_statement(db_conn, insert_self);
+    users_insert = prepare_statement(db_conn, insert_users);
+    devices_insert = prepare_statement(db_conn, insert_devices);
+    one_time_insert = prepare_statement(db_conn, insert_one_time);
+    sessions_insert = prepare_statement(db_conn, insert_sessions);
 
-    prepare_statement(db_conn, update_users, &users_update);
-    prepare_statement(db_conn, update_devices, &devices_update);
-    prepare_statement(db_conn, update_devices_active, &devices_update_active);
-    prepare_statement(db_conn, update_sessions, &sessions_update);
+    users_update = prepare_statement(db_conn, update_users);
+    devices_update = prepare_statement(db_conn, update_devices);
+    devices_update_active = prepare_statement(db_conn, update_devices_active);
+    sessions_update = prepare_statement(db_conn, update_sessions);
 
-    prepare_statement(db_conn, delete_sessions, &sessions_delete);
-    prepare_statement(db_conn, delete_users, &users_delete);
-    prepare_statement(db_conn, delete_one_time, &one_time_delete);
-    prepare_statement(db_conn, delete_devices, &devices_delete);
+    sessions_delete = prepare_statement(db_conn, delete_sessions);
+    users_delete = prepare_statement(db_conn, delete_users);
+    one_time_delete = prepare_statement(db_conn, delete_one_time);
+    devices_delete = prepare_statement(db_conn, delete_devices);
 
-    prepare_statement(db_conn, select_self, &self_select);
-    prepare_statement(db_conn, select_one_time, &one_time_select);
-    prepare_statement(db_conn, select_device_ids, &devices_select);
-    prepare_statement(db_conn, select_sessions, &sessions_select);
-    prepare_statement(db_conn, select_active, &active_select);
+    self_select = prepare_statement(db_conn, select_self);
+    one_time_select = prepare_statement(db_conn, select_one_time);
+    devices_select = prepare_statement(db_conn, select_device_ids);
+    sessions_select = prepare_statement(db_conn, select_sessions);
+    active_select = prepare_statement(db_conn, select_active);
 
-    prepare_statement(db_conn, rowid_insert, &last_rowid_insert);
+    last_rowid_insert = prepare_statement(db_conn, rowid_insert);
 }
 
 client::database::~database() {
