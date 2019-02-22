@@ -681,4 +681,31 @@ BOOST_AUTO_TEST_CASE(confirm_registration_empty_table) {
     BOOST_TEST(db.confirm_registration_code(12345).empty());
 }
 
+BOOST_AUTO_TEST_CASE(thread_safety_test) {
+    auto db = get_server_db();
+
+    constexpr int count = 8;
+    std::array<std::thread, count> threads;
+
+    for (int i = 0; i < count; ++i) {
+        threads[i] = std::thread([&]() {
+            srand(i);
+            std::stringstream user{"foobar"};
+            std::stringstream auth{"bazbar"};
+            const int count_2 = 100;
+            for (int i = 0; i < count_2; ++i) {
+                user << (rand() % 256);
+                auth << (rand() % 256);
+                db.add_user(user.str(), auth.str());
+                user.str("farquad");
+                auth.str("foobaz");
+            }
+        });
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
