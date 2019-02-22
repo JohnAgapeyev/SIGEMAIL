@@ -14,120 +14,297 @@
 #include "logging.h"
 #include "server_state.h"
 
-server::database::database(const char* db_name) :
-        users_insert(db_conn, insert_user), devices_insert(db_conn, insert_device),
-        otpk_insert(db_conn, insert_one_time), mailbox_insert(db_conn, insert_message),
-        registration_codes_insert(db_conn, insert_registration),
-        devices_update(db_conn, update_pre_key_stmt), users_delete(db_conn, delete_user),
-        devices_delete(db_conn, delete_device), otpk_delete(db_conn, delete_one_time),
-        mailbox_delete(db_conn, delete_message),
-        registration_codes_delete(db_conn, delete_registration_code),
-        users_hash_select(db_conn, select_trunc_hash),
-        users_auth_select(db_conn, select_user_auth_token),
-        devices_user_select(db_conn, select_devices_user_id),
-        devices_id_select(db_conn, select_devices_device_id), otpk_select(db_conn, select_one_time),
-        mailbox_select(db_conn, select_message),
-        registration_codes_select(db_conn, select_registration),
-        last_rowid_insert(db_conn, rowid_insert) {
+server::database::database(const char* db_name) {
     if (sqlite3_open(db_name, &db_conn) != SQLITE_OK) {
         throw db_error(sqlite3_errmsg(db_conn));
     }
+
     exec_statement(db_conn, create_users);
     exec_statement(db_conn, create_devices);
     exec_statement(db_conn, create_one_time);
     exec_statement(db_conn, create_mailboxes);
     exec_statement(db_conn, create_registration_codes);
+
+    prepare_statement(db_conn, insert_user, &users_insert);
+    prepare_statement(db_conn, insert_device, &devices_insert);
+    prepare_statement(db_conn, insert_one_time, &otpk_insert);
+    prepare_statement(db_conn, insert_message, &mailbox_insert);
+    prepare_statement(db_conn, insert_registration, &registration_codes_insert);
+
+    prepare_statement(db_conn, update_pre_key_stmt, &devices_update);
+
+    prepare_statement(db_conn, delete_user, &users_delete);
+    prepare_statement(db_conn, delete_device, &devices_delete);
+    prepare_statement(db_conn, delete_one_time, &otpk_delete);
+    prepare_statement(db_conn, delete_message, &mailbox_delete);
+    prepare_statement(db_conn, delete_registration_code, &registration_codes_delete);
+
+    prepare_statement(db_conn, select_trunc_hash, &users_hash_select);
+    prepare_statement(db_conn, select_user_auth_token, &users_auth_select);
+    prepare_statement(db_conn, select_devices_user_id, &devices_user_select);
+    prepare_statement(db_conn, select_devices_device_id, &devices_id_select);
+    prepare_statement(db_conn, select_one_time, &otpk_select);
+    prepare_statement(db_conn, select_message, &mailbox_select);
+    prepare_statement(db_conn, select_registration, &registration_codes_select);
+
+    prepare_statement(db_conn, rowid_insert, &last_rowid_insert);
 }
 
 server::database::~database() {
+    sqlite3_finalize(users_insert);
+    sqlite3_finalize(devices_insert);
+    sqlite3_finalize(otpk_insert);
+    sqlite3_finalize(mailbox_insert);
+    sqlite3_finalize(registration_codes_insert);
+    sqlite3_finalize(devices_update);
+    sqlite3_finalize(users_delete);
+    sqlite3_finalize(devices_delete);
+    sqlite3_finalize(otpk_delete);
+    sqlite3_finalize(mailbox_delete);
+    sqlite3_finalize(registration_codes_delete);
+    sqlite3_finalize(users_hash_select);
+    sqlite3_finalize(users_auth_select);
+    sqlite3_finalize(devices_id_select);
+    sqlite3_finalize(devices_user_select);
+    sqlite3_finalize(otpk_select);
+    sqlite3_finalize(mailbox_select);
+    sqlite3_finalize(registration_codes_select);
     sqlite3_close(db_conn);
 }
 
 void server::database::add_user(const std::string_view user_id, const std::string_view auth_token) {
+    sqlite3_reset(users_insert);
+    sqlite3_clear_bindings(users_insert);
+
+    if (sqlite3_bind_text(users_insert, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
     const auto hash = crypto::hash_string(user_id);
     std::array<std::byte, 24> trunc_hash;
     std::copy(hash.begin(), hash.begin() + 24, trunc_hash.begin());
 
-    users_insert.bind_text(1, user_id);
-    users_insert.bind_blob(2, trunc_hash.data(), trunc_hash.size());
-    users_insert.bind_text(3, auth_token);
-    users_insert.execute_done();
+    //Store the first 24/32 bytes of the email hash
+    if (sqlite3_bind_blob(users_insert, 2, trunc_hash.data(), trunc_hash.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_bind_text(users_insert, 3, auth_token.data(), auth_token.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_step(users_insert) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
 }
 
 int server::database::add_device(const std::string_view user_id, const crypto::public_key& identity,
         const crypto::public_key& pre_key, const crypto::signature& signature) {
-    devices_insert.bind_text(1, user_id);
-    devices_insert.bind_blob(2, identity.data(), identity.size());
-    devices_insert.bind_blob(3, pre_key.data(), pre_key.size());
-    devices_insert.bind_blob(4, signature.data(), signature.size());
+    sqlite3_reset(devices_insert);
+    sqlite3_clear_bindings(devices_insert);
 
-    devices_insert.execute_done();
-
-    if (!last_rowid_insert.execute_row()) {
+    if (sqlite3_bind_text(devices_insert, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+    if (sqlite3_bind_blob(devices_insert, 2, identity.data(), identity.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+    if (sqlite3_bind_blob(devices_insert, 3, pre_key.data(), pre_key.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+    if (sqlite3_bind_blob(devices_insert, 4, signature.data(), signature.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+    if (sqlite3_step(devices_insert) != SQLITE_DONE) {
         throw_db_error(db_conn);
     }
 
-    int inserted_device_id = last_rowid_insert.column_int(0);
+    sqlite3_reset(last_rowid_insert);
 
-    last_rowid_insert.execute_done();
+    if (sqlite3_step(last_rowid_insert) != SQLITE_ROW) {
+        throw_db_error(db_conn);
+    }
+
+    int inserted_device_id = sqlite3_column_int(last_rowid_insert, 0);
+
+    if (sqlite3_step(last_rowid_insert) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
 
     return inserted_device_id;
 }
 
 void server::database::add_one_time_key(const int device_id, const crypto::public_key& one_time) {
-    otpk_insert.bind_int(1, device_id);
-    otpk_insert.bind_blob(2, one_time.data(), one_time.size());
-    otpk_insert.execute_done();
+    sqlite3_reset(otpk_insert);
+    sqlite3_clear_bindings(otpk_insert);
+
+    if (sqlite3_bind_int(otpk_insert, 1, device_id) != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_bind_blob(otpk_insert, 2, one_time.data(), one_time.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_step(otpk_insert) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
 }
 
 void server::database::add_message(const std::string_view from_user_id,
         const std::string_view dest_user_id, const int from_device_id, const int dest_device_id,
         const std::vector<std::byte>& message_contents) {
-    mailbox_insert.bind_text(1, from_user_id);
-    mailbox_insert.bind_text(2, dest_user_id);
-    mailbox_insert.bind_int(3, from_device_id);
-    mailbox_insert.bind_int(4, dest_device_id);
-    mailbox_insert.bind_blob(5, message_contents.data(), message_contents.size());
-    mailbox_insert.execute_done();
+    sqlite3_reset(mailbox_insert);
+    sqlite3_clear_bindings(mailbox_insert);
+
+    if (sqlite3_bind_text(
+                mailbox_insert, 1, from_user_id.data(), from_user_id.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+    if (sqlite3_bind_text(
+                mailbox_insert, 2, dest_user_id.data(), dest_user_id.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_bind_int(mailbox_insert, 3, from_device_id) != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_bind_int(mailbox_insert, 4, dest_device_id) != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_bind_blob(mailbox_insert, 5, message_contents.data(), message_contents.size(),
+                SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_step(mailbox_insert) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
 }
 
 void server::database::add_registration_code(const std::string_view email, const int code) {
-    registration_codes_insert.bind_text(1, email);
-    registration_codes_insert.bind_int(2, code);
-    registration_codes_insert.execute_done();
+    sqlite3_reset(registration_codes_insert);
+    sqlite3_clear_bindings(registration_codes_insert);
+
+    if (sqlite3_bind_text(
+                registration_codes_insert, 1, email.data(), email.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_bind_int(registration_codes_insert, 2, code) != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_step(registration_codes_insert) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
 }
 
 void server::database::update_pre_key(const int device_id, const crypto::public_key& pre_key,
         const crypto::signature& signature) {
-    devices_insert.bind_blob(1, pre_key.data(), pre_key.size());
-    devices_insert.bind_blob(2, signature.data(), signature.size());
-    devices_insert.bind_int(3, device_id);
-    devices_insert.execute_done();
+    sqlite3_reset(devices_update);
+    sqlite3_clear_bindings(devices_update);
+
+    if (sqlite3_bind_blob(devices_update, 1, pre_key.data(), pre_key.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+    if (sqlite3_bind_blob(devices_update, 2, signature.data(), signature.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_bind_int(devices_update, 3, device_id) != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_step(devices_update) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
 }
 
 void server::database::remove_user(const std::string_view user_id) {
-    users_delete.bind_text(1, user_id);
-    users_delete.execute_done();
+    sqlite3_reset(users_delete);
+    sqlite3_clear_bindings(users_delete);
+
+    if (sqlite3_bind_text(users_delete, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_step(users_delete) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
 }
 
 void server::database::remove_device(const int device_id) {
-    devices_delete.bind_int(1, device_id);
-    devices_delete.execute_done();
+    sqlite3_reset(devices_delete);
+    sqlite3_clear_bindings(devices_delete);
+
+    if (sqlite3_bind_int(devices_delete, 1, device_id) != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_step(devices_delete) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
 }
 
 void server::database::remove_one_time_key(const int key_id) {
-    otpk_delete.bind_int(1, key_id);
-    otpk_delete.execute_done();
+    sqlite3_reset(otpk_delete);
+    sqlite3_clear_bindings(otpk_delete);
+
+    if (sqlite3_bind_int(otpk_delete, 1, key_id) != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_step(otpk_delete) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
 }
 
 void server::database::remove_message(const int message_id) {
-    mailbox_delete.bind_int(1, message_id);
-    mailbox_delete.execute_done();
+    sqlite3_reset(mailbox_delete);
+    sqlite3_clear_bindings(mailbox_delete);
+
+    if (sqlite3_bind_int(mailbox_delete, 1, message_id) != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_step(mailbox_delete) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
 }
 
 void server::database::remove_registration_code(const std::string_view email) {
-    registration_codes_delete.bind_text(1, email);
-    registration_codes_delete.execute_done();
+    sqlite3_reset(registration_codes_delete);
+    sqlite3_clear_bindings(registration_codes_delete);
+
+    if (sqlite3_bind_text(
+                registration_codes_delete, 1, email.data(), email.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    spdlog::error("Removing registration code for {}", email);
+
+    if (sqlite3_step(registration_codes_delete) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
 }
 
 //This is inefficient once the database gets too big due to reallocating the vector, and doing the work outside the database
@@ -135,17 +312,28 @@ void server::database::remove_registration_code(const std::string_view email) {
 std::vector<std::array<std::byte, 24>> server::database::contact_intersection(
         std::vector<std::array<std::byte, 24>> truncated_hashes) {
     std::vector<std::array<std::byte, 24>> all_hashes;
+    int err;
 
-    while (users_hash_select.execute_row()) {
+    sqlite3_reset(users_hash_select);
+
+    while ((err = sqlite3_step(users_hash_select)) == SQLITE_ROW) {
         std::array<std::byte, 24> trunc_hash;
 
-        const auto db_data = users_hash_select.column_blob(0);
+        const auto db_data = sqlite3_column_blob(users_hash_select, 0);
+        if (!db_data) {
+            throw_db_error(db_conn);
+        }
 
         //Copy data from database pointer to array
-        std::copy_n(db_data.begin(), 24, trunc_hash.begin());
+        memcpy(trunc_hash.data(), db_data, 24);
 
         //Store array into list
         all_hashes.emplace_back(std::move(trunc_hash));
+    }
+
+    if (err != SQLITE_DONE) {
+        //Statement ended unexpectedly
+        throw_db_error(db_conn);
     }
 
     std::sort(truncated_hashes.begin(), truncated_hashes.end());
@@ -161,128 +349,214 @@ std::vector<std::array<std::byte, 24>> server::database::contact_intersection(
 
 [[nodiscard]] bool server::database::confirm_auth_token(
         const std::string_view user_id, const std::string_view auth_token) {
-    users_auth_select.bind_text(1, user_id);
+    sqlite3_reset(users_auth_select);
+    sqlite3_clear_bindings(users_auth_select);
 
-    //User did not exist in the table
-    if (!users_auth_select.execute_row()) {
+    if (sqlite3_bind_text(users_auth_select, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    //User did not exist in the table, or an error happened
+    if (sqlite3_step(users_auth_select) != SQLITE_ROW) {
         return false;
     }
 
-    const auto user_token = users_auth_select.column_text(0);
-    return user_token == auth_token;
+    const auto user_token = sqlite3_column_text(users_auth_select, 0);
+    if (!user_token) {
+        throw_db_error(db_conn);
+    }
+    const auto user_token_len = sqlite3_column_bytes(users_auth_select, 0);
+
+    //Different size tokens cannot be equal
+    if (static_cast<unsigned long>(user_token_len) != auth_token.size()) {
+        return false;
+    }
+
+    return memcmp(user_token, auth_token.data(), user_token_len) == 0;
 }
 
 std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>>
         server::database::lookup_devices(const std::string_view user_id) {
-    devices_user_select.bind_text(1, user_id);
+    sqlite3_reset(devices_user_select);
+    sqlite3_clear_bindings(devices_user_select);
+
+    if (sqlite3_bind_text(devices_user_select, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
 
     std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>> records;
 
-    while (devices_user_select.execute_row()) {
-        auto device_id = devices_user_select.column_int(0);
+    int err;
+    while ((err = sqlite3_step(devices_user_select)) == SQLITE_ROW) {
+        auto device_id = sqlite3_column_int(devices_user_select, 0);
 
         crypto::public_key identity_key;
-        const auto idk = devices_user_select.column_blob(1);
-        std::copy_n(idk.begin(), identity_key.size(), identity_key.begin());
+        const auto idk = sqlite3_column_blob(devices_user_select, 1);
+        if (!idk) {
+            throw_db_error(db_conn);
+        }
+        memcpy(identity_key.data(), idk, identity_key.size());
 
         crypto::public_key pre_key;
-        const auto prk = devices_user_select.column_blob(2);
-        std::copy_n(prk.begin(), pre_key.size(), pre_key.begin());
+        const auto prk = sqlite3_column_blob(devices_user_select, 2);
+        if (!prk) {
+            throw_db_error(db_conn);
+        }
+        memcpy(pre_key.data(), prk, pre_key.size());
 
         crypto::signature pre_key_signature;
-        const auto pks = devices_user_select.column_blob(3);
-        std::copy_n(pks.begin(), pre_key_signature.size(), pre_key_signature.begin());
+        const auto pks = sqlite3_column_blob(devices_user_select, 3);
+        if (!pks) {
+            throw_db_error(db_conn);
+        }
+        memcpy(pre_key_signature.data(), pks, pre_key_signature.size());
 
         records.emplace_back(std::move(device_id), std::move(identity_key), std::move(pre_key),
                 std::move(pre_key_signature));
     }
+    if (err != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
+
     return records;
 }
 
 std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>>
         server::database::lookup_devices(const std::vector<int> device_ids) {
+    sqlite3_reset(devices_id_select);
+    sqlite3_clear_bindings(devices_id_select);
+
     std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>> records;
 
     for (const auto id : device_ids) {
-        devices_id_select.bind_int(1, id);
-        if (!devices_id_select.execute_row()) {
+        if (sqlite3_bind_int(devices_id_select, 1, id) != SQLITE_OK) {
             throw_db_error(db_conn);
         }
 
-        auto device_id = devices_id_select.column_int(0);
+        if (sqlite3_step(devices_id_select) != SQLITE_ROW) {
+            throw_db_error(db_conn);
+        }
+        auto device_id = sqlite3_column_int(devices_id_select, 0);
         if (device_id != id) {
             throw_db_error(db_conn);
         }
 
         crypto::public_key identity_key;
-        const auto idk = devices_id_select.column_blob(1);
-        std::copy_n(idk.begin(), identity_key.size(), identity_key.begin());
+        const auto idk = sqlite3_column_blob(devices_id_select, 1);
+        if (!idk) {
+            throw_db_error(db_conn);
+        }
+        memcpy(identity_key.data(), idk, identity_key.size());
 
         crypto::public_key pre_key;
-        const auto prk = devices_id_select.column_blob(2);
-        std::copy_n(prk.begin(), pre_key.size(), pre_key.begin());
+        const auto prk = sqlite3_column_blob(devices_id_select, 2);
+        if (!prk) {
+            throw_db_error(db_conn);
+        }
+        memcpy(pre_key.data(), prk, pre_key.size());
 
         crypto::signature pre_key_signature;
-        const auto pks = devices_id_select.column_blob(3);
-        std::copy_n(pks.begin(), pre_key_signature.size(), pre_key_signature.begin());
+        const auto pks = sqlite3_column_blob(devices_id_select, 3);
+        if (!pks) {
+            throw_db_error(db_conn);
+        }
+        memcpy(pre_key_signature.data(), pks, pre_key_signature.size());
 
         records.emplace_back(std::move(device_id), std::move(identity_key), std::move(pre_key),
                 std::move(pre_key_signature));
 
         //Make sure there aren't any more expected rows
-        devices_id_select.execute_done();
+        if (sqlite3_step(devices_id_select) != SQLITE_DONE) {
+            throw_db_error(db_conn);
+        }
+
+        sqlite3_reset(devices_id_select);
+        sqlite3_clear_bindings(devices_id_select);
     }
     return records;
 }
 
 std::tuple<int, crypto::public_key> server::database::get_one_time_key(const int device_id) {
-    otpk_select.bind_int(1, device_id);
+    sqlite3_reset(otpk_select);
+    sqlite3_clear_bindings(otpk_select);
 
-    if (!otpk_select.execute_row()) {
+    if (sqlite3_bind_int(otpk_select, 1, device_id) != SQLITE_OK) {
         throw_db_error(db_conn);
     }
 
-    const auto key_id = otpk_select.column_int(0);
+    if (sqlite3_step(otpk_select) != SQLITE_ROW) {
+        throw_db_error(db_conn);
+    }
 
     crypto::public_key output;
-    const auto tmp_key = otpk_select.column_blob(1);
-    std::copy_n(tmp_key.begin(), output.size(), output.begin());
+
+    const auto key_id = sqlite3_column_int(otpk_select, 0);
+
+    const auto tmp_key = sqlite3_column_blob(otpk_select, 1);
+    if (!tmp_key) {
+        throw_db_error(db_conn);
+    }
+
+    memcpy(output.data(), tmp_key, output.size());
 
     //Ensure the statement finishes and only has the one expected result
-    otpk_select.execute_done();
+    if (sqlite3_step(otpk_select) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
 
     return {std::move(key_id), std::move(output)};
 }
 
 std::vector<std::tuple<int, std::string, int, int, std::string>>
         server::database::retrieve_messages(const std::string_view user_id) {
+    sqlite3_reset(mailbox_select);
+    sqlite3_clear_bindings(mailbox_select);
+
     std::vector<std::tuple<int, std::string, int, int, std::string>> records;
 
-    mailbox_select.bind_text(1, user_id);
+    if (sqlite3_bind_text(mailbox_select, 1, user_id.data(), user_id.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
 
-    while (mailbox_select.execute_row()) {
-        const auto message_id = mailbox_select.column_int(0);
-        const auto from_user_id = mailbox_select.column_text(1);
-        const auto from_device_id = mailbox_select.column_int(2);
-        const auto dest_device_id = mailbox_select.column_int(3);
-        const auto m_data = mailbox_select.column_text(4);
+    int err;
+    while ((err = sqlite3_step(mailbox_select)) == SQLITE_ROW) {
+        const auto message_id = sqlite3_column_int(mailbox_select, 0);
+        const auto from_user_id = read_db_string(db_conn, mailbox_select, 1);
+        const auto from_device_id = sqlite3_column_int(mailbox_select, 2);
+        const auto dest_device_id = sqlite3_column_int(mailbox_select, 3);
+        const auto m_data = read_db_string(db_conn, mailbox_select, 4);
 
         records.emplace_back(std::move(message_id), std::move(from_user_id),
                 std::move(from_device_id), std::move(dest_device_id), std::move(m_data));
+    }
+    if (err != SQLITE_DONE) {
+        throw_db_error(db_conn);
     }
 
     return records;
 }
 
 [[nodiscard]] std::string server::database::confirm_registration_code(const int reg_code) {
-    registration_codes_select.bind_int(1, reg_code);
-    if (!registration_codes_select.execute_row()) {
-        //No rows
-        return "";
+    sqlite3_reset(registration_codes_select);
+    sqlite3_clear_bindings(registration_codes_select);
+
+    if (sqlite3_bind_int(registration_codes_select, 1, reg_code) != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+    int err;
+    if ((err = sqlite3_step(registration_codes_select)) != SQLITE_ROW) {
+        if (err == SQLITE_DONE) {
+            //No rows
+            return "";
+        }
+        throw_db_error(db_conn);
     }
 
-    const auto email = registration_codes_select.column_text(0);
-    const auto date = registration_codes_select.column_text(1);
+    const auto email = read_db_string(db_conn, registration_codes_select, 0);
+    const auto date = read_db_string(db_conn, registration_codes_select, 1);
 
     uint64_t date_int;
     try {
@@ -299,7 +573,8 @@ std::vector<std::tuple<int, std::string, int, int, std::string>>
     }
 
     //Make sure there aren't any more expected rows
-    registration_codes_select.execute_done();
-
+    if (sqlite3_step(registration_codes_select) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
     return email;
 }
