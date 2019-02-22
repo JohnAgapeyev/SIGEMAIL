@@ -1,6 +1,7 @@
 #ifndef SERVER_STATE_H
 #define SERVER_STATE_H
 
+#include <mutex>
 #include <sqlite3.h>
 #include <string>
 
@@ -106,6 +107,13 @@ namespace server {
         sqlite3_stmt* registration_codes_select;
 
         sqlite3_stmt* last_rowid_insert;
+
+        /*
+         * I know this could be more efficient by splitting the mutex up for unrelated actions.
+         * But my initial implementation which overhauled the sqlite statements failed,
+         * so this is the easiest and safest solution at the moment.
+         */
+        std::mutex db_mut;
     };
     static constexpr auto create_users = "\
         CREATE TABLE IF NOT EXISTS users (\

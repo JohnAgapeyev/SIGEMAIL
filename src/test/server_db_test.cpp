@@ -594,7 +594,8 @@ BOOST_AUTO_TEST_CASE(get_one_time_different_devices) {
     crypto::DH_Keypair t1, t2;
 
     db.add_user("bar@test.com", "qwerty");
-    db.add_device("bar@test.com", t1.get_public(), t2.get_public(), crypto::sign_key(t1, t2.get_public()));
+    db.add_device("bar@test.com", t1.get_public(), t2.get_public(),
+            crypto::sign_key(t1, t2.get_public()));
 
     crypto::DH_Keypair k1, k2, k3, k4;
 
@@ -687,18 +688,20 @@ BOOST_AUTO_TEST_CASE(thread_safety_test) {
     constexpr int count = 8;
     std::array<std::thread, count> threads;
 
+    db.add_user("foobar@test.com", "abcde");
+    db.add_device("foobar@test.com", {}, {}, {});
+
+    //Just add some garbage data to retrieve
+    for (unsigned long i = 0; i < 20; ++i) {
+        std::vector<std::byte> m{18 + i, std::byte{static_cast<std::byte>(i)}};
+        db.add_message("foobar@test.com", "foobar@test.com", 1, 1, m);
+    }
+
     for (int i = 0; i < count; ++i) {
         threads[i] = std::thread([&]() {
-            srand(i);
-            std::stringstream user{"foobar"};
-            std::stringstream auth{"bazbar"};
             const int count_2 = 100;
             for (int i = 0; i < count_2; ++i) {
-                user << (rand() % 256);
-                auth << (rand() % 256);
-                db.add_user(user.str(), auth.str());
-                user.str("farquad");
-                auth.str("foobaz");
+                db.retrieve_messages("foobar@test.com");
             }
         });
     }

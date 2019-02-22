@@ -2,10 +2,12 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
 #include <iterator>
+#include <mutex>
 #include <sqlite3.h>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <utility>
 
 #include "crypto.h"
@@ -73,6 +75,7 @@ server::database::~database() {
 }
 
 void server::database::add_user(const std::string_view user_id, const std::string_view auth_token) {
+    std::lock_guard lg{db_mut};
     sqlite3_reset(users_insert);
     sqlite3_clear_bindings(users_insert);
 
@@ -103,6 +106,7 @@ void server::database::add_user(const std::string_view user_id, const std::strin
 
 int server::database::add_device(const std::string_view user_id, const crypto::public_key& identity,
         const crypto::public_key& pre_key, const crypto::signature& signature) {
+    std::lock_guard lg{db_mut};
     sqlite3_reset(devices_insert);
     sqlite3_clear_bindings(devices_insert);
 
@@ -142,6 +146,7 @@ int server::database::add_device(const std::string_view user_id, const crypto::p
 }
 
 void server::database::add_one_time_key(const int device_id, const crypto::public_key& one_time) {
+    std::lock_guard lg{db_mut};
     sqlite3_reset(otpk_insert);
     sqlite3_clear_bindings(otpk_insert);
 
@@ -162,6 +167,7 @@ void server::database::add_one_time_key(const int device_id, const crypto::publi
 void server::database::add_message(const std::string_view from_user_id,
         const std::string_view dest_user_id, const int from_device_id, const int dest_device_id,
         const std::vector<std::byte>& message_contents) {
+    std::lock_guard lg{db_mut};
     sqlite3_reset(mailbox_insert);
     sqlite3_clear_bindings(mailbox_insert);
 
@@ -196,6 +202,7 @@ void server::database::add_message(const std::string_view from_user_id,
 }
 
 void server::database::add_registration_code(const std::string_view email, const int code) {
+    std::lock_guard lg{db_mut};
     sqlite3_reset(registration_codes_insert);
     sqlite3_clear_bindings(registration_codes_insert);
 
@@ -216,6 +223,7 @@ void server::database::add_registration_code(const std::string_view email, const
 
 void server::database::update_pre_key(const int device_id, const crypto::public_key& pre_key,
         const crypto::signature& signature) {
+    std::lock_guard lg{db_mut};
     sqlite3_reset(devices_update);
     sqlite3_clear_bindings(devices_update);
 
@@ -238,6 +246,7 @@ void server::database::update_pre_key(const int device_id, const crypto::public_
 }
 
 void server::database::remove_user(const std::string_view user_id) {
+    std::lock_guard lg{db_mut};
     sqlite3_reset(users_delete);
     sqlite3_clear_bindings(users_delete);
 
@@ -252,6 +261,7 @@ void server::database::remove_user(const std::string_view user_id) {
 }
 
 void server::database::remove_device(const int device_id) {
+    std::lock_guard lg{db_mut};
     sqlite3_reset(devices_delete);
     sqlite3_clear_bindings(devices_delete);
 
@@ -265,6 +275,7 @@ void server::database::remove_device(const int device_id) {
 }
 
 void server::database::remove_one_time_key(const int key_id) {
+    std::lock_guard lg{db_mut};
     sqlite3_reset(otpk_delete);
     sqlite3_clear_bindings(otpk_delete);
 
@@ -278,6 +289,7 @@ void server::database::remove_one_time_key(const int key_id) {
 }
 
 void server::database::remove_message(const int message_id) {
+    std::lock_guard lg{db_mut};
     sqlite3_reset(mailbox_delete);
     sqlite3_clear_bindings(mailbox_delete);
 
@@ -291,6 +303,7 @@ void server::database::remove_message(const int message_id) {
 }
 
 void server::database::remove_registration_code(const std::string_view email) {
+    std::lock_guard lg{db_mut};
     sqlite3_reset(registration_codes_delete);
     sqlite3_clear_bindings(registration_codes_delete);
 
@@ -311,6 +324,7 @@ void server::database::remove_registration_code(const std::string_view email) {
 //Fine for now, but will need attention if scale is ever a factor
 std::vector<std::array<std::byte, 24>> server::database::contact_intersection(
         std::vector<std::array<std::byte, 24>> truncated_hashes) {
+    std::lock_guard lg{db_mut};
     std::vector<std::array<std::byte, 24>> all_hashes;
     int err;
 
@@ -349,6 +363,7 @@ std::vector<std::array<std::byte, 24>> server::database::contact_intersection(
 
 [[nodiscard]] bool server::database::confirm_auth_token(
         const std::string_view user_id, const std::string_view auth_token) {
+    std::lock_guard lg{db_mut};
     sqlite3_reset(users_auth_select);
     sqlite3_clear_bindings(users_auth_select);
 
@@ -378,6 +393,7 @@ std::vector<std::array<std::byte, 24>> server::database::contact_intersection(
 
 std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>>
         server::database::lookup_devices(const std::string_view user_id) {
+    std::lock_guard lg{db_mut};
     sqlite3_reset(devices_user_select);
     sqlite3_clear_bindings(devices_user_select);
 
@@ -425,6 +441,7 @@ std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::sign
 
 std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>>
         server::database::lookup_devices(const std::vector<int> device_ids) {
+    std::lock_guard lg{db_mut};
     sqlite3_reset(devices_id_select);
     sqlite3_clear_bindings(devices_id_select);
 
@@ -479,6 +496,7 @@ std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::sign
 }
 
 std::tuple<int, crypto::public_key> server::database::get_one_time_key(const int device_id) {
+    std::lock_guard lg{db_mut};
     sqlite3_reset(otpk_select);
     sqlite3_clear_bindings(otpk_select);
 
@@ -511,6 +529,7 @@ std::tuple<int, crypto::public_key> server::database::get_one_time_key(const int
 
 std::vector<std::tuple<int, std::string, int, int, std::string>>
         server::database::retrieve_messages(const std::string_view user_id) {
+    std::lock_guard lg{db_mut};
     sqlite3_reset(mailbox_select);
     sqlite3_clear_bindings(mailbox_select);
 
@@ -540,6 +559,7 @@ std::vector<std::tuple<int, std::string, int, int, std::string>>
 }
 
 [[nodiscard]] std::string server::database::confirm_registration_code(const int reg_code) {
+    std::lock_guard lg{db_mut};
     sqlite3_reset(registration_codes_select);
     sqlite3_clear_bindings(registration_codes_select);
 
