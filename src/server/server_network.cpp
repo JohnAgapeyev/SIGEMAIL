@@ -82,8 +82,17 @@ void http_session::on_read(boost::system::error_code ec) {
         return;
     }
 
-    // Send the response
-    const auto msg = handle_request(std::move(request));
+    http::response<http::string_body> msg;
+
+    auto trans_lock = server_db.start_transaction();
+
+    try {
+        // Send the response
+        msg = handle_request(std::move(request));
+    } catch (const db_error&) {
+        server_db.rollback_transaction(trans_lock);
+        msg = server_error("");
+    }
 
     // The lifetime of the message has to extend
     // for the duration of the async operation so
@@ -99,6 +108,8 @@ void http_session::on_read(boost::system::error_code ec) {
             boost::asio::bind_executor(strand,
                     std::bind(&http_session::on_write, shared_from_this(), std::placeholders::_1,
                             sp->need_eof())));
+
+    server_db.commit_transaction(trans_lock);
 }
 
 void http_session::on_write(boost::system::error_code ec, bool close) {

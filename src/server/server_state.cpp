@@ -598,3 +598,31 @@ std::vector<std::tuple<int, std::string, int, int, std::string>>
     }
     return email;
 }
+
+std::unique_lock<std::mutex> server::database::start_transaction() {
+    std::unique_lock ul{transaction_mut};
+    exec_statement(db_conn, begin_trans);
+    return ul;
+}
+
+void server::database::commit_transaction(std::unique_lock<std::mutex>& transaction_lock) {
+    //Ignore a completed transaction
+    if (!transaction_lock.owns_lock()) {
+        return;
+    }
+    exec_statement(db_conn, commit_trans);
+    if (transaction_lock.owns_lock()) {
+        transaction_lock.unlock();
+    }
+}
+
+void server::database::rollback_transaction(std::unique_lock<std::mutex>& transaction_lock) {
+    //Ignore a completed transaction
+    if (!transaction_lock.owns_lock()) {
+        return;
+    }
+    exec_statement(db_conn, rollback_trans);
+    if (transaction_lock.owns_lock()) {
+        transaction_lock.unlock();
+    }
+}

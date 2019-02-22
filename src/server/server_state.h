@@ -80,6 +80,10 @@ namespace server {
 
         [[nodiscard]] std::string confirm_registration_code(const int reg_code);
 
+        std::unique_lock<std::mutex> start_transaction();
+        void commit_transaction(std::unique_lock<std::mutex>& transaction_lock);
+        void rollback_transaction(std::unique_lock<std::mutex>& transaction_lock);
+
     private:
         sqlite3* db_conn;
 
@@ -114,6 +118,7 @@ namespace server {
          * so this is the easiest and safest solution at the moment.
          */
         std::mutex db_mut;
+        std::mutex transaction_mut;
     };
     static constexpr auto create_users = "\
         CREATE TABLE IF NOT EXISTS users (\
@@ -198,6 +203,10 @@ namespace server {
               "contents FROM mailbox WHERE dest_user_id = ?1;";
     static constexpr auto select_registration
             = "SELECT email, expiration FROM registration_codes WHERE code = ?1;";
+
+    static constexpr auto begin_trans = "BEGIN TRANSACTION";
+    static constexpr auto commit_trans = "COMMIT TRANSACTION";
+    static constexpr auto rollback_trans = "ROLLBACK TRANSACTION";
 } // namespace server
 
 #endif /* end of include guard: SERVER_STATE_H */
