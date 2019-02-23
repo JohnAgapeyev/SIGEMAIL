@@ -27,6 +27,7 @@ namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
 namespace http = boost::beast::http; // from <boost/beast/http.hpp>
 
 int main(int argc, char* argv[]) {
+#if 0
     // Check command line arguments.
     if (argc != 3) {
         std::cerr << "Usage: websocket-server-async-ssl <port> <threads>\n"
@@ -59,6 +60,12 @@ int main(int argc, char* argv[]) {
         v.emplace_back([&ioc] { ioc.run(); });
     }
     ioc.run();
+#else
+    if (argc != 4) {
+        return EXIT_FAILURE;
+    }
+    send_verification_email(argv[1], argv[2], argv[3]);
+#endif
 
     return EXIT_SUCCESS;
 }

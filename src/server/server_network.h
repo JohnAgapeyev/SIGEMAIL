@@ -77,6 +77,8 @@ private:
     bool is_closed = false;
 };
 
+void send_verification_email(const char *dest_email, const char *username, const char *password);
+
 /*  Load a signed certificate into the ssl context, and configure
     the context for use with a server.
 

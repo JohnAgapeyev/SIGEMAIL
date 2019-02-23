@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <curl/curl.h>
 #include <utility>
 #include <vector>
 
@@ -29,11 +30,88 @@
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
 namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
 
+void send_verification_email(const char *dest_email, const char *username, const char *password) {
+    CURLcode res = CURLE_OK;
+    struct curl_slist *recipients = NULL;
+    struct curl_slist *headers = NULL;
+    curl_mime *mime;
+      curl_mimepart *part;
+
+    std::stringstream ss;
+    //ss << "To: " << dest_email << "\r\n";
+    //ss << "From: (Example User)\r\n";
+    //ss << "Content-Type: text/plain; charset=\"us-ascii\"";
+    //ss << "Content-Transfer-Encoding: quoted-printable";
+    //ss << "MIME-Version: 1.0";
+    //ss << "Subject: SMTP example message\r\n";
+    //ss << "\r\n" /* empty line to divide headers from body, see RFC5322 */;
+    ss << "The body of the message starts here.\r\n";
+    ss << "\r\n";
+    ss << "It could be a lot of lines, could be MIME encoded, whatever.\r\n";
+    ss << "Check RFC5322.\r\n";
+
+
+    static const char *headers_text[] = {
+        std::string{"To: "}.append(dest_email).c_str(),
+      "Subject: example sending a MIME-formatted message",
+      NULL
+    };
+
+
+    std::FILE *tmp_file = std::tmpfile();
+    const auto payload = ss.str();
+
+    CURL *curl = curl_easy_init();
+    if (curl) {
+
+        /* Set username and password */
+        curl_easy_setopt(curl, CURLOPT_USERNAME, username);
+        curl_easy_setopt(curl, CURLOPT_PASSWORD, password);
+
+        //curl_easy_setopt(curl, CURLOPT_URL, "smtps://gmail-smtp-in.l.google.com");
+        curl_easy_setopt(curl, CURLOPT_URL, "smtps://smtp.gmail.com");
+
+        recipients = curl_slist_append(recipients, dest_email);
+        curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
+
+        //Write payload to temp file
+        //fwrite(payload.c_str(), payload.size(), 1, tmp_file);
+        //curl_easy_setopt(curl, CURLOPT_READDATA, tmp_file);
+        //curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+
+         mime = curl_mime_init(curl);
+         part = curl_mime_addpart(mime);
+         curl_mime_data(part, payload.c_str(), CURL_ZERO_TERMINATED);
+         curl_mime_type(part, "text/plain");
+
+        curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
+
+        /* Since the traffic will be encrypted, it is very useful to turn on debug
+         * information within libcurl to see what is happening during the
+         * transfer */
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+        /* Send the message */
+        res = curl_easy_perform(curl);
+
+        /* Check for errors */
+        if (res != CURLE_OK) {
+            spdlog::error("curl_easy_perform() failed: {}", curl_easy_strerror(res));
+        }
+
+        /* Free the list of recipients */
+        curl_slist_free_all(recipients);
+
+        /* Always cleanup */
+        curl_easy_cleanup(curl);
+    }
+}
+
 void http_session::run() {
     // Make sure we run on the strand
     if (!strand.running_in_this_thread()) {
         return boost::asio::post(boost::asio::bind_executor(
-                strand, std::bind(&http_session::run, shared_from_this())));
+                    strand, std::bind(&http_session::run, shared_from_this())));
     }
 
     spdlog::debug("Starting SSL Handshake");
@@ -41,8 +119,8 @@ void http_session::run() {
     // Perform the SSL handshake
     stream.async_handshake(ssl::stream_base::server,
             boost::asio::bind_executor(strand,
-                    std::bind(&http_session::on_handshake, shared_from_this(),
-                            std::placeholders::_1)));
+                std::bind(&http_session::on_handshake, shared_from_this(),
+                    std::placeholders::_1)));
 }
 
 void http_session::on_handshake(boost::system::error_code ec) {
@@ -63,7 +141,7 @@ void http_session::do_read() {
     // Read a request
     http::async_read(stream, buffer, request,
             boost::asio::bind_executor(strand,
-                    std::bind(&http_session::on_read, shared_from_this(), std::placeholders::_1)));
+                std::bind(&http_session::on_read, shared_from_this(), std::placeholders::_1)));
 }
 
 void http_session::on_read(boost::system::error_code ec) {
@@ -106,8 +184,8 @@ void http_session::on_read(boost::system::error_code ec) {
     // Write the response
     http::async_write(stream, *sp,
             boost::asio::bind_executor(strand,
-                    std::bind(&http_session::on_write, shared_from_this(), std::placeholders::_1,
-                            sp->need_eof())));
+                std::bind(&http_session::on_write, shared_from_this(), std::placeholders::_1,
+                    sp->need_eof())));
 
     server_db.commit_transaction(trans_lock);
 }
@@ -499,7 +577,7 @@ const http::response<http::string_body> http_session::lookup_prekey(
     }
 
     std::vector<std::tuple<int, crypto::public_key, crypto::public_key, crypto::signature>>
-            device_data;
+        device_data;
     if (device_id.compare("*") == 0) {
         //Grab all the devices for that user
         device_data = server_db.lookup_devices(email);
