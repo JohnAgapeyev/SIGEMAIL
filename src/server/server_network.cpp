@@ -21,6 +21,7 @@
 #include <curl/curl.h>
 #include <utility>
 #include <vector>
+#include <openssl/rand.h>
 
 #include "error.h"
 #include "logging.h"
@@ -30,42 +31,23 @@
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
 namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
 
-void send_verification_email(const char *dest_email, const char *username, const char *password) {
+void send_verification_email(const char *dest_email, const char *password, const uint64_t registration_code) {
     CURLcode res = CURLE_OK;
     struct curl_slist *recipients = NULL;
-    struct curl_slist *headers = NULL;
     curl_mime *mime;
-      curl_mimepart *part;
+    curl_mimepart *part;
 
     std::stringstream ss;
-    //ss << "To: " << dest_email << "\r\n";
-    //ss << "From: (Example User)\r\n";
-    //ss << "Content-Type: text/plain; charset=\"us-ascii\"";
-    //ss << "Content-Transfer-Encoding: quoted-printable";
-    //ss << "MIME-Version: 1.0";
-    //ss << "Subject: SMTP example message\r\n";
-    //ss << "\r\n" /* empty line to divide headers from body, see RFC5322 */;
-    ss << "The body of the message starts here.\r\n";
+    ss << "Your SIGEMAIL registration code is:\r\n";
     ss << "\r\n";
-    ss << "It could be a lot of lines, could be MIME encoded, whatever.\r\n";
-    ss << "Check RFC5322.\r\n";
+    ss << registration_code << "\r\n";
+    ss << "\r\n";
 
-
-    static const char *headers_text[] = {
-        std::string{"To: "}.append(dest_email).c_str(),
-      "Subject: example sending a MIME-formatted message",
-      NULL
-    };
-
-
-    std::FILE *tmp_file = std::tmpfile();
     const auto payload = ss.str();
 
     CURL *curl = curl_easy_init();
     if (curl) {
-
-        /* Set username and password */
-        curl_easy_setopt(curl, CURLOPT_USERNAME, username);
+        curl_easy_setopt(curl, CURLOPT_USERNAME, dest_email);
         curl_easy_setopt(curl, CURLOPT_PASSWORD, password);
 
         //curl_easy_setopt(curl, CURLOPT_URL, "smtps://gmail-smtp-in.l.google.com");
@@ -74,35 +56,23 @@ void send_verification_email(const char *dest_email, const char *username, const
         recipients = curl_slist_append(recipients, dest_email);
         curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
 
-        //Write payload to temp file
-        //fwrite(payload.c_str(), payload.size(), 1, tmp_file);
-        //curl_easy_setopt(curl, CURLOPT_READDATA, tmp_file);
-        //curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
-
-         mime = curl_mime_init(curl);
-         part = curl_mime_addpart(mime);
-         curl_mime_data(part, payload.c_str(), CURL_ZERO_TERMINATED);
-         curl_mime_type(part, "text/plain");
+        mime = curl_mime_init(curl);
+        part = curl_mime_addpart(mime);
+        curl_mime_data(part, payload.c_str(), CURL_ZERO_TERMINATED);
+        curl_mime_type(part, "text/plain");
 
         curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
 
-        /* Since the traffic will be encrypted, it is very useful to turn on debug
-         * information within libcurl to see what is happening during the
-         * transfer */
         curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 
-        /* Send the message */
         res = curl_easy_perform(curl);
 
-        /* Check for errors */
         if (res != CURLE_OK) {
             spdlog::error("curl_easy_perform() failed: {}", curl_easy_strerror(res));
         }
 
-        /* Free the list of recipients */
         curl_slist_free_all(recipients);
 
-        /* Always cleanup */
         curl_easy_cleanup(curl);
     }
 }
@@ -323,6 +293,7 @@ const http::response<http::string_body> http_session::handle_request(
 
             //After this, the remaining target should only be the email address
             target.erase(0, strlen(email_substr));
+            target.erase(0, strlen(code_str));
 
             //Confirm verification code
             spdlog::info("Request verification message");
@@ -389,22 +360,47 @@ const http::response<http::string_body> http_session::handle_request(
     }
 }
 
-//This functions does not need a verification confirmation, since it is how they are originally requested
+//This functions does not need a auth token confirmation, since it is how they are originally requested
 const http::response<http::string_body> http_session::request_verification_code(
         http::request<http::string_body>&& req, const std::string_view email) const {
-    if (!req.body().empty()) {
-        //Expected an empty request, but received data
-        return bad_request("Expected an empty request body");
-    }
     //Email is not valid format
     if (email.empty() || email.size() > 254 || email.find('@') == std::string_view::npos) {
         return bad_request("Invalid email address format");
     }
 
-    //This needs to be randomly generated, decently large, and sent via SMTP to the address
-    uint64_t registration_code = 1;
+    const auto ptr = parse_json_request(req.body());
+    if (!ptr) {
+        return bad_json();
+    }
 
-    server_db.add_registration_code(email, registration_code);
+    const auto req_email = ptr->get_child_optional("email");
+    if (!req_email) {
+        return bad_json();
+    }
+    const auto pwd = ptr->get_child_optional("password");
+    if (!pwd) {
+        return bad_json();
+    }
+
+    const auto request_email = req_email->get_value<std::string>();
+    const auto request_password = pwd->get_value<std::string>();
+
+    if (request_email != email) {
+        spdlog::error(request_email);
+        spdlog::error(email);
+        //Emails are not consistent
+        return bad_request("Conflicting email addresses");
+    }
+
+    //Generate random 64 bit integer
+    std::array<unsigned char, sizeof(uint64_t)> random_int;
+    RAND_bytes(random_int.data(), random_int.size());
+    uint64_t registration_code;
+    memcpy(&registration_code, random_int.data(), sizeof(registration_code));
+
+    server_db.add_registration_code(request_email, registration_code);
+
+    send_verification_email(request_email.data(), request_password.c_str(), registration_code);
 
     return http_ok();
 }

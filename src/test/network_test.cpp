@@ -8,15 +8,6 @@
 
 BOOST_AUTO_TEST_SUITE(network_tests)
 
-BOOST_AUTO_TEST_CASE(basic_request) {
-    auto server_db = get_server_db();
-    auto client_db = get_client_db();
-    const auto server_wrapper = get_server(server_db);
-    const auto client_wrapper = get_client(client_db);
-    auto client = client_wrapper->client;
-    BOOST_TEST(client->request_verification_code("foobar@test.com"));
-}
-
 BOOST_AUTO_TEST_CASE(confirm_verification_code) {
     auto server_db = get_server_db();
     auto client_db = get_client_db();

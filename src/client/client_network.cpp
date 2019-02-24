@@ -66,9 +66,16 @@ client_network_session::~client_network_session() {
 }
 
 /*
- * Request is empty
+ * Request is as follows:
+ * {
+ *   email: "{email address}"
+ *   password: "{password}"
+ * }
+ *
+ * I don't like doing this, but I can't find a good way of sending emails
+ * to GMail without going badly out of scope, or without the password
  */
-[[nodiscard]] bool client_network_session::request_verification_code(const std::string& email) {
+[[nodiscard]] bool client_network_session::request_verification_code(const std::string& email, const std::string& password) {
     req.clear();
     req.body() = "";
     res.clear();
@@ -83,6 +90,18 @@ client_network_session::~client_network_session() {
 
     req.method(http::verb::get);
     req.target(target_str);
+
+    boost::property_tree::ptree ptr;
+
+    ptr.add("email", email);
+    ptr.add("password", password);
+
+    std::stringstream ss;
+
+    boost::property_tree::write_json(ss, ptr);
+
+    req.body() = ss.str();
+
     req.prepare_payload();
 
     http::write(stream, req);

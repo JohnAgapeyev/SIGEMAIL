@@ -30,7 +30,7 @@ public:
             const char* dest_port, client::database& db);
     ~client_network_session();
 
-    [[nodiscard]] bool request_verification_code(const std::string& email);
+    [[nodiscard]] bool request_verification_code(const std::string& email, const std::string& password);
     [[nodiscard]] bool verify_verification_code(const std::string& email, const int code);
     [[nodiscard]] bool register_prekeys(const int key_count);
     [[nodiscard]] std::optional<std::vector<std::tuple<int, crypto::public_key, crypto::public_key,
