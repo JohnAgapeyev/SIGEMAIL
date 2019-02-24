@@ -241,3 +241,35 @@ std::optional<std::vector<crypto::secure_vector<std::byte>>> device::receive_sig
     return plaintext_messages;
 }
 
+[[nodiscard]] bool device::check_registration() {
+    try {
+        const auto data = client_db.get_self_data();
+        return true;
+    } catch (const db_error&) {
+        return false;
+    }
+}
+
+void device::register_with_server(const std::string& email, const std::string& password) {
+    if (check_registration()) {
+        //Don't re-register
+        return;
+    }
+    if (!network_session->request_verification_code(email, password)) {
+        const auto err_msg = "Failed to request verification code from the server";
+        spdlog::error(err_msg);
+        throw std::runtime_error(err_msg);
+    }
+}
+
+void device::confirm_registration(const std::string& email, const uint64_t registration_code) {
+    if (check_registration()) {
+        //Don't re-register
+        return;
+    }
+    if (!network_session->verify_verification_code(email, registration_code)) {
+        const auto err_msg = "Failed to verify verification code to the server";
+        spdlog::error(err_msg);
+        throw std::runtime_error(err_msg);
+    }
+}

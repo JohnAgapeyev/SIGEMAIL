@@ -47,20 +47,9 @@ int main(int argc, char** argv) {
 #endif
 
     client::database client_db{"client_db"};
-    //device alice_dev{host, port, client_db};
+    device alice_dev{host, port, client_db};
 
-    std::shared_ptr<client_network_session> host_ref;
-    try {
-        host_ref = std::make_shared<client_network_session>(ioc, ctx, host, port, client_db);
-    } catch (const boost::system::system_error& e) {
-        spdlog::error("Client network session failed to establish: {}", e.what());
-        return EXIT_FAILURE;
-    }
-
-    if (!host_ref->request_verification_code(argv[3], argv[4])) {
-        spdlog::error("Failed to request verification code from the server");
-        return EXIT_FAILURE;
-    }
+    alice_dev.register_with_server(argv[3], argv[4]);
 
     std::cout << "Enter the received registration code: ";
 
@@ -70,10 +59,7 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    if (!host_ref->verify_verification_code(argv[3], code)) {
-        spdlog::error("Failed to verify verification code to the server");
-        return EXIT_FAILURE;
-    }
+    alice_dev.confirm_registration(argv[3], code);
 
     return EXIT_SUCCESS;
 }

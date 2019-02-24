@@ -37,6 +37,11 @@ public:
 
     std::optional<std::vector<crypto::secure_vector<std::byte>>> receive_signal_message();
 
+    [[nodiscard]] bool check_registration();
+
+    void register_with_server(const std::string& email, const std::string& password);
+    void confirm_registration(const std::string& email, const uint64_t registration_code);
+
 private:
     boost::asio::io_context ioc;
     boost::asio::ssl::context ssl;
