@@ -68,6 +68,10 @@ find_package(OpenSSL 1.1.1 REQUIRED)
 find_package(CURL REQUIRED)
 find_package(Threads REQUIRED)
 
+find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+
 set(CLIENT_MAIN_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/client/main.cpp
 )
