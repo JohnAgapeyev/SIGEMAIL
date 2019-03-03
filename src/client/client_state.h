@@ -50,7 +50,8 @@ namespace client {
 
         void add_one_time(const crypto::DH_Keypair& one_time);
         void add_user_record(const std::string& email);
-        void add_device_record(const std::string& email, const int device_record, const crypto::public_key& pub_key);
+        void add_device_record(const std::string& email, const int device_record,
+                const crypto::public_key& pub_key);
         int add_session(const int device_index, const session& s);
 
         void remove_user_record(const std::string& email);
@@ -76,6 +77,10 @@ namespace client {
         std::pair<int, session> get_active_session(const int device_id);
 
         void sync_session(const int session_id, const session& s);
+
+        std::unique_lock<std::mutex> start_transaction();
+        void commit_transaction(std::unique_lock<std::mutex>& transaction_lock);
+        void rollback_transaction(std::unique_lock<std::mutex>& transaction_lock);
 
     private:
         sqlite3* db_conn;
@@ -105,7 +110,15 @@ namespace client {
 
         sqlite3_stmt* last_rowid_insert;
 
-        static constexpr auto create_self = "\
+        /*
+         * I know this could be more efficient by splitting the mutex up for unrelated actions.
+         * But my initial implementation which overhauled the sqlite statements failed,
+         * so this is the easiest and safest solution at the moment.
+         */
+        std::mutex db_mut;
+        std::mutex transaction_mut;
+    };
+    static constexpr auto create_self = "\
         CREATE TABLE IF NOT EXISTS self (\
            user_id      TEXT    PRIMARY KEY,\
            device_id    INTEGER NOT NULL,\
@@ -114,19 +127,19 @@ namespace client {
            pre_key      BLOB    NOT NULL,\
            CHECK(length(user_id) > 0 and length(auth_token) > 0 and device_id > 0)\
         );";
-        static constexpr auto create_one_time = "\
+    static constexpr auto create_one_time = "\
         CREATE TABLE IF NOT EXISTS one_time (\
            public_key     BLOB PRIMARY KEY,\
            contents       BLOB NOT NULL UNIQUE,\
            CHECK(length(contents) > 0 and length(public_key) > 0)\
         );";
-        static constexpr auto create_users = "\
+    static constexpr auto create_users = "\
         CREATE TABLE IF NOT EXISTS users (\
            user_id      TEXT     PRIMARY KEY,\
            stale        INTEGER  NOT NULL,\
            CHECK(length(user_id) > 0 and stale >= 0 and stale <= 1)\
         );";
-        static constexpr auto create_devices = "\
+    static constexpr auto create_devices = "\
         CREATE TABLE IF NOT EXISTS devices (\
            device_id      INTEGER PRIMARY KEY,\
            user_id        TEXT    NOT NULL,\
@@ -137,7 +150,7 @@ namespace client {
            FOREIGN KEY(active_session) REFERENCES sessions(session_id) ON UPDATE CASCADE ON DELETE CASCADE,\
            CHECK(length(user_id) > 0 and stale >= 0 and stale <= 1 and length(public_key) > 0)\
         );";
-        static constexpr auto create_sessions = "\
+    static constexpr auto create_sessions = "\
         CREATE TABLE IF NOT EXISTS sessions (\
            session_id   INTEGER PRIMARY KEY,\
            device_id    INTEGER NOT NULL,\
@@ -146,41 +159,43 @@ namespace client {
            CHECK(length(contents) > 0)\
         );";
 
-        static constexpr auto insert_self = "INSERT INTO self VALUES (?1, ?2, ?3, ?4, ?5);";
-        static constexpr auto insert_one_time = "INSERT INTO one_time VALUES (?1, ?2);";
-        static constexpr auto insert_users = "INSERT INTO users VALUES (?1, 0);";
-        static constexpr auto insert_devices
-                = "INSERT INTO devices(device_id, user_id, public_key, active_session, stale) VALUES (?2, ?1, ?3, NULL, 0);";
-        static constexpr auto insert_sessions
-                = "INSERT INTO sessions(device_id, contents) VALUES (?1, ?2);";
+    static constexpr auto insert_self = "INSERT INTO self VALUES (?1, ?2, ?3, ?4, ?5);";
+    static constexpr auto insert_one_time = "INSERT INTO one_time VALUES (?1, ?2);";
+    static constexpr auto insert_users = "INSERT INTO users VALUES (?1, 0);";
+    static constexpr auto insert_devices = "INSERT INTO devices(device_id, user_id, public_key, "
+                                           "active_session, stale) VALUES (?2, ?1, ?3, NULL, 0);";
+    static constexpr auto insert_sessions
+            = "INSERT INTO sessions(device_id, contents) VALUES (?1, ?2);";
 
-        static constexpr auto rowid_insert = "SELECT last_insert_rowid();";
+    static constexpr auto rowid_insert = "SELECT last_insert_rowid();";
 
-        static constexpr auto update_users = "UPDATE users SET stale = 1 WHERE user_id = ?1;";
-        static constexpr auto update_devices = "UPDATE devices SET stale = 1 WHERE device_id = ?1;";
-        static constexpr auto update_devices_active
-                = "UPDATE devices SET active_session = ?2 WHERE device_id = ?1;";
-        static constexpr auto update_sessions = "UPDATE sessions SET contents = ?2 WHERE session_id = ?1;";
+    static constexpr auto update_users = "UPDATE users SET stale = 1 WHERE user_id = ?1;";
+    static constexpr auto update_devices = "UPDATE devices SET stale = 1 WHERE device_id = ?1;";
+    static constexpr auto update_devices_active
+            = "UPDATE devices SET active_session = ?2 WHERE device_id = ?1;";
+    static constexpr auto update_sessions
+            = "UPDATE sessions SET contents = ?2 WHERE session_id = ?1;";
 
-        static constexpr auto delete_users = "DELETE FROM users WHERE user_id = ?1;";
-        static constexpr auto delete_users_stale = "DELETE FROM users WHERE stale = 1;";
-        static constexpr auto delete_devices = "DELETE FROM devices WHERE device_id = ?1;";
-        static constexpr auto delete_devices_stale = "DELETE FROM devices WHERE stale = 1;";
-        static constexpr auto delete_one_time = "DELETE FROM one_time WHERE public_key = ?1;";
-        static constexpr auto delete_sessions = "DELETE FROM sessions WHERE session_id = ?1;";
+    static constexpr auto delete_users = "DELETE FROM users WHERE user_id = ?1;";
+    static constexpr auto delete_users_stale = "DELETE FROM users WHERE stale = 1;";
+    static constexpr auto delete_devices = "DELETE FROM devices WHERE device_id = ?1;";
+    static constexpr auto delete_devices_stale = "DELETE FROM devices WHERE stale = 1;";
+    static constexpr auto delete_one_time = "DELETE FROM one_time WHERE public_key = ?1;";
+    static constexpr auto delete_sessions = "DELETE FROM sessions WHERE session_id = ?1;";
 
-        static constexpr auto select_self = "SELECT * FROM self LIMIT 1;";
-        static constexpr auto select_one_time
-                = "SELECT contents FROM one_time WHERE public_key = ?1;";
-        static constexpr auto select_device_ids
-                = "SELECT device_id FROM devices WHERE user_id = ?1;";
-        static constexpr auto select_sessions
-                = "SELECT session_id, contents FROM sessions WHERE device_id = ?1;";
+    static constexpr auto select_self = "SELECT * FROM self LIMIT 1;";
+    static constexpr auto select_one_time = "SELECT contents FROM one_time WHERE public_key = ?1;";
+    static constexpr auto select_device_ids = "SELECT device_id FROM devices WHERE user_id = ?1;";
+    static constexpr auto select_sessions
+            = "SELECT session_id, contents FROM sessions WHERE device_id = ?1;";
 
-        static constexpr auto select_active
-                = "SELECT devices.active_session, contents FROM sessions INNER JOIN devices ON devices.active_session = "
-                  "sessions.session_id WHERE devices.device_id = ?1;";
-    };
+    static constexpr auto select_active = "SELECT devices.active_session, contents FROM sessions "
+                                          "INNER JOIN devices ON devices.active_session = "
+                                          "sessions.session_id WHERE devices.device_id = ?1;";
+
+    static constexpr auto begin_trans = "BEGIN TRANSACTION";
+    static constexpr auto commit_trans = "COMMIT TRANSACTION";
+    static constexpr auto rollback_trans = "ROLLBACK TRANSACTION";
 } // namespace client
 
 #endif /* end of include guard: CLIENT_STATE_H */

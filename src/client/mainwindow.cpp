@@ -54,6 +54,8 @@ void main_window::on_send_btn_clicked() {
      * This prevents decryption on subsequent messages
      * Now, technically, I could mess around with ensuring sessions are consistent, but
      * currently it's easier to receive messages first, to ensure that cannot occur
+     *
+     * Fixing this would require message retry requests to discard the bad session on the sender side
      */
 
     const auto messages = dev.receive_signal_message();

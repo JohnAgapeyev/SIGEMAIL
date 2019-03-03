@@ -167,44 +167,52 @@ void device::send_signal_message(const crypto::secure_vector<std::byte>& plainte
     //TODO This needs to be retrieved from the X3DH agreement somehow
     const crypto::secure_vector<std::byte> aad;
 
-    const auto [self_email, self_device_id, auth_token, self_identity, self_prekey] = client_db.get_self_data();
+    auto trans_lock = client_db.start_transaction();
 
-    /*
-     * This needs to follow the following set of steps:
-     *  - All devices with an active session for the recipient shall have that message created
-     *  - Send messages to the server
-     *  - Server may reject messages as invalid due to bad client db data
-     *  - In said case, the server will respond with the new official set of data
-     *  - If the user does not exist, mark it stale, same with devices
-     *  - If there are missing valid devices, prep for encryption, and restart this process
-     *
-     * Here's my current plan so far:
-     * - Active sessions for valid recipients
-     *
-     * Also we need some exception handling if anything fails
-     */
-    for (const auto& email : recipients) {
-        std::vector<std::pair<int, signal_message>> message_list;
+    try {
+        const auto [self_email, self_device_id, auth_token, self_identity, self_prekey] = client_db.get_self_data();
 
-        //This ensures we always have an active session
-        prep_for_encryption(email);
+        /*
+         * This needs to follow the following set of steps:
+         *  - All devices with an active session for the recipient shall have that message created
+         *  - Send messages to the server
+         *  - Server may reject messages as invalid due to bad client db data
+         *  - In said case, the server will respond with the new official set of data
+         *  - If the user does not exist, mark it stale, same with devices
+         *  - If there are missing valid devices, prep for encryption, and restart this process
+         *
+         * Here's my current plan so far:
+         * - Active sessions for valid recipients
+         *
+         * Also we need some exception handling if anything fails
+         */
+        for (const auto& email : recipients) {
+            std::vector<std::pair<int, signal_message>> message_list;
 
-        const auto dest_devices = client_db.get_device_ids(email);
+            //This ensures we always have an active session
+            prep_for_encryption(email);
 
-        for (const auto device_id : dest_devices) {
-            auto [sess_id, session] = client_db.get_active_session(device_id);
+            const auto dest_devices = client_db.get_device_ids(email);
 
-            const auto mesg = session.ratchet_encrypt(plaintext, aad);
+            for (const auto device_id : dest_devices) {
+                auto [sess_id, session] = client_db.get_active_session(device_id);
 
-            message_list.emplace_back(device_id, std::move(mesg));
+                const auto mesg = session.ratchet_encrypt(plaintext, aad);
 
-            //Sync the session back to the database
-            client_db.sync_session(sess_id, session);
+                message_list.emplace_back(device_id, std::move(mesg));
+
+                //Sync the session back to the database
+                client_db.sync_session(sess_id, session);
+            }
+            if (!network_session->submit_message(email, message_list)) {
+                //Message submission failed
+                throw std::runtime_error("Failed to submit encrypted messages to server");
+            }
         }
-        if (!network_session->submit_message(email, message_list)) {
-            //Message submission failed
-            throw std::runtime_error("Failed to submit encrypted messages to server");
-        }
+        client_db.commit_transaction(trans_lock);
+        return;
+    } catch(...) {
+        client_db.rollback_transaction(trans_lock);
     }
 }
 
@@ -219,38 +227,48 @@ std::optional<std::vector<crypto::secure_vector<std::byte>>> device::receive_sig
 
     std::vector<crypto::secure_vector<std::byte>> plaintext_messages;
 
-    for (const auto& [from_email, from_device_id, dest_device_id, mesg] : *server_data) {
+    auto trans_lock = client_db.start_transaction();
 
-        /*
-         * This will create all database records for the user
-         * So assuming there aren't any invalid device ids, this will work
-         * A consequence is that it will create sessions for the devices
-         *
-         * For existing sessions, I handle it there, so that's fine
-         *
-         * But for devices we haven't seen yet, it will create a session
-         * This session will then have to be overwritten
-         */
-        prep_for_encryption(from_email);
+    try {
+        for (const auto& [from_email, from_device_id, dest_device_id, mesg] : *server_data) {
 
-        auto [sess_id, session] = client_db.get_active_session(from_device_id);
+            /*
+             * This will create all database records for the user
+             * So assuming there aren't any invalid device ids, this will work
+             * A consequence is that it will create sessions for the devices
+             *
+             * For existing sessions, I handle it there, so that's fine
+             *
+             * But for devices we haven't seen yet, it will create a session
+             * This session will then have to be overwritten
+             */
+            prep_for_encryption(from_email);
 
-        if (std::holds_alternative<initial_message_header>(mesg.header)) {
-            //Initial message
-            auto [tmp_s, plaintext] = decrypt_initial_message(mesg, self_identity, self_prekey);
-            plaintext_messages.emplace_back(std::move(plaintext));
+            auto [sess_id, session] = client_db.get_active_session(from_device_id);
 
-            //Sync the session back to the database
-            client_db.sync_session(sess_id, tmp_s);
-        } else {
-            auto plaintext = session.ratchet_decrypt(mesg);
-            plaintext_messages.emplace_back(std::move(plaintext));
+            if (std::holds_alternative<initial_message_header>(mesg.header)) {
+                //Initial message
+                auto [tmp_s, plaintext] = decrypt_initial_message(mesg, self_identity, self_prekey);
+                plaintext_messages.emplace_back(std::move(plaintext));
 
-            //Sync the session back to the database
-            client_db.sync_session(sess_id, session);
+                //Sync the session back to the database
+                client_db.sync_session(sess_id, tmp_s);
+                client_db.activate_session(from_device_id, sess_id);
+            } else {
+                auto plaintext = session.ratchet_decrypt(mesg);
+                plaintext_messages.emplace_back(std::move(plaintext));
+
+                //Sync the session back to the database
+                client_db.sync_session(sess_id, session);
+                client_db.activate_session(from_device_id, sess_id);
+            }
         }
+        client_db.commit_transaction(trans_lock);
+        return plaintext_messages;
+    } catch (...) {
+        client_db.rollback_transaction(trans_lock);
     }
-    return plaintext_messages;
+    return std::nullopt;
 }
 
 [[nodiscard]] bool device::check_registration() {
