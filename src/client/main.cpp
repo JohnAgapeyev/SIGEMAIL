@@ -1,3 +1,6 @@
+#include <QApplication>
+#include <QMainWindow>
+#include <QWidget>
 #include <algorithm>
 #include <atomic>
 #include <boost/asio/signal_set.hpp>
@@ -13,12 +16,15 @@
 #include "crypto.h"
 #include "device.h"
 #include "logging.h"
+#include "mainwindow.h"
 #include "session.h"
+#include "ui_mainwindow.h"
 
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
 namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
 
 int main(int argc, char** argv) {
+#if 0
     // Check command line arguments.
     if (argc != 5) {
         std::cerr << "Usage: websocket-client-async-ssl <host> <port>\n"
@@ -60,6 +66,15 @@ int main(int argc, char** argv) {
     }
 
     alice_dev.confirm_registration(argv[3], code);
+
+#endif
+
+    QApplication app{argc, argv};
+
+    main_window m{};
+    m.show();
+
+    app.exec();
 
     return EXIT_SUCCESS;
 }

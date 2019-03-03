@@ -2,17 +2,17 @@
 #define MAIN_WINDOW_H
 
 #include <QMainWindow>
+#include <QWidget>
 
 namespace Ui {
-class main_window;
+    class main_window;
 }
 
-class main_window : public QMainWindow
-{
+class main_window : public QMainWindow {
     Q_OBJECT
 
 public:
-    explicit main_window(QWidget *parent = nullptr);
+    explicit main_window(QWidget* parent = nullptr);
     ~main_window();
 
 private slots:
@@ -25,7 +25,7 @@ private slots:
     void on_recv_btn_clicked();
 
 private:
-    Ui::main_window *ui;
+    Ui::main_window* ui;
 };
 
 #endif // MAIN_WINDOW_H

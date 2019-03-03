@@ -74,6 +74,9 @@ set(CMAKE_AUTOUIC ON)
 
 set(CLIENT_MAIN_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/client/main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/client/mainwindow.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/client/mainwindow.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/client/mainwindow.ui
 )
 
 set(SERVER_MAIN_SOURCE
@@ -95,9 +98,6 @@ set(CLIENT_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/client/client_network.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/client/client_state.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/client/device.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/main_window.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/main_window.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/main_window.ui
 )
 
 set(SERVER_SOURCES
@@ -159,7 +159,7 @@ target_compile_options(${CLIENT_LIBRARY}
     PRIVATE ${WARNINGS}
     PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>" "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
 target_compile_definitions(${CLIENT_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
-target_include_directories(${CLIENT_LIBRARY} PUBLIC ${INCLUDE_DIRS} ${Qt5Widgets_INCLUDE_DIRS})
+target_include_directories(${CLIENT_LIBRARY} PUBLIC ${INCLUDE_DIRS})
 
 target_compile_options(${SERVER_LIBRARY}
     PRIVATE ${WARNINGS}
@@ -172,7 +172,7 @@ target_compile_options(${PROJECT_NAME}
     PRIVATE ${WARNINGS}
     PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>" "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
 target_compile_definitions(${PROJECT_NAME} PRIVATE "$<$<CONFIG:RELEASE>:NDEBUG>" "$<$<CONFIG:DEBUG>:NO_SSL_VERIFY>")
-target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS} ${Qt5Widgets_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE signal-protocol-c OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads ${Boost_LIBRARIES} Boost::serialization spdlog Qt5::Widgets)
 target_link_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:RELEASE>:-s>")
 
