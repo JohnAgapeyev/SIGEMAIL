@@ -24,57 +24,29 @@ using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
 namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
 
 int main(int argc, char** argv) {
-#if 0
     // Check command line arguments.
-    if (argc != 5) {
-        std::cerr << "Usage: websocket-client-async-ssl <host> <port>\n"
-                  << "Example:\n"
-                  << "    websocket-client-async-ssl echo.websocket.org 443\n";
+    if (argc < 3) {
+        std::cerr << "Usage: sigemail <host> <port> <optional client db name>\n";
         return EXIT_FAILURE;
     }
+
     const auto host = argv[1];
     const auto port = argv[2];
 
+    const auto db_name = (argc == 4) ? argv[3] : "client_db";
+
     spdlog::set_level(spdlog::level::debug);
 
-    // The io_context is required for all I/O
-    boost::asio::io_context ioc;
-
-    // The SSL context is required, and holds certificates
-    ssl::context ctx{ssl::context::tls};
-    ctx.set_default_verify_paths();
-
-    // Verify the remote server's certificate
-#ifdef NO_SSL_VERIFY
-    ctx.set_verify_mode(ssl::verify_none);
-#else
-    ctx.set_verify_mode(ssl::verify_peer);
-    ctx.set_verify_callback(ssl::rfc2818_verification(host));
-#endif
-
-    client::database client_db{"client_db"};
-    device alice_dev{host, port, client_db};
-
-    alice_dev.register_with_server(argv[3], argv[4]);
-
-    std::cout << "Enter the received registration code: ";
-
-    uint64_t code;
-    if (!(std::cin >> code)) {
-        spdlog::error("Failed to convert user input to int code");
-        return EXIT_FAILURE;
-    }
-
-    alice_dev.confirm_registration(argv[3], code);
-
-#endif
+    client::database client_db{db_name};
 
     QApplication app{argc, argv};
-
-    main_window m{};
-    m.show();
-
-    app.exec();
-
+    try {
+        main_window m{host, port, client_db};
+        m.show();
+        app.exec();
+    } catch(const boost::system::system_error& e) {
+        spdlog::error("Unable to initialize main window; {}", e.what());
+        return EXIT_FAILURE;
+    }
     return EXIT_SUCCESS;
 }

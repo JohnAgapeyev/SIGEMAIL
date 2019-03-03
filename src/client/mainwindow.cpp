@@ -1,11 +1,14 @@
 #include <QMainWindow>
 #include <QWidget>
 
+#include "logging.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "logging.h"
 
-main_window::main_window(QWidget* parent) : QMainWindow(parent), ui(new Ui::main_window) {
+main_window::main_window(
+        const char* dest, const char* port, client::database& db, QWidget* parent) :
+        QMainWindow(parent),
+        ui(new Ui::main_window), dev(dest, port, db) {
     ui->setupUi(this);
 }
 

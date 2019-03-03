@@ -158,7 +158,7 @@ target_include_directories(${SOURCE_LIBRARY} PUBLIC ${INCLUDE_DIRS})
 target_compile_options(${CLIENT_LIBRARY}
     PRIVATE ${WARNINGS}
     PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_OPTIONS}>" "$<$<CONFIG:RELEASE>:${RELEASE_OPTIONS}>")
-target_compile_definitions(${CLIENT_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
+target_compile_definitions(${CLIENT_LIBRARY} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>" "$<$<CONFIG:DEBUG>:NO_SSL_VERIFY>")
 target_include_directories(${CLIENT_LIBRARY} PUBLIC ${INCLUDE_DIRS})
 
 target_compile_options(${SERVER_LIBRARY}

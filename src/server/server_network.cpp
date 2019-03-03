@@ -190,10 +190,14 @@ void http_session::do_close() {
         ec.assign(0, ec.category());
     }
     if (ec) {
-        spdlog::error("Client shutdown error: {}", ec.message());
+        spdlog::error("Client SSL shutdown error: {}", ec.message());
     }
-    stream.lowest_layer().shutdown(boost::asio::socket_base::shutdown_both);
-    stream.lowest_layer().close();
+    try {
+        stream.lowest_layer().shutdown(boost::asio::socket_base::shutdown_both);
+        stream.lowest_layer().close();
+    } catch(const boost::system::system_error& e) {
+        spdlog::error("Client TCP shutdown error: {}", ec.message());
+    }
 
     // At this point the connection is closed gracefully
     is_closed = true;

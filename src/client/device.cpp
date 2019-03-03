@@ -1,4 +1,5 @@
 #include <unordered_map>
+#include <boost/asio/ssl.hpp>
 #include <vector>
 
 #include "device.h"
@@ -8,8 +9,19 @@
 
 device::device(const char* dest_host,
             const char* dest_port, client::database& db) : ioc(), ssl(boost::asio::ssl::context::tls),
-    client_db(db), network_session(std::make_shared<client_network_session>(ioc, ssl, dest_host, dest_port, client_db)) {
-    //Foobar
+    client_db(db) {
+
+    ssl.set_default_verify_paths();
+
+    // Verify the remote server's certificate
+#ifdef NO_SSL_VERIFY
+    ssl.set_verify_mode(ssl::verify_none);
+#else
+    ssl.set_verify_mode(ssl::verify_peer);
+    ssl.set_verify_callback(ssl::rfc2818_verification(dest_host));
+#endif
+
+    network_session = std::make_shared<client_network_session>(ioc, ssl, dest_host, dest_port, client_db);
 }
 
 void device::delete_user_record(const std::string& email) {

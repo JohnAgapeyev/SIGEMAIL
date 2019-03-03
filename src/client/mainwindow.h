@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QWidget>
 
+#include "device.h"
+
 namespace Ui {
     class main_window;
 }
@@ -12,7 +14,7 @@ class main_window : public QMainWindow {
     Q_OBJECT
 
 public:
-    explicit main_window(QWidget* parent = nullptr);
+    explicit main_window(const char *host, const char *port, client::database& db, QWidget* parent = nullptr);
     ~main_window();
 
 private slots:
@@ -26,6 +28,8 @@ private slots:
 
 private:
     Ui::main_window* ui;
+
+    device dev;
 };
 
 #endif // MAIN_WINDOW_H
