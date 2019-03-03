@@ -49,6 +49,26 @@ void main_window::on_send_btn_clicked() {
         plain.push_back(std::byte{static_cast<unsigned char>(c)});
     }
 
+    /*
+     * There's an issue where simultaneous initial messages creates 2 seperate sessions
+     * This prevents decryption on subsequent messages
+     * Now, technically, I could mess around with ensuring sessions are consistent, but
+     * currently it's easier to receive messages first, to ensure that cannot occur
+     */
+
+    const auto messages = dev.receive_signal_message();
+
+    if (messages.has_value()) {
+        spdlog::info("Received {} messages", messages->size());
+        for (const auto& plain : *messages) {
+            std::stringstream ss;
+            for (const auto b : plain) {
+                ss << static_cast<unsigned char>(std::to_integer<unsigned char>(b));
+            }
+            spdlog::info("Received plaintext {}", ss.str());
+        }
+    }
+
     dev.send_signal_message(plain, crypto::secure_vector<std::string>{dest});
 }
 
