@@ -45,7 +45,7 @@ namespace client {
         database& operator=(const database&) = delete;
 
         void save_registration(const std::string& email, const int device_id,
-                const std::string& auth_token, const crypto::DH_Keypair& identity_keypair,
+                const std::string& auth_token, const std::string& email_pass, const crypto::DH_Keypair& identity_keypair,
                 const crypto::DH_Keypair& pre_keypair);
 
         void add_one_time(const crypto::DH_Keypair& one_time);
@@ -66,7 +66,7 @@ namespace client {
 
         void purge_stale_records();
 
-        std::tuple<std::string, int, std::string, crypto::DH_Keypair, crypto::DH_Keypair>
+        std::tuple<std::string, int, std::string, std::string, crypto::DH_Keypair, crypto::DH_Keypair>
                 get_self_data();
         crypto::DH_Keypair get_one_time_key(const crypto::public_key& public_key);
 
@@ -123,9 +123,10 @@ namespace client {
            user_id      TEXT    PRIMARY KEY,\
            device_id    INTEGER NOT NULL,\
            auth_token   TEXT    NOT NULL,\
+           password     TEXT    NOT NULL,\
            identity     BLOB    NOT NULL,\
            pre_key      BLOB    NOT NULL,\
-           CHECK(length(user_id) > 0 and length(auth_token) > 0 and device_id > 0)\
+           CHECK(length(user_id) > 0 and length(auth_token) > 0 and device_id > 0 and length(password) > 0)\
         );";
     static constexpr auto create_one_time = "\
         CREATE TABLE IF NOT EXISTS one_time (\
@@ -159,7 +160,7 @@ namespace client {
            CHECK(length(contents) > 0)\
         );";
 
-    static constexpr auto insert_self = "INSERT INTO self VALUES (?1, ?2, ?3, ?4, ?5);";
+    static constexpr auto insert_self = "INSERT INTO self VALUES (?1, ?2, ?3, ?4, ?5, ?6);";
     static constexpr auto insert_one_time = "INSERT INTO one_time VALUES (?1, ?2);";
     static constexpr auto insert_users = "INSERT INTO users VALUES (?1, 0);";
     static constexpr auto insert_devices = "INSERT INTO devices(device_id, user_id, public_key, "

@@ -17,7 +17,7 @@ BOOST_AUTO_TEST_CASE(confirm_verification_code) {
 
     server_db.add_registration_code("foobar@test.com", 12345);
 
-    BOOST_TEST(client->verify_verification_code("foobar@test.com", 12345));
+    BOOST_TEST(client->verify_verification_code("foobar@test.com", "foobar", 12345));
 }
 
 BOOST_AUTO_TEST_CASE(register_prekeys) {
@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(register_prekeys) {
     auto client = client_wrapper->client;
 
     server_db.add_registration_code("foobar@test.com", 12345);
-    BOOST_TEST(client->verify_verification_code("foobar@test.com", 12345));
+    BOOST_TEST(client->verify_verification_code("foobar@test.com", "foobar", 12345));
     BOOST_TEST(client->register_prekeys(100));
 }
 
@@ -40,10 +40,10 @@ BOOST_AUTO_TEST_CASE(lookup_prekeys) {
     auto client = client_wrapper->client;
 
     server_db.add_registration_code("foobar@test.com", 12345);
-    BOOST_TEST(client->verify_verification_code("foobar@test.com", 12345));
+    BOOST_TEST(client->verify_verification_code("foobar@test.com", "foobar", 12345));
 
     server_db.add_registration_code("foobar2@test.com", 12345);
-    BOOST_TEST(client->verify_verification_code("foobar2@test.com", 12345));
+    BOOST_TEST(client->verify_verification_code("foobar2@test.com", "foobar", 12345));
 
     BOOST_TEST(client->lookup_prekey("foobar2@test.com", 2).has_value());
 }
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(lookup_prekeys_with_one_time) {
     auto client = client_wrapper->client;
 
     server_db.add_registration_code("foobar@test.com", 12345);
-    BOOST_TEST(client->verify_verification_code("foobar@test.com", 12345));
+    BOOST_TEST(client->verify_verification_code("foobar@test.com", "foobar", 12345));
     BOOST_TEST(client->register_prekeys(10));
 
     BOOST_TEST(client->lookup_prekey("foobar2@test.com", 1).has_value());
@@ -70,13 +70,13 @@ BOOST_AUTO_TEST_CASE(contact_intersection) {
     auto client = client_wrapper->client;
 
     server_db.add_registration_code("foobar@test.com", 12345);
-    BOOST_TEST(client->verify_verification_code("foobar@test.com", 12345));
+    BOOST_TEST(client->verify_verification_code("foobar@test.com", "foobar", 12345));
 
     server_db.add_registration_code("foobar2@test.com", 12345);
-    BOOST_TEST(client->verify_verification_code("foobar2@test.com", 12345));
+    BOOST_TEST(client->verify_verification_code("foobar2@test.com", "foobar", 12345));
 
     server_db.add_registration_code("foobar3@test.com", 12345);
-    BOOST_TEST(client->verify_verification_code("foobar3@test.com", 12345));
+    BOOST_TEST(client->verify_verification_code("foobar3@test.com", "foobar", 12345));
 
     std::vector<std::string> contacts;
     contacts.emplace_back("foobar@test.com");
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(submit_message) {
     auto client = client_wrapper->client;
 
     server_db.add_registration_code("foobar@test.com", 12345);
-    BOOST_TEST(client->verify_verification_code("foobar@test.com", 12345));
+    BOOST_TEST(client->verify_verification_code("foobar@test.com", "foobar", 12345));
 
     crypto::DH_Keypair send_id;
     crypto::DH_Keypair send_ephem;
@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE(submit_message_multiple) {
     auto client = client_wrapper->client;
 
     server_db.add_registration_code("foobar@test.com", 12345);
-    BOOST_TEST(client->verify_verification_code("foobar@test.com", 12345));
+    BOOST_TEST(client->verify_verification_code("foobar@test.com", "foobar", 12345));
 
     crypto::DH_Keypair send_id;
     crypto::DH_Keypair send_ephem;
@@ -156,10 +156,10 @@ BOOST_AUTO_TEST_CASE(submit_message_different_dests) {
     auto client = client_wrapper->client;
 
     server_db.add_registration_code("foobar@test.com", 12345);
-    BOOST_TEST(client->verify_verification_code("foobar@test.com", 12345));
+    BOOST_TEST(client->verify_verification_code("foobar@test.com", "foobar", 12345));
 
     server_db.add_registration_code("foobar2@test.com", 12345);
-    BOOST_TEST(client->verify_verification_code("foobar2@test.com", 12345));
+    BOOST_TEST(client->verify_verification_code("foobar2@test.com", "foobar", 12345));
 
     crypto::DH_Keypair send_id;
     crypto::DH_Keypair send_ephem;
@@ -188,7 +188,7 @@ BOOST_AUTO_TEST_CASE(retrieve_messages) {
     auto client = client_wrapper->client;
 
     server_db.add_registration_code("foobar@test.com", 12345);
-    BOOST_TEST(client->verify_verification_code("foobar@test.com", 12345));
+    BOOST_TEST(client->verify_verification_code("foobar@test.com", "foobar", 12345));
 
     crypto::DH_Keypair send_id;
     crypto::DH_Keypair send_ephem;

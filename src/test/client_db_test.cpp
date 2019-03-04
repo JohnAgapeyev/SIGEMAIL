@@ -14,22 +14,27 @@ BOOST_AUTO_TEST_CASE(db_creation) {
 
 BOOST_AUTO_TEST_CASE(save_registration) {
     auto db = get_client_db();
-    db.save_registration("foobar@test.com", 1, "testauth", {}, {});
+    db.save_registration("foobar@test.com", 1, "testauth", "foobar", {}, {});
 }
 
 BOOST_AUTO_TEST_CASE(save_registration_empty_user) {
     auto db = get_client_db();
-    BOOST_REQUIRE_THROW(db.save_registration("", 1, "testauth", {}, {}), db_error);
+    BOOST_REQUIRE_THROW(db.save_registration("", 1, "testauth", "foobar", {}, {}), db_error);
+}
+
+BOOST_AUTO_TEST_CASE(save_registration_empty_email_password) {
+    auto db = get_client_db();
+    BOOST_REQUIRE_THROW(db.save_registration("foobar@test.com", 1, "testauth", "", {}, {}), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(save_registration_empty_auth) {
     auto db = get_client_db();
-    BOOST_REQUIRE_THROW(db.save_registration("foobar@test.com", 1, "", {}, {}), db_error);
+    BOOST_REQUIRE_THROW(db.save_registration("foobar@test.com", 1, "", "foobar", {}, {}), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(save_registration_empty_both) {
     auto db = get_client_db();
-    BOOST_REQUIRE_THROW(db.save_registration("", 1, "", {}, {}), db_error);
+    BOOST_REQUIRE_THROW(db.save_registration("", 1, "", "", {}, {}), db_error);
 }
 
 BOOST_AUTO_TEST_CASE(add_user) {
@@ -314,7 +319,7 @@ BOOST_AUTO_TEST_CASE(purge_stale_both) {
 
 BOOST_AUTO_TEST_CASE(get_self) {
     auto db = get_client_db();
-    db.save_registration("foobar@test.com", 1, "testauth", {}, {});
+    db.save_registration("foobar@test.com", 1, "testauth", "foobar", {}, {});
     db.get_self_data();
 }
 

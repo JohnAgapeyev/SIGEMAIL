@@ -40,7 +40,7 @@ void main_window::on_verify_btn_clicked() {
 
     try {
         if (!dev.check_registration()) {
-            dev.confirm_registration(email, std::stoull(code));
+            dev.confirm_registration(email, password, std::stoull(code));
         }
     } catch (const std::exception& e) {
         QMessageBox::critical(this, tr("Something went wrong!"), tr(e.what()));

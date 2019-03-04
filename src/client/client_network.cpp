@@ -120,7 +120,7 @@ client_network_session::~client_network_session() {
  *   signature: "{signature}",
  * }
  */
-[[nodiscard]] bool client_network_session::verify_verification_code(const std::string& email, const int code) {
+[[nodiscard]] bool client_network_session::verify_verification_code(const std::string& email, const std::string& password, const int code) {
     req.clear();
     req.body() = "";
     res.clear();
@@ -221,7 +221,7 @@ client_network_session::~client_network_session() {
     }
 
     //Verification succeeded
-    client_db.save_registration(email, device_id, auth_token, identity_keypair, pre_key);
+    client_db.save_registration(email, device_id, auth_token, password, identity_keypair, pre_key);
 
     //Add self records to other tables
     client_db.add_user_record(email);
@@ -550,7 +550,7 @@ client_network_session::~client_network_session() {
     boost::property_tree::ptree ptr;
     boost::property_tree::ptree message_data;
 
-    const auto [self_email, self_device_id, auth_token, self_identity, self_prekey] = client_db.get_self_data();
+    const auto [self_email, self_device_id, auth_token, email_pass, self_identity, self_prekey] = client_db.get_self_data();
 
     for (const auto& [device_id, contents] : messages) {
         boost::property_tree::ptree child;
@@ -696,7 +696,7 @@ client_network_session::~client_network_session() {
 }
 
 std::string client_network_session::get_auth() {
-    const auto [user_id, device_id, auth_token, identity, pre_key] = client_db.get_self_data();
+    const auto [user_id, device_id, auth_token, email_pass, identity, pre_key] = client_db.get_self_data();
     std::stringstream ss;
     ss << "Basic " << user_id << ':' << auth_token;
     return ss.str();

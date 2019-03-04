@@ -86,7 +86,7 @@ void device::prep_for_encryption(
     }
     const auto server_data = *dest_data;
 
-    const auto [self_email, self_device_id, auth_token, self_identity, self_prekey] = client_db.get_self_data();
+    const auto [self_email, self_device_id, auth_token, email_pass, self_identity, self_prekey] = client_db.get_self_data();
 
     const crypto::DH_Keypair ephemeral_keypair;
 
@@ -130,7 +130,7 @@ void device::prep_for_encryption(const std::string& email) {
     }
     const auto server_data = *dest_data;
 
-    const auto [self_email, self_device_id, auth_token, self_identity, self_prekey] = client_db.get_self_data();
+    const auto [self_email, self_device_id, auth_token, email_pass, self_identity, self_prekey] = client_db.get_self_data();
 
     for (const auto [device_id, identity_key, pre_key, one_time_key] : server_data) {
         if (device_id == self_device_id) {
@@ -170,7 +170,7 @@ void device::send_signal_message(const crypto::secure_vector<std::byte>& plainte
     auto trans_lock = client_db.start_transaction();
 
     try {
-        const auto [self_email, self_device_id, auth_token, self_identity, self_prekey] = client_db.get_self_data();
+        const auto [self_email, self_device_id, auth_token, email_pass, self_identity, self_prekey] = client_db.get_self_data();
 
         /*
          * This needs to follow the following set of steps:
@@ -217,7 +217,7 @@ void device::send_signal_message(const crypto::secure_vector<std::byte>& plainte
 }
 
 std::optional<std::vector<crypto::secure_vector<std::byte>>> device::receive_signal_message() {
-    const auto [self_email, self_device_id, auth_token, self_identity, self_prekey] = client_db.get_self_data();
+    const auto [self_email, self_device_id, auth_token, email_pass, self_identity, self_prekey] = client_db.get_self_data();
 
     const auto server_data = network_session->retrieve_messages(self_email);
     if (!server_data.has_value()) {
@@ -292,12 +292,12 @@ void device::register_with_server(const std::string& email, const std::string& p
     }
 }
 
-void device::confirm_registration(const std::string& email, const uint64_t registration_code) {
+void device::confirm_registration(const std::string& email, const std::string& password, const uint64_t registration_code) {
     if (check_registration()) {
         //Don't re-register
         return;
     }
-    if (!network_session->verify_verification_code(email, registration_code)) {
+    if (!network_session->verify_verification_code(email, password, registration_code)) {
         const auto err_msg = "Failed to verify verification code to the server";
         spdlog::error(err_msg);
         throw std::runtime_error(err_msg);

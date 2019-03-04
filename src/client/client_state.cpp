@@ -79,7 +79,7 @@ client::database::~database() {
 }
 
 void client::database::save_registration(const std::string& email, const int device_id,
-        const std::string& auth_token, const crypto::DH_Keypair& identity_keypair,
+        const std::string& auth_token, const std::string& email_pass, const crypto::DH_Keypair& identity_keypair,
         const crypto::DH_Keypair& pre_keypair) {
     sqlite3_reset(self_insert);
     sqlite3_clear_bindings(self_insert);
@@ -95,13 +95,17 @@ void client::database::save_registration(const std::string& email, const int dev
             != SQLITE_OK) {
         throw_db_error(db_conn);
     }
+    if (sqlite3_bind_text(self_insert, 4, email_pass.c_str(), email_pass.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
     std::stringstream ss;
     {
         boost::archive::text_oarchive arch{ss};
         arch << identity_keypair;
     }
     auto serialized = ss.str();
-    if (sqlite3_bind_blob(self_insert, 4, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
+    if (sqlite3_bind_blob(self_insert, 5, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
         throw_db_error(db_conn);
     }
@@ -111,7 +115,7 @@ void client::database::save_registration(const std::string& email, const int dev
         arch << pre_keypair;
     }
     serialized = ss.str();
-    if (sqlite3_bind_blob(self_insert, 5, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
+    if (sqlite3_bind_blob(self_insert, 6, serialized.c_str(), serialized.size(), SQLITE_TRANSIENT)
             != SQLITE_OK) {
         throw_db_error(db_conn);
     }
@@ -328,7 +332,7 @@ void client::database::activate_session(const int device_index, const int sessio
     }
 }
 
-std::tuple<std::string, int, std::string, crypto::DH_Keypair, crypto::DH_Keypair>
+std::tuple<std::string, int, std::string, std::string, crypto::DH_Keypair, crypto::DH_Keypair>
         client::database::get_self_data() {
     sqlite3_reset(self_select);
     sqlite3_clear_bindings(self_select);
@@ -340,8 +344,9 @@ std::tuple<std::string, int, std::string, crypto::DH_Keypair, crypto::DH_Keypair
     auto user_id = read_db_string(db_conn, self_select, 0);
     const int device_id = sqlite3_column_int(self_select, 1);
     auto auth_token = read_db_string(db_conn, self_select, 2);
-    auto identity = read_db_string(db_conn, self_select, 3);
-    auto prekey = read_db_string(db_conn, self_select, 4);
+    auto email_pass = read_db_string(db_conn, self_select, 3);
+    auto identity = read_db_string(db_conn, self_select, 4);
+    auto prekey = read_db_string(db_conn, self_select, 5);
 
     std::stringstream ss{identity};
 
@@ -362,7 +367,7 @@ std::tuple<std::string, int, std::string, crypto::DH_Keypair, crypto::DH_Keypair
         throw_db_error(db_conn);
     }
 
-    return {user_id, device_id, auth_token, identity_keypair, prekey_keypair};
+    return {user_id, device_id, auth_token, email_pass, identity_keypair, prekey_keypair};
 }
 
 crypto::DH_Keypair client::database::get_one_time_key(const crypto::public_key& public_key) {

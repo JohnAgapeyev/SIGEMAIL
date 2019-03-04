@@ -25,8 +25,8 @@ BOOST_AUTO_TEST_CASE(single_send_recv) {
 
     server_db.add_registration_code(alice_email, 12345);
     server_db.add_registration_code(bob_email, 23456);
-    BOOST_TEST(alice->verify_verification_code(alice_email, 12345));
-    BOOST_TEST(bob->verify_verification_code(bob_email, 23456));
+    BOOST_TEST(alice->verify_verification_code(alice_email, "foobar", 12345));
+    BOOST_TEST(bob->verify_verification_code(bob_email, "foobar", 23456));
 
     device alice_dev{"localhost", "8443", alice_db};
     device bob_dev{"localhost", "8443", bob_db};
@@ -57,8 +57,8 @@ BOOST_AUTO_TEST_CASE(double_send_recv) {
 
     server_db.add_registration_code(alice_email, 12345);
     server_db.add_registration_code(bob_email, 23456);
-    BOOST_TEST(alice->verify_verification_code(alice_email, 12345));
-    BOOST_TEST(bob->verify_verification_code(bob_email, 23456));
+    BOOST_TEST(alice->verify_verification_code(alice_email, "foobar", 12345));
+    BOOST_TEST(bob->verify_verification_code(bob_email, "foobar", 23456));
 
     device alice_dev{"localhost", "8443", alice_db};
     device bob_dev{"localhost", "8443", bob_db};
@@ -89,8 +89,8 @@ BOOST_AUTO_TEST_CASE(alternate_sends) {
 
     server_db.add_registration_code(alice_email, 12345);
     server_db.add_registration_code(bob_email, 23456);
-    BOOST_TEST(alice->verify_verification_code(alice_email, 12345));
-    BOOST_TEST(bob->verify_verification_code(bob_email, 23456));
+    BOOST_TEST(alice->verify_verification_code(alice_email, "foobar", 12345));
+    BOOST_TEST(bob->verify_verification_code(bob_email, "foobar", 23456));
 
     device alice_dev{"localhost", "8443", alice_db};
     device bob_dev{"localhost", "8443", bob_db};
@@ -129,8 +129,8 @@ BOOST_AUTO_TEST_CASE(simul_sends) {
 
     server_db.add_registration_code(alice_email, 12345);
     server_db.add_registration_code(bob_email, 23456);
-    BOOST_TEST(alice->verify_verification_code(alice_email, 12345));
-    BOOST_TEST(bob->verify_verification_code(bob_email, 23456));
+    BOOST_TEST(alice->verify_verification_code(alice_email, "foobar", 12345));
+    BOOST_TEST(bob->verify_verification_code(bob_email, "foobar", 23456));
 
     device alice_dev{"localhost", "8443", alice_db};
     device bob_dev{"localhost", "8443", bob_db};
@@ -168,8 +168,8 @@ BOOST_AUTO_TEST_CASE(empty_recv) {
 
     server_db.add_registration_code(alice_email, 12345);
     server_db.add_registration_code(bob_email, 23456);
-    BOOST_TEST(alice->verify_verification_code(alice_email, 12345));
-    BOOST_TEST(bob->verify_verification_code(bob_email, 23456));
+    BOOST_TEST(alice->verify_verification_code(alice_email, "foobar", 12345));
+    BOOST_TEST(bob->verify_verification_code(bob_email, "foobar", 23456));
 
     device alice_dev{"localhost", "8443", alice_db};
     device bob_dev{"localhost", "8443", bob_db};
@@ -195,8 +195,8 @@ BOOST_AUTO_TEST_CASE(many_sends) {
 
     server_db.add_registration_code(alice_email, 12345);
     server_db.add_registration_code(bob_email, 23456);
-    BOOST_TEST(alice->verify_verification_code(alice_email, 12345));
-    BOOST_TEST(bob->verify_verification_code(bob_email, 23456));
+    BOOST_TEST(alice->verify_verification_code(alice_email, "foobar", 12345));
+    BOOST_TEST(bob->verify_verification_code(bob_email, "foobar", 23456));
 
     device alice_dev{"localhost", "8443", alice_db};
     device bob_dev{"localhost", "8443", bob_db};
@@ -230,8 +230,8 @@ BOOST_AUTO_TEST_CASE(many_simul_alternating) {
 
     server_db.add_registration_code(alice_email, 12345);
     server_db.add_registration_code(bob_email, 23456);
-    BOOST_TEST(alice->verify_verification_code(alice_email, 12345));
-    BOOST_TEST(bob->verify_verification_code(bob_email, 23456));
+    BOOST_TEST(alice->verify_verification_code(alice_email, "foobar", 12345));
+    BOOST_TEST(bob->verify_verification_code(bob_email, "foobar", 23456));
 
     device alice_dev{"localhost", "8443", alice_db};
     device bob_dev{"localhost", "8443", bob_db};
@@ -271,8 +271,8 @@ BOOST_AUTO_TEST_CASE(many_staggered_alternating) {
 
     server_db.add_registration_code(alice_email, 12345);
     server_db.add_registration_code(bob_email, 23456);
-    BOOST_TEST(alice->verify_verification_code(alice_email, 12345));
-    BOOST_TEST(bob->verify_verification_code(bob_email, 23456));
+    BOOST_TEST(alice->verify_verification_code(alice_email, "foobar", 12345));
+    BOOST_TEST(bob->verify_verification_code(bob_email, "foobar", 23456));
 
     device alice_dev{"localhost", "8443", alice_db};
     device bob_dev{"localhost", "8443", bob_db};
@@ -313,8 +313,8 @@ BOOST_AUTO_TEST_CASE(many_staggered_2_to_1) {
 
     server_db.add_registration_code(alice_email, 12345);
     server_db.add_registration_code(bob_email, 23456);
-    BOOST_TEST(alice->verify_verification_code(alice_email, 12345));
-    BOOST_TEST(bob->verify_verification_code(bob_email, 23456));
+    BOOST_TEST(alice->verify_verification_code(alice_email, "foobar", 12345));
+    BOOST_TEST(bob->verify_verification_code(bob_email, "foobar", 23456));
 
     device alice_dev{"localhost", "8443", alice_db};
     device bob_dev{"localhost", "8443", bob_db};
@@ -356,15 +356,13 @@ BOOST_AUTO_TEST_CASE(simul_multiple_sends) {
 
     server_db.add_registration_code(alice_email, 12345);
     server_db.add_registration_code(bob_email, 23456);
-    BOOST_TEST(alice->verify_verification_code(alice_email, 12345));
-    BOOST_TEST(bob->verify_verification_code(bob_email, 23456));
+    BOOST_TEST(alice->verify_verification_code(alice_email, "foobar", 12345));
+    BOOST_TEST(bob->verify_verification_code(bob_email, "foobar", 23456));
 
     device alice_dev{"localhost", "8443", alice_db};
     device bob_dev{"localhost", "8443", bob_db};
 
     const auto plaintext = get_message();
-
-    const auto count = 20;
 
     alice_dev.send_signal_message(plaintext, {bob_email});
     bob_dev.send_signal_message(plaintext, {alice_email});
