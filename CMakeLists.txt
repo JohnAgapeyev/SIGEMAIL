@@ -65,7 +65,7 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost 1.67 REQUIRED COMPONENTS system unit_test_framework serialization)
 
 find_package(OpenSSL 1.1.1 REQUIRED)
-find_package(CURL REQUIRED)
+find_package(CURL 7.30.0 REQUIRED)
 find_package(Threads REQUIRED)
 
 find_package(Qt5 COMPONENTS Core Widgets REQUIRED)

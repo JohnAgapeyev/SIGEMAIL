@@ -10,6 +10,7 @@
 #include <boost/beast/version.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <curl/curl.h>
 #include <cstdint>
 #include <cstdlib>
 #include <optional>
@@ -25,6 +26,32 @@
 #include "crypto.h"
 #include "dh.h"
 #include "logging.h"
+
+void retrieve_emails(const char *email, const char *password) {
+    CURLcode res = CURLE_OK;
+
+    CURL *curl = curl_easy_init();
+    if (curl) {
+        curl_easy_setopt(curl, CURLOPT_USERNAME, email);
+        curl_easy_setopt(curl, CURLOPT_PASSWORD, password);
+
+        //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/INBOX/;UID=1");
+        curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993");
+        //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/INBOX/;UID=*");
+
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+        res = curl_easy_perform(curl);
+
+        if (res != CURLE_OK) {
+            spdlog::error("curl_easy_perform() failed: {}", curl_easy_strerror(res));
+        }
+
+        curl_easy_cleanup(curl);
+    } else {
+        spdlog::error("Failed to init curl");
+    }
+}
 
 //This will throw boost::system::system_error if any part of the connection fails
 client_network_session::client_network_session(boost::asio::io_context& ioc, ssl::context& ctx,

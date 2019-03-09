@@ -74,6 +74,8 @@ void send_verification_email(const char *dest_email, const char *password, const
         curl_slist_free_all(recipients);
 
         curl_easy_cleanup(curl);
+    } else {
+        spdlog::error("Failed to init curl");
     }
 }
 
