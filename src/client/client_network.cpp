@@ -27,7 +27,41 @@
 #include "dh.h"
 #include "logging.h"
 
+size_t new_email_index = 0;
+
+size_t parse_examine_id(void *buffer, size_t size, size_t nmemb, void *userp) {
+    (void)userp;
+    std::string resp_str{static_cast<char *>(buffer), nmemb};
+
+    spdlog::info("Response {}", resp_str);
+
+    std::string last_word = resp_str.substr(resp_str.find_last_of(' ') + 1);
+    spdlog::info("Last {}", last_word);
+
+    if (last_word == "EXISTS\r\n") {
+        std::stringstream ss{resp_str};
+
+        std::string size_tok;
+
+        //Drop the first word, and store the number in size_tok
+        ss >> size_tok >> size_tok;
+
+        spdlog::info("Size tok {}", size_tok);
+
+        try {
+            new_email_index = std::stoull(size_tok);
+        } catch(const std::exception& e) {
+            spdlog::error("Failed to convert id token {}", e.what());
+            new_email_index = -1;
+        }
+    }
+
+    return size * nmemb;
+}
+
 void retrieve_emails(const char *email, const char *password) {
+    new_email_index = 0;
+
     CURLcode res = CURLE_OK;
 
     CURL *curl = curl_easy_init();
@@ -35,11 +69,15 @@ void retrieve_emails(const char *email, const char *password) {
         curl_easy_setopt(curl, CURLOPT_USERNAME, email);
         curl_easy_setopt(curl, CURLOPT_PASSWORD, password);
 
-        //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/INBOX/;UID=1");
+        //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/sigemail/;UID=*");
         curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993");
+        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "EXAMINE INBOX");
+        //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993");
         //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/INBOX/;UID=*");
 
         curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &parse_examine_id);
 
         res = curl_easy_perform(curl);
 
@@ -51,6 +89,8 @@ void retrieve_emails(const char *email, const char *password) {
     } else {
         spdlog::error("Failed to init curl");
     }
+
+    spdlog::info("Most recent message index {}", new_email_index);
 }
 
 //This will throw boost::system::system_error if any part of the connection fails
