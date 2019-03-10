@@ -28,6 +28,8 @@
 #include "logging.h"
 
 size_t new_email_index = 0;
+std::string retrieved_email;
+bool read_active = false;
 
 size_t parse_examine_id(void *buffer, size_t size, size_t nmemb, void *userp) {
     (void)userp;
@@ -55,12 +57,35 @@ size_t parse_examine_id(void *buffer, size_t size, size_t nmemb, void *userp) {
             new_email_index = -1;
         }
     }
+    return size * nmemb;
+}
 
+size_t parse_email_plaintext(void *buffer, size_t size, size_t nmemb, void *userp) {
+    (void)userp;
+    std::string resp_str{static_cast<char *>(buffer), nmemb};
+
+    if (read_active) {
+        retrieved_email.append(resp_str);
+        return size * nmemb;
+    }
+
+    spdlog::info("Email Response {}", resp_str);
+
+    const auto content_header = "Content-Type: text/plain; charset=\"UTF-8\"\r\n";
+    const auto content_index = resp_str.find(content_header);
+
+    resp_str.erase(0, content_index + strlen(content_header));
+
+    read_active = true;
+    retrieved_email.append(resp_str);
     return size * nmemb;
 }
 
 void retrieve_emails(const char *email, const char *password) {
     new_email_index = 0;
+
+    retrieved_email.clear();
+    read_active = false;
 
     CURLcode res = CURLE_OK;
 
@@ -69,15 +94,16 @@ void retrieve_emails(const char *email, const char *password) {
         curl_easy_setopt(curl, CURLOPT_USERNAME, email);
         curl_easy_setopt(curl, CURLOPT_PASSWORD, password);
 
-        //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/sigemail/;UID=*");
-        curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993");
-        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "EXAMINE INBOX");
+        curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/SIGEMAIL/;UID=*");
+        //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993");
+        //curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "EXAMINE INBOX");
         //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993");
         //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/INBOX/;UID=*");
 
         curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &parse_examine_id);
+        //curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &parse_examine_id);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &parse_email_plaintext);
 
         res = curl_easy_perform(curl);
 
@@ -90,7 +116,8 @@ void retrieve_emails(const char *email, const char *password) {
         spdlog::error("Failed to init curl");
     }
 
-    spdlog::info("Most recent message index {}", new_email_index);
+    //spdlog::info("Most recent message index {}", new_email_index);
+    spdlog::info("Email contents {}", retrieved_email);
 }
 
 //This will throw boost::system::system_error if any part of the connection fails
