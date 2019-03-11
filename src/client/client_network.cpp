@@ -81,6 +81,32 @@ size_t parse_email_plaintext(void *buffer, size_t size, size_t nmemb, void *user
     return size * nmemb;
 }
 
+std::string get_email_uid(const char *email, const char *password, const char *UID) {
+    CURLcode res = CURLE_OK;
+    CURL *curl = curl_easy_init();
+    curl_easy_setopt(curl, CURLOPT_USERNAME, email);
+    curl_easy_setopt(curl, CURLOPT_PASSWORD, password);
+
+    std::stringstream ss;
+    ss << "imaps://imap.gmail.com:993/SIGEMAIL/;UID=" << UID;
+
+    //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/SIGEMAIL/;UID=1:*");
+    curl_easy_setopt(curl, CURLOPT_URL, ss.str().c_str());
+
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &parse_email_plaintext);
+
+    res = curl_easy_perform(curl);
+
+    if (res != CURLE_OK) {
+        spdlog::error("curl_easy_perform() failed: {}", curl_easy_strerror(res));
+    }
+    curl_easy_cleanup(curl);
+
+    return retrieved_email;
+}
+
 void retrieve_emails(const char *email, const char *password) {
     new_email_index = 0;
 
@@ -94,21 +120,62 @@ void retrieve_emails(const char *email, const char *password) {
         curl_easy_setopt(curl, CURLOPT_USERNAME, email);
         curl_easy_setopt(curl, CURLOPT_PASSWORD, password);
 
-        curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/SIGEMAIL/;UID=1:*");
-        //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993");
-        //curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "EXAMINE INBOX");
+        //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/SIGEMAIL/;UID=1:*");
+        curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993");
+        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "EXAMINE SIGEMAIL");
         //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993");
         //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/INBOX/;UID=*");
 
         curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 
-        //curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &parse_examine_id);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &parse_email_plaintext);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &parse_examine_id);
+        //curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &parse_email_plaintext);
 
         res = curl_easy_perform(curl);
 
         if (res != CURLE_OK) {
             spdlog::error("curl_easy_perform() failed: {}", curl_easy_strerror(res));
+        }
+
+        const std::string req = "imaps://imap.gmail.com:993/SIGEMAIL/;UID=";
+
+#if 1
+        for (unsigned int i = 1; i <= new_email_index; ++i) {
+            std::stringstream ss;
+            ss << req << i;
+
+            std::string url = ss.str();
+
+            spdlog::critical("URL string {}", url);
+
+            //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/SIGEMAIL/;UID=1:*");
+            curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/SIGEMAIL");
+            //curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+            //curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, NULL);
+            curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "UID FETCH 1:* (UID)");
+
+            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+            //curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &parse_examine_id);
+            //curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &parse_email_plaintext);
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
+
+            res = curl_easy_perform(curl);
+
+            if (res != CURLE_OK) {
+                spdlog::error("curl_easy_perform() failed: {}", curl_easy_strerror(res));
+            }
+            //spdlog::info("Email contents {}", retrieved_email);
+#else
+            //std::stringstream ss;
+            //ss << i;
+            auto my_res = get_email_uid(email, password, "2");
+            spdlog::critical("Got my damn email {}", my_res);
+            my_res = get_email_uid(email, password, "4");
+            spdlog::critical("Got my damn email {}", my_res);
+            my_res = get_email_uid(email, password, "5");
+            spdlog::critical("Got my damn email {}", my_res);
+#endif
         }
 
         curl_easy_cleanup(curl);
@@ -117,7 +184,7 @@ void retrieve_emails(const char *email, const char *password) {
     }
 
     //spdlog::info("Most recent message index {}", new_email_index);
-    spdlog::info("Email contents {}", retrieved_email);
+    //spdlog::info("Email contents {}", retrieved_email);
 }
 
 //This will throw boost::system::system_error if any part of the connection fails
