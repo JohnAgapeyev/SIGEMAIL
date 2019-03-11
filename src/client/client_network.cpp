@@ -29,17 +29,18 @@
 
 size_t new_email_index = 0;
 std::string retrieved_email;
-bool read_active = false;
 std::vector<unsigned long long> folder_uid_list;
+
+static size_t parse_examine_id(void *buffer, size_t size, size_t nmemb, void *userp);
+static size_t parse_email_plaintext(void *buffer, size_t size, size_t nmemb, void *userp);
+static size_t parse_email_uids(void *buffer, size_t size, size_t nmemb, void *userp);
+static std::string get_email_uid(const char *email, const char *password, const char *UID);
 
 size_t parse_examine_id(void *buffer, size_t size, size_t nmemb, void *userp) {
     (void)userp;
     std::string resp_str{static_cast<char *>(buffer), nmemb};
 
-    spdlog::info("Response {}", resp_str);
-
     std::string last_word = resp_str.substr(resp_str.find_last_of(' ') + 1);
-    spdlog::info("Last {}", last_word);
 
     if (last_word == "EXISTS\r\n") {
         std::stringstream ss{resp_str};
@@ -48,8 +49,6 @@ size_t parse_examine_id(void *buffer, size_t size, size_t nmemb, void *userp) {
 
         //Drop the first word, and store the number in size_tok
         ss >> size_tok >> size_tok;
-
-        spdlog::info("Size tok {}", size_tok);
 
         try {
             new_email_index = std::stoull(size_tok);
@@ -65,22 +64,11 @@ size_t parse_email_plaintext(void *buffer, size_t size, size_t nmemb, void *user
     (void)userp;
     std::string resp_str{static_cast<char *>(buffer), nmemb};
 
-#if 0
-    if (read_active) {
-        retrieved_email.append(resp_str);
-        return size * nmemb;
-    }
-#endif
-
-    spdlog::info("Email Response {}", resp_str);
-
     const auto content_header = "Content-Type: text/plain; charset=\"UTF-8\"\r\n";
     const auto content_index = resp_str.find(content_header);
 
     resp_str.erase(0, content_index + strlen(content_header));
 
-    //read_active = true;
-    //retrieved_email.append(resp_str);
     retrieved_email = resp_str;
     return size * nmemb;
 }
@@ -107,7 +95,6 @@ size_t parse_email_uids(void *buffer, size_t size, size_t nmemb, void *userp) {
             //This is a valid line to parse
             //Erase the )\r\n from the token
             actual_uid.erase(actual_uid.find_first_of(')'));
-            spdlog::info("Converting {}", actual_uid);
             try {
                 parsed_uid = std::stoull(actual_uid);
                 folder_uid_list.push_back(parsed_uid);
@@ -133,7 +120,7 @@ std::string get_email_uid(const char *email, const char *password, const char *U
     //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/SIGEMAIL/;UID=1:*");
     curl_easy_setopt(curl, CURLOPT_URL, ss.str().c_str());
 
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &parse_email_plaintext);
 
@@ -147,7 +134,7 @@ std::string get_email_uid(const char *email, const char *password, const char *U
     return retrieved_email;
 }
 
-std::vector<std::string> get_email_contents(const char *email, const char *password) {
+std::vector<std::string> retrieve_emails(const char *email, const char *password) {
     folder_uid_list.clear();
 
     CURLcode res = CURLE_OK;
@@ -159,7 +146,7 @@ std::vector<std::string> get_email_contents(const char *email, const char *passw
     curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/SIGEMAIL");
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "UID FETCH 1:* (UID)");
 
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &parse_email_uids);
 
@@ -175,100 +162,12 @@ std::vector<std::string> get_email_contents(const char *email, const char *passw
         std::stringstream ss;
         ss << elem;
         std::string contents = get_email_uid(email, password, ss.str().c_str());
-        spdlog::critical("Received message contents {}", contents);
         folder_contents.emplace_back(std::move(contents));
     }
 
     curl_easy_cleanup(curl);
 
     return folder_contents;
-}
-
-void retrieve_emails(const char *email, const char *password) {
-#if 0
-    new_email_index = 0;
-
-    retrieved_email.clear();
-    read_active = false;
-
-    CURLcode res = CURLE_OK;
-
-    CURL *curl = curl_easy_init();
-    if (curl) {
-        curl_easy_setopt(curl, CURLOPT_USERNAME, email);
-        curl_easy_setopt(curl, CURLOPT_PASSWORD, password);
-
-        //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/SIGEMAIL/;UID=1:*");
-        curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993");
-        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "EXAMINE SIGEMAIL");
-        //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993");
-        //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/INBOX/;UID=*");
-
-        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &parse_examine_id);
-        //curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &parse_email_plaintext);
-
-        res = curl_easy_perform(curl);
-
-        if (res != CURLE_OK) {
-            spdlog::error("curl_easy_perform() failed: {}", curl_easy_strerror(res));
-        }
-
-        const std::string req = "imaps://imap.gmail.com:993/SIGEMAIL/;UID=";
-
-#if 1
-        for (unsigned int i = 1; i <= new_email_index; ++i) {
-            std::stringstream ss;
-            ss << req << i;
-
-            std::string url = ss.str();
-
-            spdlog::critical("URL string {}", url);
-
-            //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/SIGEMAIL/;UID=1:*");
-            curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/SIGEMAIL");
-            //curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-            //curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, NULL);
-            curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "UID FETCH 1:* (UID)");
-
-            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-
-            //curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &parse_examine_id);
-            //curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &parse_email_plaintext);
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
-
-            res = curl_easy_perform(curl);
-
-            if (res != CURLE_OK) {
-                spdlog::error("curl_easy_perform() failed: {}", curl_easy_strerror(res));
-            }
-            //spdlog::info("Email contents {}", retrieved_email);
-#else
-            //std::stringstream ss;
-            //ss << i;
-            auto my_res = get_email_uid(email, password, "2");
-            spdlog::critical("Got my damn email {}", my_res);
-            my_res = get_email_uid(email, password, "4");
-            spdlog::critical("Got my damn email {}", my_res);
-            my_res = get_email_uid(email, password, "5");
-            spdlog::critical("Got my damn email {}", my_res);
-#endif
-        }
-
-        curl_easy_cleanup(curl);
-    } else {
-        spdlog::error("Failed to init curl");
-    }
-#endif
-    const auto emails = get_email_contents(email, password);
-    spdlog::info("Email contents size {}", emails.size());
-    for (const auto& m : emails) {
-        spdlog::error("Actual message {}", m);
-    }
-
-    //spdlog::info("Most recent message index {}", new_email_index);
-    //spdlog::info("Email contents {}", retrieved_email);
 }
 
 //This will throw boost::system::system_error if any part of the connection fails

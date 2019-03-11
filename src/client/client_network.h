@@ -58,6 +58,6 @@ private:
     std::optional<boost::property_tree::ptree> parse_json_response(const std::string& body) const;
 };
 
-void retrieve_emails(const char *email, const char *password);
+std::vector<std::string> retrieve_emails(const char *email, const char *password);
 
 #endif /* end of include guard: CLIENT_NETWORK_H */

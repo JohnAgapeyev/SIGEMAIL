@@ -53,7 +53,10 @@ int main(int argc, char** argv) {
     const auto email = argv[1];
     const auto password = argv[2];
 
-    retrieve_emails(email, password);
+    const auto contents = retrieve_emails(email, password);
+    for (const auto& m : contents) {
+        spdlog::error("Got message contents {}", m);
+    }
 
 #endif
     return EXIT_SUCCESS;
