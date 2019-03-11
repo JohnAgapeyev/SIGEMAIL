@@ -110,6 +110,32 @@ BOOST_AUTO_TEST_CASE(add_session_duplicate) {
     BOOST_REQUIRE_THROW(db.add_session(1, s), db_error);
 }
 
+BOOST_AUTO_TEST_CASE(add_message) {
+    auto db = get_client_db();
+    db.add_message("foobar");
+}
+
+BOOST_AUTO_TEST_CASE(add_message_multiple) {
+    auto db = get_client_db();
+    db.add_message("foobar");
+    db.add_message("foobar");
+    db.add_message("foobar");
+    db.add_message("foobar");
+    db.add_message("foobar");
+}
+
+BOOST_AUTO_TEST_CASE(add_message_empty) {
+    auto db = get_client_db();
+    BOOST_REQUIRE_THROW(db.add_message(""), db_error);
+}
+
+BOOST_AUTO_TEST_CASE(add_message_large) {
+    auto db = get_client_db();
+    std::string message;
+    message.assign(1ull << 20, 'A');
+    db.add_message(std::move(message));
+}
+
 BOOST_AUTO_TEST_CASE(remove_user_record) {
     auto db = get_client_db();
     db.add_user_record("foobar@test.com");
@@ -190,6 +216,23 @@ BOOST_AUTO_TEST_CASE(remove_session_bad_id) {
 BOOST_AUTO_TEST_CASE(remove_session_empty_table) {
     auto db = get_client_db();
     db.remove_session(-1);
+}
+
+BOOST_AUTO_TEST_CASE(remove_message) {
+    auto db = get_client_db();
+    const auto index = db.add_message("foobar");
+    db.remove_message(index);
+}
+
+BOOST_AUTO_TEST_CASE(remove_message_bad_id) {
+    auto db = get_client_db();
+    db.add_message("foobar");
+    db.remove_message(-1);
+}
+
+BOOST_AUTO_TEST_CASE(remove_message_empty_table) {
+    auto db = get_client_db();
+    db.remove_message(1);
 }
 
 BOOST_AUTO_TEST_CASE(activate_session) {
@@ -495,6 +538,32 @@ BOOST_AUTO_TEST_CASE(sync_session) {
     active.ratchet_encrypt(get_message(), get_aad());
     db.sync_session(sid, active);
     active = db.get_active_session(1).second;
+}
+
+BOOST_AUTO_TEST_CASE(get_messages) {
+    auto db = get_client_db();
+    const auto m = "foobar";
+    db.add_message(m);
+    const auto messages = db.get_messages();
+    BOOST_TEST(messages.size() == 1);
+    BOOST_TEST(messages.front().second == m);
+}
+
+BOOST_AUTO_TEST_CASE(get_messages_empty_table) {
+    auto db = get_client_db();
+    const auto messages = db.get_messages();
+    BOOST_TEST(messages.size() == 0);
+}
+
+BOOST_AUTO_TEST_CASE(get_messages_many) {
+    auto db = get_client_db();
+    const auto m = "foobar";
+    const auto count = 10000;
+    for (int i = 0; i < count; ++i) {
+        db.add_message(m);
+    }
+    const auto messages = db.get_messages();
+    BOOST_TEST(messages.size() == count);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

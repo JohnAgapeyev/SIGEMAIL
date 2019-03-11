@@ -24,12 +24,14 @@ client::database::database(const char* db_name) {
     exec_statement(db_conn, create_devices);
     exec_statement(db_conn, create_one_time);
     exec_statement(db_conn, create_sessions);
+    exec_statement(db_conn, create_messages);
 
     prepare_statement(db_conn, insert_self, &self_insert);
     prepare_statement(db_conn, insert_users, &users_insert);
     prepare_statement(db_conn, insert_devices, &devices_insert);
     prepare_statement(db_conn, insert_one_time, &one_time_insert);
     prepare_statement(db_conn, insert_sessions, &sessions_insert);
+    prepare_statement(db_conn, insert_message, &messages_insert);
 
     prepare_statement(db_conn, update_users, &users_update);
     prepare_statement(db_conn, update_devices, &devices_update);
@@ -40,12 +42,14 @@ client::database::database(const char* db_name) {
     prepare_statement(db_conn, delete_users, &users_delete);
     prepare_statement(db_conn, delete_one_time, &one_time_delete);
     prepare_statement(db_conn, delete_devices, &devices_delete);
+    prepare_statement(db_conn, delete_messages, &messages_delete);
 
     prepare_statement(db_conn, select_self, &self_select);
     prepare_statement(db_conn, select_one_time, &one_time_select);
     prepare_statement(db_conn, select_device_ids, &devices_select);
     prepare_statement(db_conn, select_sessions, &sessions_select);
     prepare_statement(db_conn, select_active, &active_select);
+    prepare_statement(db_conn, select_messages, &messages_select);
 
     prepare_statement(db_conn, rowid_insert, &last_rowid_insert);
 }
@@ -56,6 +60,7 @@ client::database::~database() {
     sqlite3_finalize(devices_insert);
     sqlite3_finalize(one_time_insert);
     sqlite3_finalize(sessions_insert);
+    sqlite3_finalize(messages_insert);
 
     sqlite3_finalize(users_update);
     sqlite3_finalize(devices_update);
@@ -66,12 +71,14 @@ client::database::~database() {
     sqlite3_finalize(devices_delete);
     sqlite3_finalize(users_delete);
     sqlite3_finalize(one_time_delete);
+    sqlite3_finalize(messages_delete);
 
     sqlite3_finalize(self_select);
     sqlite3_finalize(one_time_select);
     sqlite3_finalize(devices_select);
     sqlite3_finalize(sessions_select);
     sqlite3_finalize(active_select);
+    sqlite3_finalize(messages_select);
 
     sqlite3_finalize(last_rowid_insert);
 
@@ -79,8 +86,8 @@ client::database::~database() {
 }
 
 void client::database::save_registration(const std::string& email, const int device_id,
-        const std::string& auth_token, const std::string& email_pass, const crypto::DH_Keypair& identity_keypair,
-        const crypto::DH_Keypair& pre_keypair) {
+        const std::string& auth_token, const std::string& email_pass,
+        const crypto::DH_Keypair& identity_keypair, const crypto::DH_Keypair& pre_keypair) {
     sqlite3_reset(self_insert);
     sqlite3_clear_bindings(self_insert);
 
@@ -541,4 +548,60 @@ void client::database::rollback_transaction(std::unique_lock<std::mutex>& transa
     if (transaction_lock.owns_lock()) {
         transaction_lock.unlock();
     }
+}
+
+int client::database::add_message(const std::string_view mesg_contents) {
+    sqlite3_reset(messages_insert);
+    sqlite3_clear_bindings(messages_insert);
+
+    if (sqlite3_bind_text(
+                messages_insert, 1, mesg_contents.data(), mesg_contents.size(), SQLITE_TRANSIENT)
+            != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+    if (sqlite3_step(messages_insert) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
+
+    sqlite3_reset(last_rowid_insert);
+    if (sqlite3_step(last_rowid_insert) != SQLITE_ROW) {
+        throw_db_error(db_conn);
+    }
+
+    int added_message_id = sqlite3_column_int(last_rowid_insert, 0);
+
+    if (sqlite3_step(last_rowid_insert) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
+
+    return added_message_id;
+}
+
+void client::database::remove_message(const int message_id) {
+    sqlite3_reset(messages_delete);
+    sqlite3_clear_bindings(messages_delete);
+
+    if (sqlite3_bind_int(messages_delete, 1, message_id) != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+    if (sqlite3_step(messages_delete) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
+}
+
+std::vector<std::pair<int, std::string>> client::database::get_messages() {
+    sqlite3_reset(messages_select);
+
+    std::vector<std::pair<int, std::string>> messages;
+
+    int err;
+    while ((err = sqlite3_step(messages_select)) == SQLITE_ROW) {
+        int id = sqlite3_column_int(messages_select, 0);
+        auto contents = read_db_string(db_conn, messages_select, 1);
+        messages.emplace_back(id, std::move(contents));
+    }
+    if (err != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
+    return messages;
 }

@@ -53,11 +53,13 @@ namespace client {
         void add_device_record(const std::string& email, const int device_record,
                 const crypto::public_key& pub_key);
         int add_session(const int device_index, const session& s);
+        int add_message(const std::string_view mesg_contents);
 
         void remove_user_record(const std::string& email);
         void remove_device_record(const int device_index);
         void remove_session(const int session_id);
         void remove_one_time(const crypto::public_key& public_key);
+        void remove_message(const int message_id);
 
         void activate_session(const int device_index, const int session_id);
 
@@ -76,6 +78,8 @@ namespace client {
 
         std::pair<int, session> get_active_session(const int device_id);
 
+        std::vector<std::pair<int, std::string>> get_messages();
+
         void sync_session(const int session_id, const session& s);
 
         std::unique_lock<std::mutex> start_transaction();
@@ -90,6 +94,7 @@ namespace client {
         sqlite3_stmt* devices_insert;
         sqlite3_stmt* one_time_insert;
         sqlite3_stmt* sessions_insert;
+        sqlite3_stmt* messages_insert;
 
         sqlite3_stmt* users_update;
         sqlite3_stmt* devices_update;
@@ -101,12 +106,14 @@ namespace client {
         sqlite3_stmt* devices_delete;
         sqlite3_stmt* one_time_delete;
         sqlite3_stmt* sessions_delete;
+        sqlite3_stmt* messages_delete;
 
         sqlite3_stmt* self_select;
         sqlite3_stmt* one_time_select;
         sqlite3_stmt* devices_select;
         sqlite3_stmt* sessions_select;
         sqlite3_stmt* active_select;
+        sqlite3_stmt* messages_select;
 
         sqlite3_stmt* last_rowid_insert;
 
@@ -160,6 +167,13 @@ namespace client {
            CHECK(length(contents) > 0)\
         );";
 
+    static constexpr auto create_messages = "\
+        CREATE TABLE IF NOT EXISTS messages (\
+           message_id   INTEGER PRIMARY KEY,\
+           contents     TEXT    NOT NULL,\
+           CHECK(length(contents) > 0)\
+        );";
+
     static constexpr auto insert_self = "INSERT INTO self VALUES (?1, ?2, ?3, ?4, ?5, ?6);";
     static constexpr auto insert_one_time = "INSERT INTO one_time VALUES (?1, ?2);";
     static constexpr auto insert_users = "INSERT INTO users VALUES (?1, 0);";
@@ -167,6 +181,7 @@ namespace client {
                                            "active_session, stale) VALUES (?2, ?1, ?3, NULL, 0);";
     static constexpr auto insert_sessions
             = "INSERT INTO sessions(device_id, contents) VALUES (?1, ?2);";
+    static constexpr auto insert_message = "INSERT INTO messages(contents) VALUES (?1);";
 
     static constexpr auto rowid_insert = "SELECT last_insert_rowid();";
 
@@ -183,6 +198,7 @@ namespace client {
     static constexpr auto delete_devices_stale = "DELETE FROM devices WHERE stale = 1;";
     static constexpr auto delete_one_time = "DELETE FROM one_time WHERE public_key = ?1;";
     static constexpr auto delete_sessions = "DELETE FROM sessions WHERE session_id = ?1;";
+    static constexpr auto delete_messages = "DELETE FROM messages WHERE message_id = ?1;";
 
     static constexpr auto select_self = "SELECT * FROM self LIMIT 1;";
     static constexpr auto select_one_time = "SELECT contents FROM one_time WHERE public_key = ?1;";
@@ -193,6 +209,8 @@ namespace client {
     static constexpr auto select_active = "SELECT devices.active_session, contents FROM sessions "
                                           "INNER JOIN devices ON devices.active_session = "
                                           "sessions.session_id WHERE devices.device_id = ?1;";
+
+    static constexpr auto select_messages = "SELECT * FROM messages;";
 
     static constexpr auto begin_trans = "BEGIN TRANSACTION";
     static constexpr auto commit_trans = "COMMIT TRANSACTION";
