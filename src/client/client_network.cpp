@@ -30,6 +30,7 @@
 size_t new_email_index = 0;
 std::string retrieved_email;
 bool read_active = false;
+std::vector<unsigned long long> folder_uid_list;
 
 size_t parse_examine_id(void *buffer, size_t size, size_t nmemb, void *userp) {
     (void)userp;
@@ -64,10 +65,12 @@ size_t parse_email_plaintext(void *buffer, size_t size, size_t nmemb, void *user
     (void)userp;
     std::string resp_str{static_cast<char *>(buffer), nmemb};
 
+#if 0
     if (read_active) {
         retrieved_email.append(resp_str);
         return size * nmemb;
     }
+#endif
 
     spdlog::info("Email Response {}", resp_str);
 
@@ -76,12 +79,49 @@ size_t parse_email_plaintext(void *buffer, size_t size, size_t nmemb, void *user
 
     resp_str.erase(0, content_index + strlen(content_header));
 
-    read_active = true;
-    retrieved_email.append(resp_str);
+    //read_active = true;
+    //retrieved_email.append(resp_str);
+    retrieved_email = resp_str;
+    return size * nmemb;
+}
+
+size_t parse_email_uids(void *buffer, size_t size, size_t nmemb, void *userp) {
+    (void)userp;
+    std::stringstream ss{std::string{static_cast<char *>(buffer), nmemb}};
+
+    std::string line;
+
+    while(std::getline(ss, line)) {
+        std::stringstream line_stream{line};
+
+        std::string star;
+        std::string message_id;
+        std::string fetch;
+        std::string uid;
+        std::string actual_uid;
+
+        line_stream >> star >> message_id >> fetch >> uid >> actual_uid;
+
+        if (fetch == "FETCH" && uid == "(UID") {
+            unsigned long long parsed_uid;
+            //This is a valid line to parse
+            //Erase the )\r\n from the token
+            actual_uid.erase(actual_uid.find_first_of(')'));
+            spdlog::info("Converting {}", actual_uid);
+            try {
+                parsed_uid = std::stoull(actual_uid);
+                folder_uid_list.push_back(parsed_uid);
+            } catch(const std::exception& e) {
+                spdlog::error("Failed to convert id token {}", e.what());
+            }
+        }
+    }
     return size * nmemb;
 }
 
 std::string get_email_uid(const char *email, const char *password, const char *UID) {
+    retrieved_email.clear();
+
     CURLcode res = CURLE_OK;
     CURL *curl = curl_easy_init();
     curl_easy_setopt(curl, CURLOPT_USERNAME, email);
@@ -107,7 +147,45 @@ std::string get_email_uid(const char *email, const char *password, const char *U
     return retrieved_email;
 }
 
+std::vector<std::string> get_email_contents(const char *email, const char *password) {
+    folder_uid_list.clear();
+
+    CURLcode res = CURLE_OK;
+    CURL *curl = curl_easy_init();
+
+    curl_easy_setopt(curl, CURLOPT_USERNAME, email);
+    curl_easy_setopt(curl, CURLOPT_PASSWORD, password);
+
+    curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/SIGEMAIL");
+    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "UID FETCH 1:* (UID)");
+
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &parse_email_uids);
+
+    res = curl_easy_perform(curl);
+
+    if (res != CURLE_OK) {
+        spdlog::error("curl_easy_perform() failed: {}", curl_easy_strerror(res));
+    }
+
+    std::vector<std::string> folder_contents;
+
+    for (auto elem : folder_uid_list) {
+        std::stringstream ss;
+        ss << elem;
+        std::string contents = get_email_uid(email, password, ss.str().c_str());
+        spdlog::critical("Received message contents {}", contents);
+        folder_contents.emplace_back(std::move(contents));
+    }
+
+    curl_easy_cleanup(curl);
+
+    return folder_contents;
+}
+
 void retrieve_emails(const char *email, const char *password) {
+#if 0
     new_email_index = 0;
 
     retrieved_email.clear();
@@ -181,6 +259,12 @@ void retrieve_emails(const char *email, const char *password) {
         curl_easy_cleanup(curl);
     } else {
         spdlog::error("Failed to init curl");
+    }
+#endif
+    const auto emails = get_email_contents(email, password);
+    spdlog::info("Email contents size {}", emails.size());
+    for (const auto& m : emails) {
+        spdlog::error("Actual message {}", m);
     }
 
     //spdlog::info("Most recent message index {}", new_email_index);
