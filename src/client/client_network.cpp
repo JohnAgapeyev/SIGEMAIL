@@ -94,7 +94,7 @@ void retrieve_emails(const char *email, const char *password) {
         curl_easy_setopt(curl, CURLOPT_USERNAME, email);
         curl_easy_setopt(curl, CURLOPT_PASSWORD, password);
 
-        curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/SIGEMAIL/;UID=*");
+        curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993/SIGEMAIL/;UID=1:*");
         //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993");
         //curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "EXAMINE INBOX");
         //curl_easy_setopt(curl, CURLOPT_URL, "imaps://imap.gmail.com:993");
