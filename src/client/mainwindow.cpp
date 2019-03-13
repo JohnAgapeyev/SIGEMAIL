@@ -3,6 +3,8 @@
 #include <QMessageBox>
 #include <QWidget>
 
+#include "client_network.h"
+#include "error.h"
 #include "logging.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -10,7 +12,7 @@
 main_window::main_window(
         const char* dest, const char* port, client::database& db, QWidget* parent) :
         QMainWindow(parent),
-        ui(new Ui::main_window), dev(dest, port, db) {
+        ui(new Ui::main_window), client_db(db), dev(dest, port, client_db) {
     ui->setupUi(this);
 }
 
@@ -113,9 +115,54 @@ void main_window::on_recv_btn_clicked() {
 
 void main_window::on_clear_messages_clicked() {
     spdlog::debug("Clear messages button clicked");
-    ui->message_list->addItem("Foobar and stuff");
+    ui->message_list->clear();
 }
 
 void main_window::on_message_list_itemDoubleClicked(QListWidgetItem* item) {
-    spdlog::debug("Message doubled clicked {}", item->text().toStdString());
+    const auto message_text = item->text().toStdString();
+    spdlog::debug("Message doubled clicked {}", message_text);
+
+    std::stringstream ss{message_text};
+    int message_id;
+    ss >> message_id;
+
+    try {
+        const auto contents = client_db.get_message_contents(message_id);
+        QMessageBox::information(this, tr("SIGEMAIL"), tr(contents.c_str()));
+    } catch(const db_error& e) {
+        spdlog::error("Message contents retrieval failed {}", e.what());
+        QMessageBox::information(this, tr("SIGEMAIL"), tr("Unable to retrieve message contents from the database"));
+    }
+}
+
+void main_window::on_fetch_email_clicked() {
+    spdlog::debug("Fetch emails button clicked");
+    if (!dev.check_registration()) {
+        QMessageBox::information(this, tr("SIGEMAIL"),
+                tr("Please Register with SIGEMAIL before attempting to fetch your emails"));
+        return;
+    }
+
+    const auto [self_email, self_device_id, auth_token, email_pass, self_identity, self_prekey]
+            = client_db.get_self_data();
+
+    const auto email_contents = retrieve_emails(self_email.c_str(), email_pass.c_str());
+
+    try {
+        for (const auto& m : email_contents) {
+            client_db.add_message(m);
+        }
+    } catch (const db_error& e) {
+        spdlog::error("Email insertion db error {}", e.what());
+        QMessageBox::information(this, tr("SIGEMAIL"),
+                tr("Something went wrong when saving your imported email messages!"));
+    }
+
+    //Update the message list based on the database
+    ui->message_list->clear();
+    for (const auto& [message_id, contents, timestamp] : client_db.get_messages()) {
+        std::stringstream ss;
+        ss << message_id << ' ' << timestamp;
+        ui->message_list->addItem(ss.str().c_str());
+    }
 }

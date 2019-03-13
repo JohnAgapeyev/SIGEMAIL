@@ -198,6 +198,19 @@
      <string>Clear Messages</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="fetch_email">
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>500</y>
+      <width>101</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Fetch Emails</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>

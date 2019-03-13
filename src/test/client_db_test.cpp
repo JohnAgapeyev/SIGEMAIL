@@ -546,7 +546,7 @@ BOOST_AUTO_TEST_CASE(get_messages) {
     db.add_message(m);
     const auto messages = db.get_messages();
     BOOST_TEST(messages.size() == 1);
-    BOOST_TEST(messages.front().second == m);
+    BOOST_TEST(std::get<1>(messages.front()) == m);
 }
 
 BOOST_AUTO_TEST_CASE(get_messages_empty_table) {
@@ -564,6 +564,26 @@ BOOST_AUTO_TEST_CASE(get_messages_many) {
     }
     const auto messages = db.get_messages();
     BOOST_TEST(messages.size() == count);
+}
+
+BOOST_AUTO_TEST_CASE(get_message_single) {
+    auto db = get_client_db();
+    const auto m = "foobar";
+    const auto m_index = db.add_message(m);
+    const auto m2 = db.get_message_contents(m_index);
+    BOOST_TEST(m == m2);
+}
+
+BOOST_AUTO_TEST_CASE(get_message_single_bad_id) {
+    auto db = get_client_db();
+    const auto m = "foobar";
+    db.add_message(m);
+    BOOST_REQUIRE_THROW(db.get_message_contents(-1), db_error);
+}
+
+BOOST_AUTO_TEST_CASE(get_message_single_empty_table) {
+    auto db = get_client_db();
+    BOOST_REQUIRE_THROW(db.get_message_contents(-1), db_error);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -50,6 +50,7 @@ client::database::database(const char* db_name) {
     prepare_statement(db_conn, select_sessions, &sessions_select);
     prepare_statement(db_conn, select_active, &active_select);
     prepare_statement(db_conn, select_messages, &messages_select);
+    prepare_statement(db_conn, select_message_single, &messages_select_single);
 
     prepare_statement(db_conn, rowid_insert, &last_rowid_insert);
 }
@@ -79,6 +80,7 @@ client::database::~database() {
     sqlite3_finalize(sessions_select);
     sqlite3_finalize(active_select);
     sqlite3_finalize(messages_select);
+    sqlite3_finalize(messages_select_single);
 
     sqlite3_finalize(last_rowid_insert);
 
@@ -589,19 +591,41 @@ void client::database::remove_message(const int message_id) {
     }
 }
 
-std::vector<std::pair<int, std::string>> client::database::get_messages() {
+std::vector<std::tuple<int, std::string, std::string>> client::database::get_messages() {
     sqlite3_reset(messages_select);
 
-    std::vector<std::pair<int, std::string>> messages;
+    std::vector<std::tuple<int, std::string, std::string>> messages;
 
     int err;
     while ((err = sqlite3_step(messages_select)) == SQLITE_ROW) {
         int id = sqlite3_column_int(messages_select, 0);
         auto contents = read_db_string(db_conn, messages_select, 1);
-        messages.emplace_back(id, std::move(contents));
+        auto timestamp = read_db_string(db_conn, messages_select, 2);
+        messages.emplace_back(id, std::move(contents), std::move(timestamp));
     }
     if (err != SQLITE_DONE) {
         throw_db_error(db_conn);
     }
     return messages;
+}
+
+std::string client::database::get_message_contents(const int message_id) {
+    sqlite3_reset(messages_select_single);
+    sqlite3_clear_bindings(messages_select_single);
+
+    if (sqlite3_bind_int(messages_select_single, 1, message_id) != SQLITE_OK) {
+        throw_db_error(db_conn);
+    }
+
+    if (sqlite3_step(messages_select_single) != SQLITE_ROW) {
+        throw_db_error(db_conn);
+    }
+
+    std::string contents = read_db_string(db_conn, messages_select_single, 0);
+
+    if (sqlite3_step(messages_select_single) != SQLITE_DONE) {
+        throw_db_error(db_conn);
+    }
+
+    return contents;
 }

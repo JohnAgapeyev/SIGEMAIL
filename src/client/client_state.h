@@ -78,7 +78,8 @@ namespace client {
 
         std::pair<int, session> get_active_session(const int device_id);
 
-        std::vector<std::pair<int, std::string>> get_messages();
+        std::vector<std::tuple<int, std::string, std::string>> get_messages();
+        std::string get_message_contents(const int message_id);
 
         void sync_session(const int session_id, const session& s);
 
@@ -114,6 +115,7 @@ namespace client {
         sqlite3_stmt* sessions_select;
         sqlite3_stmt* active_select;
         sqlite3_stmt* messages_select;
+        sqlite3_stmt* messages_select_single;
 
         sqlite3_stmt* last_rowid_insert;
 
@@ -171,7 +173,8 @@ namespace client {
         CREATE TABLE IF NOT EXISTS messages (\
            message_id   INTEGER PRIMARY KEY,\
            contents     TEXT    NOT NULL,\
-           CHECK(length(contents) > 0)\
+           timestamp    TEXT    NOT NULL\
+           CHECK(length(contents) > 0 and length(timestamp) > 0)\
         );";
 
     static constexpr auto insert_self = "INSERT INTO self VALUES (?1, ?2, ?3, ?4, ?5, ?6);";
@@ -181,7 +184,7 @@ namespace client {
                                            "active_session, stale) VALUES (?2, ?1, ?3, NULL, 0);";
     static constexpr auto insert_sessions
             = "INSERT INTO sessions(device_id, contents) VALUES (?1, ?2);";
-    static constexpr auto insert_message = "INSERT INTO messages(contents) VALUES (?1);";
+    static constexpr auto insert_message = "INSERT INTO messages(contents, timestamp) VALUES (?1, datetime('now'));";
 
     static constexpr auto rowid_insert = "SELECT last_insert_rowid();";
 
@@ -211,6 +214,7 @@ namespace client {
                                           "sessions.session_id WHERE devices.device_id = ?1;";
 
     static constexpr auto select_messages = "SELECT * FROM messages;";
+    static constexpr auto select_message_single = "SELECT contents FROM messages WHERE message_id = ?1;";
 
     static constexpr auto begin_trans = "BEGIN TRANSACTION";
     static constexpr auto commit_trans = "COMMIT TRANSACTION";

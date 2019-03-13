@@ -32,9 +32,12 @@ private slots:
 
     void on_message_list_itemDoubleClicked(QListWidgetItem* item);
 
+    void on_fetch_email_clicked();
+
 private:
     Ui::main_window* ui;
 
+    client::database& client_db;
     device dev;
 };
 
