@@ -209,6 +209,11 @@ void device::send_signal_message(const crypto::secure_vector<std::byte>& plainte
                 throw std::runtime_error("Failed to submit encrypted messages to server");
             }
         }
+        crypto::secure_string string_contents;
+        for (const auto b : plaintext) {
+            string_contents.push_back(std::to_integer<int>(b));
+        }
+        client_db.add_message(string_contents);
         client_db.commit_transaction(trans_lock);
         return;
     } catch(...) {
@@ -262,6 +267,13 @@ std::optional<std::vector<crypto::secure_vector<std::byte>>> device::receive_sig
                 client_db.sync_session(sess_id, session);
                 client_db.activate_session(from_device_id, sess_id);
             }
+        }
+        for (const auto& plaintext : plaintext_messages) {
+            crypto::secure_string string_contents;
+            for (const auto b : plaintext) {
+                string_contents.push_back(std::to_integer<int>(b));
+            }
+            client_db.add_message(string_contents);
         }
         client_db.commit_transaction(trans_lock);
         return plaintext_messages;
