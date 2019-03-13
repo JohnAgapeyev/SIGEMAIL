@@ -139,14 +139,63 @@
    <widget class="QPushButton" name="recv_btn">
     <property name="geometry">
      <rect>
-      <x>460</x>
-      <y>500</y>
+      <x>590</x>
+      <y>430</y>
       <width>111</width>
       <height>21</height>
      </rect>
     </property>
     <property name="text">
      <string>Receive Messages</string>
+    </property>
+   </widget>
+   <widget class="QScrollArea" name="scrollArea">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>160</y>
+      <width>281</width>
+      <height>411</height>
+     </rect>
+    </property>
+    <property name="widgetResizable">
+     <bool>true</bool>
+    </property>
+    <widget class="QWidget" name="scrollAreaWidgetContents">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>0</y>
+       <width>279</width>
+       <height>409</height>
+      </rect>
+     </property>
+     <widget class="QListWidget" name="message_list">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>281</width>
+        <height>411</height>
+       </rect>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Sunken</enum>
+      </property>
+     </widget>
+    </widget>
+   </widget>
+   <widget class="QPushButton" name="clear_messages">
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>530</y>
+      <width>101</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Clear Messages</string>
     </property>
    </widget>
   </widget>

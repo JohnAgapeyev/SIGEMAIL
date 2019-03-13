@@ -1,3 +1,4 @@
+#include <QListWidgetItem>
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QWidget>
@@ -108,4 +109,13 @@ void main_window::on_recv_btn_clicked() {
     } catch (const std::exception& e) {
         QMessageBox::critical(this, tr("Something went wrong!"), tr(e.what()));
     }
+}
+
+void main_window::on_clear_messages_clicked() {
+    spdlog::debug("Clear messages button clicked");
+    ui->message_list->addItem("Foobar and stuff");
+}
+
+void main_window::on_message_list_itemDoubleClicked(QListWidgetItem* item) {
+    spdlog::debug("Message doubled clicked {}", item->text().toStdString());
 }

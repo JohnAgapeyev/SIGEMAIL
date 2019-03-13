@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-#if 0
+#if 1
     const auto host = argv[1];
     const auto port = argv[2];
 
