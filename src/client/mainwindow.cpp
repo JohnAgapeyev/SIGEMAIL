@@ -194,7 +194,8 @@ void main_window::on_send_export_clicked() {
     } catch (const std::exception& e) {
         QMessageBox::critical(this, tr("Something went wrong!"), tr(e.what()));
     }
-    // Export message
+
+    export_email(self_email.c_str(), email_pass.c_str(), contents.c_str());
 }
 
 void main_window::on_recv_export_clicked() {
