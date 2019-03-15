@@ -1,4 +1,5 @@
 #include <QListWidgetItem>
+#include <QInputDialog>
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QWidget>
@@ -67,6 +68,11 @@ void main_window::on_register_btn_clicked() {
     const auto password = ui->register_password->text().toStdString();
     spdlog::debug("Register button clicked for {} {}", email, password);
 
+    if (email.empty() || password.empty()) {
+        QMessageBox::information(this, tr("Something went wrong!"), tr("Please enter both your email address and password before attempting to register with SIGEMAIL"));
+        return;
+    }
+
     try {
         if (!dev.check_registration()) {
             dev.register_with_server(email, password);
@@ -82,6 +88,15 @@ void main_window::on_verify_btn_clicked() {
     const auto code = ui->register_code->text().toStdString();
 
     spdlog::debug("Verify button clicked {} {} {}", email, password, code);
+
+    if (email.empty() || password.empty()) {
+        QMessageBox::information(this, tr("Something went wrong!"), tr("Please reenter both your email address and password before attempting to confirm your registration with SIGEMAIL"));
+        return;
+    }
+    if (code.empty()) {
+        QMessageBox::information(this, tr("Something went wrong!"), tr("Please enter your received registration code before verifying your registration with SIGEMAIL"));
+        return;
+    }
 
     try {
         if (!dev.check_registration()) {
@@ -103,6 +118,11 @@ void main_window::on_send_btn_clicked() {
     if (!dev.check_registration()) {
         QMessageBox::information(this, tr("SIGEMAIL"),
                 tr("Please Register with SIGEMAIL before attempting to send your emails"));
+        return;
+    }
+
+    if (dest.empty() || contents.empty()) {
+        QMessageBox::information(this, tr("Something went wrong!"), tr("Your destination email and/or your message cannot be empty"));
         return;
     }
 
@@ -202,6 +222,14 @@ void main_window::on_send_export_clicked() {
     } catch (const std::exception& e) {
         QMessageBox::critical(this, tr("Something went wrong!"), tr(e.what()));
     }
+    std::string crypto_password;
+retry_prompt:
+    crypto_password = QInputDialog::getText(this, tr("Title"), tr("Enter the password to encrypt the exported message")).toStdString();
+    if (crypto_password.empty()) {
+        QMessageBox::information(this, tr("SIGEMAIL"),
+                tr("You must enter a password for exporting emails"));
+        goto retry_prompt;
+    }
 
     export_email(self_email.c_str(), email_pass.c_str(), contents.c_str());
 }
@@ -216,6 +244,15 @@ void main_window::on_recv_export_clicked() {
             = client_db.get_self_data();
 
     const auto exported = recv_messages();
+
+    std::string crypto_password;
+retry_prompt:
+    crypto_password = QInputDialog::getText(this, tr("Title"), tr("Enter the password to encrypt the exported message")).toStdString();
+    if (crypto_password.empty()) {
+        QMessageBox::information(this, tr("SIGEMAIL"),
+                tr("You must enter a password for exporting emails"));
+        goto retry_prompt;
+    }
 
     for (const auto& plain : exported) {
         export_email(self_email.c_str(), email_pass.c_str(), plain.c_str());

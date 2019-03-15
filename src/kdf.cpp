@@ -5,7 +5,7 @@
 #include "crypto.h"
 #include "error.h"
 
-#define KDF_COUNT 10000
+#define KDF_COUNT 30000
 
 const crypto::shared_key crypto::root_derive(
         crypto::shared_key& root_key, const crypto::shared_key& dh_output) {
@@ -45,16 +45,15 @@ const crypto::shared_key crypto::chain_derive(crypto::shared_key& chain_key) {
     return message_key;
 }
 
-const crypto::shared_key crypto::x3dh_derive(
-        const secure_vector<std::byte>& key_material) {
+const crypto::shared_key crypto::x3dh_derive(const secure_vector<std::byte>& key_material) {
     //Pad with 32 bytes of 0xFF
-    secure_vector<std::byte> kdf_input{32, std::byte{0xFF}};
+    crypto::secure_vector<std::byte> kdf_input{32, std::byte{0xFF}};
 
     //Add the key material
     kdf_input.insert(kdf_input.end(), key_material.begin(), key_material.end());
 
     //Fill with a sha512 worth of zeroes
-    secure_array<std::byte, 64> kdf_salt{std::byte{0}};
+    crypto::secure_array<std::byte, 64> kdf_salt{{std::byte{0}}};
 
     crypto::shared_key kdf_output;
 
@@ -66,4 +65,18 @@ const crypto::shared_key crypto::x3dh_derive(
     }
 
     return kdf_output;
+}
+
+const crypto::shared_key crypto::password_derive(const crypto::secure_string& password) {
+    const unsigned char salt = 0xab;
+
+    crypto::shared_key derived_key;
+
+    if (!PKCS5_PBKDF2_HMAC(reinterpret_cast<const char*>(password.data()),
+                sizeof(std::byte) * password.size(), &salt, 1, KDF_COUNT, EVP_sha512(),
+                sizeof(std::byte) * 32, reinterpret_cast<unsigned char*>(derived_key.data()))) {
+        throw crypto::openssl_error(ERR_get_error());
+    }
+
+    return derived_key;
 }

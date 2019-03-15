@@ -109,3 +109,30 @@ const crypto::secure_vector<std::byte> crypto::decrypt(secure_vector<std::byte>&
 
     return plaintext;
 }
+
+static const std::string password_aad = "SIGEMAIL Email export AAD";
+
+const crypto::secure_vector<std::byte> crypto::encrypt_password(
+        const crypto::secure_vector<std::byte>& message, const crypto::secure_string& password) {
+
+    const auto key = password_derive(password);
+
+    crypto::secure_vector<std::byte> aad;
+    for (const auto c : password_aad) {
+        aad.push_back(std::byte{static_cast<unsigned char>(c)});
+    }
+
+    return encrypt(message, key, aad);
+}
+
+const crypto::secure_vector<std::byte> crypto::decrypt_password(
+        const crypto::secure_vector<std::byte>& ciphertext, const crypto::secure_string& password) {
+    const auto key = password_derive(password);
+
+    crypto::secure_vector<std::byte> aad;
+    for (const auto c : password_aad) {
+        aad.push_back(std::byte{static_cast<unsigned char>(c)});
+    }
+    auto ciphertext_copy = ciphertext;
+    return decrypt(ciphertext_copy, key, aad);
+}

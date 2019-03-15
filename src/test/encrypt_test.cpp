@@ -99,4 +99,28 @@ BOOST_AUTO_TEST_CASE(bad_nonce) {
     BOOST_REQUIRE_THROW(plaintext = crypto::decrypt(ciphertext_copy, key, aad), crypto::expected_error);
 }
 
+BOOST_AUTO_TEST_CASE(encrypt_decrypt_password) {
+    const auto message = get_message();
+    crypto::secure_string password{"Foobar"};
+    const auto ciphertext = crypto::encrypt_password(message, password);
+    crypto::secure_vector<std::byte> plaintext = crypto::decrypt_password(ciphertext, password);
+    BOOST_TEST(plaintext == message);
+}
+
+BOOST_AUTO_TEST_CASE(encrypt_decrypt_empty_password) {
+    const auto message = get_message();
+    crypto::secure_string password;
+    const auto ciphertext = crypto::encrypt_password(message, password);
+    crypto::secure_vector<std::byte> plaintext = crypto::decrypt_password(ciphertext, password);
+    BOOST_TEST(plaintext == message);
+}
+
+BOOST_AUTO_TEST_CASE(encrypt_decrypt_bad_password) {
+    const auto message = get_message();
+    crypto::secure_string password{"Foobar"};
+    const auto ciphertext = crypto::encrypt_password(message, password);
+    crypto::secure_string bad_password{"Definitely not Foobar"};
+    BOOST_REQUIRE_THROW(crypto::decrypt_password(ciphertext, bad_password), crypto::expected_error);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

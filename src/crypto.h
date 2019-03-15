@@ -86,9 +86,14 @@ namespace crypto {
     const secure_vector<std::byte> decrypt(secure_vector<std::byte>& ciphertext,
             const shared_key& key, const secure_vector<std::byte>& aad);
 
+    const secure_vector<std::byte> encrypt_password(const secure_vector<std::byte>& message, const secure_string& password);
+    const secure_vector<std::byte> decrypt_password(const secure_vector<std::byte>& ciphertext, const secure_string& password);
+
     const shared_key root_derive(shared_key& root_key, const shared_key& dh_output);
     const shared_key chain_derive(shared_key& chain_key);
     const shared_key x3dh_derive(const secure_vector<std::byte>& key_material);
+
+    const shared_key password_derive(const secure_string& password);
 
     template<typename T, std::size_t N>
     std::size_t hash_value(const secure_array<T, N>& arr) noexcept {
