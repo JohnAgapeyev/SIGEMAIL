@@ -107,6 +107,11 @@ void main_window::on_send_btn_clicked() {
 
 void main_window::on_recv_btn_clicked() {
     spdlog::debug("Mesg Recv button clicked");
+    if (!dev.check_registration()) {
+        QMessageBox::information(this, tr("SIGEMAIL"),
+                tr("Please Register with SIGEMAIL before attempting to receive your emails"));
+        return;
+    }
 
     try {
         recv_messages();
@@ -175,6 +180,15 @@ void main_window::on_send_export_clicked() {
 
     spdlog::debug("Mesg Send Export button clicked {} {}", dest, contents);
 
+    if (!dev.check_registration()) {
+        QMessageBox::information(this, tr("SIGEMAIL"),
+                tr("Please Register with SIGEMAIL before attempting to send your emails"));
+        return;
+    }
+
+    const auto [self_email, self_device_id, auth_token, email_pass, self_identity, self_prekey]
+            = client_db.get_self_data();
+
     try {
         send_message(dest, contents);
     } catch (const std::exception& e) {
@@ -184,8 +198,17 @@ void main_window::on_send_export_clicked() {
 }
 
 void main_window::on_recv_export_clicked() {
+    if (!dev.check_registration()) {
+        QMessageBox::information(this, tr("SIGEMAIL"),
+                tr("Please Register with SIGEMAIL before attempting to receive your emails"));
+        return;
+    }
+    const auto [self_email, self_device_id, auth_token, email_pass, self_identity, self_prekey]
+            = client_db.get_self_data();
+
     const auto exported = recv_messages();
+
     for (const auto& plain : exported) {
-        //Export plain
+        export_email(self_email.c_str(), email_pass.c_str(), plain.c_str());
     }
 }

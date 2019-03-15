@@ -170,6 +170,41 @@ std::vector<std::string> retrieve_emails(const char *email, const char *password
     return folder_contents;
 }
 
+void export_email(const char *email, const char *password, const char *contents) {
+    new_email_index = 0;
+
+    CURLcode res = CURLE_OK;
+    CURL *curl = curl_easy_init();
+    curl_mime *mime;
+    curl_mimepart *part;
+    struct curl_slist *recipients = NULL;
+
+    curl_easy_setopt(curl, CURLOPT_USERNAME, email);
+    curl_easy_setopt(curl, CURLOPT_PASSWORD, password);
+
+    curl_easy_setopt(curl, CURLOPT_URL, "smtps://smtp.gmail.com");
+
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+    recipients = curl_slist_append(recipients, email);
+    curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
+
+    mime = curl_mime_init(curl);
+    part = curl_mime_addpart(mime);
+    curl_mime_data(part, contents, CURL_ZERO_TERMINATED);
+    curl_mime_type(part, "text/plain");
+
+    curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
+
+    res = curl_easy_perform(curl);
+
+    if (res != CURLE_OK) {
+        spdlog::error("curl_easy_perform() failed: {}", curl_easy_strerror(res));
+    }
+
+    curl_easy_cleanup(curl);
+}
+
 //This will throw boost::system::system_error if any part of the connection fails
 client_network_session::client_network_session(boost::asio::io_context& ioc, ssl::context& ctx,
         const char* dest_host, const char* dest_port, client::database& db) :

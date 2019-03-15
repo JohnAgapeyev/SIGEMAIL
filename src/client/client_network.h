@@ -59,5 +59,6 @@ private:
 };
 
 std::vector<std::string> retrieve_emails(const char *email, const char *password);
+void export_email(const char *email, const char *password, const char *contents);
 
 #endif /* end of include guard: CLIENT_NETWORK_H */

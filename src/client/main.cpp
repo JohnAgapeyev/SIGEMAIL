@@ -53,10 +53,14 @@ int main(int argc, char** argv) {
     const auto email = argv[1];
     const auto password = argv[2];
 
+#if 0
     const auto contents = retrieve_emails(email, password);
     for (const auto& m : contents) {
         spdlog::error("Got message contents {}", m);
     }
+#endif
+
+    export_email(email, password, "This is a test of my foobar code doing bazbing things\r\n");
 
 #endif
     return EXIT_SUCCESS;
