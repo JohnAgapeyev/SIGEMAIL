@@ -141,7 +141,7 @@
      <rect>
       <x>590</x>
       <y>430</y>
-      <width>111</width>
+      <width>121</width>
       <height>21</height>
      </rect>
     </property>
@@ -209,6 +209,32 @@
     </property>
     <property name="text">
      <string>Fetch Emails</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="send_export">
+    <property name="geometry">
+     <rect>
+      <x>460</x>
+      <y>460</y>
+      <width>111</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Send and Export</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="recv_export">
+    <property name="geometry">
+     <rect>
+      <x>590</x>
+      <y>460</y>
+      <width>121</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Receive and Export</string>
     </property>
    </widget>
   </widget>

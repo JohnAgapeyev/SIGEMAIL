@@ -34,7 +34,14 @@ private slots:
 
     void on_fetch_email_clicked();
 
+    void on_send_export_clicked();
+
+    void on_recv_export_clicked();
+
 private:
+    void send_message(const std::string& dest, const std::string& contents);
+    std::vector<std::string> recv_messages();
+
     Ui::main_window* ui;
 
     client::database& client_db;
