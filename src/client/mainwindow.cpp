@@ -86,6 +86,8 @@ void main_window::on_verify_btn_clicked() {
     try {
         if (!dev.check_registration()) {
             dev.confirm_registration(email, password, std::stoull(code));
+        } else {
+            QMessageBox::information(this, tr("Something went wrong!"), tr("You're already registered with SIGEMAIL!"));
         }
     } catch (const std::exception& e) {
         QMessageBox::critical(this, tr("Something went wrong!"), tr(e.what()));
@@ -97,6 +99,12 @@ void main_window::on_send_btn_clicked() {
     const auto contents = ui->msg_contents->toPlainText().toStdString();
 
     spdlog::debug("Mesg Send button clicked {} {}", dest, contents);
+
+    if (!dev.check_registration()) {
+        QMessageBox::information(this, tr("SIGEMAIL"),
+                tr("Please Register with SIGEMAIL before attempting to send your emails"));
+        return;
+    }
 
     try {
         send_message(dest, contents);
