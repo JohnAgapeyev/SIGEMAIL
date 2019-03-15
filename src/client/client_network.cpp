@@ -31,34 +31,9 @@ size_t new_email_index = 0;
 std::string retrieved_email;
 std::vector<unsigned long long> folder_uid_list;
 
-static size_t parse_examine_id(void *buffer, size_t size, size_t nmemb, void *userp);
 static size_t parse_email_plaintext(void *buffer, size_t size, size_t nmemb, void *userp);
 static size_t parse_email_uids(void *buffer, size_t size, size_t nmemb, void *userp);
 static std::string get_email_uid(const char *email, const char *password, const char *UID);
-
-size_t parse_examine_id(void *buffer, size_t size, size_t nmemb, void *userp) {
-    (void)userp;
-    std::string resp_str{static_cast<char *>(buffer), nmemb};
-
-    std::string last_word = resp_str.substr(resp_str.find_last_of(' ') + 1);
-
-    if (last_word == "EXISTS\r\n") {
-        std::stringstream ss{resp_str};
-
-        std::string size_tok;
-
-        //Drop the first word, and store the number in size_tok
-        ss >> size_tok >> size_tok;
-
-        try {
-            new_email_index = std::stoull(size_tok);
-        } catch(const std::exception& e) {
-            spdlog::error("Failed to convert id token {}", e.what());
-            new_email_index = -1;
-        }
-    }
-    return size * nmemb;
-}
 
 size_t parse_email_plaintext(void *buffer, size_t size, size_t nmemb, void *userp) {
     (void)userp;

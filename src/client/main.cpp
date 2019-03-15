@@ -30,7 +30,6 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-#if 1
     const auto host = argv[1];
     const auto port = argv[2];
 
@@ -49,19 +48,5 @@ int main(int argc, char** argv) {
         spdlog::error("Unable to initialize main window; {}", e.what());
         return EXIT_FAILURE;
     }
-#else
-    const auto email = argv[1];
-    const auto password = argv[2];
-
-#if 0
-    const auto contents = retrieve_emails(email, password);
-    for (const auto& m : contents) {
-        spdlog::error("Got message contents {}", m);
-    }
-#endif
-
-    export_email(email, password, "This is a test of my foobar code doing bazbing things\r\n");
-
-#endif
     return EXIT_SUCCESS;
 }

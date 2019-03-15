@@ -27,12 +27,11 @@ namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
 namespace http = boost::beast::http; // from <boost/beast/http.hpp>
 
 int main(int argc, char* argv[]) {
-#if 1
     // Check command line arguments.
     if (argc != 3) {
-        std::cerr << "Usage: websocket-server-async-ssl <port> <threads>\n"
+        std::cerr << "Usage: sigemail_server <port> <threads>\n"
                   << "Example:\n"
-                  << "    websocket-server-async-ssl 8080 1\n";
+                  << "    sigemail_server 8443 1\n";
         return EXIT_FAILURE;
     }
     const auto port = static_cast<unsigned short>(std::atoi(argv[1]));
@@ -60,12 +59,5 @@ int main(int argc, char* argv[]) {
         v.emplace_back([&ioc] { ioc.run(); });
     }
     ioc.run();
-#else
-    if (argc != 4) {
-        return EXIT_FAILURE;
-    }
-    send_verification_email(argv[1], argv[2], 123456789);
-#endif
-
     return EXIT_SUCCESS;
 }
