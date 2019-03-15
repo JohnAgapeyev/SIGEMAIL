@@ -1,3 +1,5 @@
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 #include <QListWidgetItem>
 #include <QInputDialog>
 #include <QMainWindow>
@@ -9,6 +11,9 @@
 #include "logging.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+
+static const std::string start_sigemail = "--BEGIN SIGEMAIL ENCRYPTED EXPORT MESSAGE--\r\n";
+static const std::string end_sigemail = "--END SIGEMAIL ENCRYPTED EXPORT MESSAGE--\r\n";
 
 main_window::main_window(
         const char* dest, const char* port, client::database& db, QWidget* parent) :
@@ -163,10 +168,44 @@ void main_window::on_message_list_itemDoubleClicked(QListWidgetItem* item) {
 
     try {
         const auto contents = client_db.get_message_contents(message_id);
-        QMessageBox::information(this, tr("SIGEMAIL"), tr(contents.c_str()));
+        const auto start_index = contents.find(start_sigemail);
+        if (start_index == std::string::npos) {
+            //Message does not contain the start banner
+            QMessageBox::information(this, tr("SIGEMAIL"), tr(contents.c_str()));
+            return;
+        }
+        const auto end_index = contents.find(end_sigemail);
+        if (end_index < start_index) {
+            //Invalid message
+            QMessageBox::information(this, tr("SIGEMAIL"), tr(contents.c_str()));
+            return;
+        }
+        const auto ciphertext_str = contents.substr(start_index + start_sigemail.size(), end_index - start_sigemail.size());
+        std::stringstream ss{ciphertext_str};
+        crypto::secure_vector<std::byte> raw_ciphertext;
+        {
+            boost::archive::text_iarchive arch{ss};
+            arch >> raw_ciphertext;
+        }
+
+        crypto::secure_string crypto_password{QInputDialog::getText(this, tr("Title"), tr("Enter the password to decrypt the exported message")).toStdString()};
+        if (crypto_password.empty()) {
+            QMessageBox::information(this, tr("SIGEMAIL"),
+                    tr("You have canceled message retrieval due to not providing a password for decryption"));
+            return;
+        }
+        const auto raw_plaintext = crypto::decrypt_password(raw_ciphertext, crypto_password);
+        crypto::secure_string plaintext;
+        for (const auto b : raw_plaintext) {
+            plaintext.push_back(std::to_integer<uint8_t>(b));
+        }
+        QMessageBox::information(this, tr("SIGEMAIL"), tr(plaintext.c_str()));
     } catch(const db_error& e) {
         spdlog::error("Message contents retrieval failed {}", e.what());
         QMessageBox::information(this, tr("SIGEMAIL"), tr("Unable to retrieve message contents from the database"));
+    } catch(const crypto::expected_error& e) {
+        spdlog::error("Message retrieval failed to decrypt");
+        QMessageBox::information(this, tr("SIGEMAIL"), tr("Invalid password to decrypt encrypted export message"));
     }
 }
 
@@ -222,7 +261,7 @@ void main_window::on_send_export_clicked() {
     } catch (const std::exception& e) {
         QMessageBox::critical(this, tr("Something went wrong!"), tr(e.what()));
     }
-    std::string crypto_password;
+    crypto::secure_string crypto_password;
 retry_prompt:
     crypto_password = QInputDialog::getText(this, tr("Title"), tr("Enter the password to encrypt the exported message")).toStdString();
     if (crypto_password.empty()) {
@@ -231,7 +270,24 @@ retry_prompt:
         goto retry_prompt;
     }
 
-    export_email(self_email.c_str(), email_pass.c_str(), contents.c_str());
+    //Wrap the message with the banner designating an encrypted export message
+    crypto::secure_vector<std::byte> raw_message;
+    for (const auto c : contents) {
+        raw_message.emplace_back(std::byte{static_cast<unsigned char>(c)});
+    }
+
+    std::stringstream ss;
+    const auto ciphertext = crypto::encrypt_password(raw_message, crypto_password);
+    {
+        boost::archive::text_oarchive arch{ss};
+        arch << ciphertext;
+    }
+
+    auto serialized_ciphertext = ss.str();
+    serialized_ciphertext.insert(serialized_ciphertext.begin(), start_sigemail.begin(), start_sigemail.end());
+    serialized_ciphertext.append(end_sigemail);
+
+    export_email(self_email.c_str(), email_pass.c_str(), serialized_ciphertext.c_str());
 }
 
 void main_window::on_recv_export_clicked() {
@@ -245,7 +301,7 @@ void main_window::on_recv_export_clicked() {
 
     const auto exported = recv_messages();
 
-    std::string crypto_password;
+    crypto::secure_string crypto_password;
 retry_prompt:
     crypto_password = QInputDialog::getText(this, tr("Title"), tr("Enter the password to encrypt the exported message")).toStdString();
     if (crypto_password.empty()) {
@@ -255,6 +311,23 @@ retry_prompt:
     }
 
     for (const auto& plain : exported) {
-        export_email(self_email.c_str(), email_pass.c_str(), plain.c_str());
+        //Wrap the message with the banner designating an encrypted export message
+        crypto::secure_vector<std::byte> raw_message;
+        for (const auto c : plain) {
+            raw_message.emplace_back(std::byte{static_cast<unsigned char>(c)});
+        }
+
+        std::stringstream ss;
+        const auto ciphertext = crypto::encrypt_password(raw_message, crypto_password);
+        {
+            boost::archive::text_oarchive arch{ss};
+            arch << ciphertext;
+        }
+
+        auto serialized_ciphertext = ss.str();
+        serialized_ciphertext.insert(serialized_ciphertext.begin(), start_sigemail.begin(), start_sigemail.end());
+        serialized_ciphertext.append(end_sigemail);
+
+        export_email(self_email.c_str(), email_pass.c_str(), serialized_ciphertext.c_str());
     }
 }
