@@ -14,8 +14,6 @@ session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_ephem
         self_keypair(std::move(self_ephem)),
         remote_public_key(std::move(dest_public_key)), root_key(shared_secret),
         x3dh_aad(std::move(aad)),
-        //send_chain_key(crypto::root_derive(
-        //root_key, self_keypair.generate_shared_secret(remote_public_key))),
         initial_header_contents({std::move(initial_id_public), self_keypair.get_public(),
                 std::move(initial_otpk_public)}),
         initial_secret_key(std::move(shared_secret)) {
@@ -33,8 +31,6 @@ session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_kp,
         self_keypair(std::move(self_kp)),
         remote_public_key(std::move(dest_public_key)), root_key(std::move(shared_secret)),
         x3dh_aad(std::move(aad)),
-        //receive_chain_key(crypto::root_derive(
-        //root_key, self_keypair.generate_shared_secret(remote_public_key))),
         initial_header_contents(std::nullopt), initial_secret_key(std::nullopt) {
     receive_chain_key
             = crypto::root_derive(root_key, self_keypair.generate_shared_secret(remote_public_key));
