@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE(submit_message) {
 
     const auto key = get_key();
 
-    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt};
+    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt, std::vector<std::byte>{}};
 
     const auto m = send_s.ratchet_encrypt(get_message(), get_aad());
 
@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE(submit_message_multiple) {
 
     const auto key = get_key();
 
-    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt};
+    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt, std::vector<std::byte>{}};
     const auto m = send_s.ratchet_encrypt(get_message(), get_aad());
 
     std::vector<std::pair<int, signal_message>> messages;
@@ -170,7 +170,7 @@ BOOST_AUTO_TEST_CASE(submit_message_different_dests) {
 
     const auto key = get_key();
 
-    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt};
+    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt, std::vector<std::byte>{}};
 
     const auto m = send_s.ratchet_encrypt(get_message(), get_aad());
 
@@ -199,7 +199,7 @@ BOOST_AUTO_TEST_CASE(retrieve_messages) {
 
     const auto key = get_key();
 
-    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt};
+    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt, std::vector<std::byte>{}};
     const auto m = send_s.ratchet_encrypt(get_message(), get_aad());
 
     std::vector<std::pair<int, signal_message>> messages;

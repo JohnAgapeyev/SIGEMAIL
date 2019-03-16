@@ -10,9 +10,10 @@ const uint64_t MAX_SKIP = 100;
 
 session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_ephem,
         crypto::public_key dest_public_key, crypto::public_key initial_id_public,
-        std::optional<crypto::public_key> initial_otpk_public) :
+        std::optional<crypto::public_key> initial_otpk_public, std::vector<std::byte> aad) :
         self_keypair(std::move(self_ephem)),
         remote_public_key(std::move(dest_public_key)), root_key(shared_secret),
+        x3dh_aad(std::move(aad)),
         //send_chain_key(crypto::root_derive(
         //root_key, self_keypair.generate_shared_secret(remote_public_key))),
         initial_header_contents({std::move(initial_id_public), self_keypair.get_public(),
@@ -28,9 +29,10 @@ session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_ephem
 }
 
 session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_kp,
-        crypto::public_key dest_public_key) :
+        crypto::public_key dest_public_key, std::vector<std::byte> aad) :
         self_keypair(std::move(self_kp)),
         remote_public_key(std::move(dest_public_key)), root_key(std::move(shared_secret)),
+        x3dh_aad(std::move(aad)),
         //receive_chain_key(crypto::root_derive(
         //root_key, self_keypair.generate_shared_secret(remote_public_key))),
         initial_header_contents(std::nullopt), initial_secret_key(std::nullopt) {
@@ -44,7 +46,9 @@ session::session(crypto::shared_key shared_secret, crypto::DH_Keypair self_kp,
 }
 
 const signal_message session::ratchet_encrypt(const crypto::secure_vector<std::byte>& plaintext,
-        const crypto::secure_vector<std::byte>& aad) {
+        crypto::secure_vector<std::byte> aad) {
+    aad.insert(aad.end(), x3dh_aad.begin(), x3dh_aad.end());
+
     if (!initial_header_contents.has_value()) {
         const auto message_key = crypto::chain_derive(send_chain_key);
 
@@ -194,9 +198,13 @@ std::pair<session, crypto::secure_vector<std::byte>> decrypt_initial_message(
     const auto secret_key
             = X3DH_receiver(identity, prekey, one_time, header.identity_key, header.ephemeral_key);
 
+    std::vector<std::byte> x3dh_aad;
+    x3dh_aad.insert(x3dh_aad.end(), header.identity_key.begin(), header.identity_key.end());
+    x3dh_aad.insert(x3dh_aad.end(), identity.get_public().begin(), identity.get_public().end());
+
     //I don't like having to copy the message here, but the GCM set tag call in OpenSSL takes a non-const pointer to the tag
     auto message_copy = message.message;
-    return {{secret_key, prekey, header.ephemeral_key},
+    return {{secret_key, prekey, header.ephemeral_key, x3dh_aad},
             crypto::decrypt(message_copy, secret_key, message.aad)};
 }
 
@@ -208,8 +216,12 @@ std::pair<session, crypto::secure_vector<std::byte>> decrypt_initial_message(
     const auto secret_key
             = X3DH_receiver(identity, prekey, header.identity_key, header.ephemeral_key);
 
+    std::vector<std::byte> x3dh_aad;
+    x3dh_aad.insert(x3dh_aad.end(), header.identity_key.begin(), header.identity_key.end());
+    x3dh_aad.insert(x3dh_aad.end(), identity.get_public().begin(), identity.get_public().end());
+
     //I don't like having to copy the message here, but the GCM set tag call in OpenSSL takes a non-const pointer to the tag
     auto message_copy = message.message;
-    return {{secret_key, prekey, header.ephemeral_key},
+    return {{secret_key, prekey, header.ephemeral_key, x3dh_aad},
             crypto::decrypt(message_copy, secret_key, message.aad)};
 }

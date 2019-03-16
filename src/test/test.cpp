@@ -64,7 +64,8 @@ session get_session() {
     crypto::DH_Keypair kp2;
     crypto::DH_Keypair kp3;
     crypto::DH_Keypair kp4;
-    session s{key, kp3, kp1.get_public(), kp2.get_public(), kp4.get_public()};
+    session s{key, kp3, kp1.get_public(), kp2.get_public(), kp4.get_public(),
+            std::vector<std::byte>{13, std::byte{0xb4}}};
     return s;
 }
 

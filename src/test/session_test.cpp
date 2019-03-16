@@ -21,7 +21,7 @@ BOOST_AUTO_TEST_CASE(session_initial) {
     auto key
             = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
 
-    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt};
+    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt, std::vector<std::byte>{}};
 
     auto [recv_s, plaintext] = decrypt_initial_message(
             send_s.ratchet_encrypt(get_message(), get_aad()), recv_id, recv_pre);
@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(session_double_send) {
     auto key
             = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
 
-    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt};
+    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt, std::vector<std::byte>{}};
 
     auto [recv_s, plaintext] = decrypt_initial_message(
             send_s.ratchet_encrypt(get_message(), get_aad()), recv_id, recv_pre);
@@ -63,7 +63,7 @@ BOOST_AUTO_TEST_CASE(session_initial_back_forth) {
     auto key
             = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
 
-    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt};
+    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt, std::vector<std::byte>{}};
 
     auto [recv_s, plaintext] = decrypt_initial_message(
             send_s.ratchet_encrypt(get_message(), get_aad()), recv_id, recv_pre);
@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(session_double_decrypt) {
     auto key
             = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
 
-    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt};
+    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt, std::vector<std::byte>{}};
 
     auto [recv_s, plaintext] = decrypt_initial_message(
             send_s.ratchet_encrypt(get_message(), get_aad()), recv_id, recv_pre);
@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(session_back_and_forth) {
     auto key
             = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
 
-    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt};
+    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt, std::vector<std::byte>{}};
 
     auto [recv_s, plaintext] = decrypt_initial_message(
             send_s.ratchet_encrypt(get_message(), get_aad()), recv_id, recv_pre);
@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE(out_of_order_messages) {
     auto key
             = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
 
-    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt};
+    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt, std::vector<std::byte>{}};
 
     auto [recv_s, plaintext] = decrypt_initial_message(
             send_s.ratchet_encrypt(get_message(), get_aad()), recv_id, recv_pre);
@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(out_of_order_back_and_forth) {
     auto key
             = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
 
-    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt};
+    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt, std::vector<std::byte>{}};
 
     auto [recv_s, plaintext] = decrypt_initial_message(
             send_s.ratchet_encrypt(get_message(), get_aad()), recv_id, recv_pre);
@@ -191,7 +191,7 @@ BOOST_AUTO_TEST_CASE(many_sends) {
     auto key
             = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
 
-    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt};
+    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt, std::vector<std::byte>{}};
 
     auto [recv_s, plaintext] = decrypt_initial_message(
             send_s.ratchet_encrypt(get_message(), get_aad()), recv_id, recv_pre);
@@ -214,7 +214,7 @@ BOOST_AUTO_TEST_CASE(many_alternating) {
     auto key
             = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
 
-    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt};
+    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt, std::vector<std::byte>{}};
 
     auto [recv_s, plaintext] = decrypt_initial_message(
             send_s.ratchet_encrypt(get_message(), get_aad()), recv_id, recv_pre);
@@ -246,7 +246,7 @@ BOOST_AUTO_TEST_CASE(dh_old_message) {
     auto key
             = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
 
-    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt};
+    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt, std::vector<std::byte>{}};
 
     auto [recv_s, plaintext] = decrypt_initial_message(
             send_s.ratchet_encrypt(get_message(), get_aad()), recv_id, recv_pre);
@@ -283,7 +283,7 @@ BOOST_AUTO_TEST_CASE(signal_out_of_order_example) {
     auto key
             = crypto::X3DH_sender(send_id, send_ephem, recv_id.get_public(), recv_pre.get_public());
 
-    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt};
+    session send_s{key, send_ephem, recv_pre.get_public(), send_id.get_public(), std::nullopt, std::vector<std::byte>{}};
 
     auto [recv_s, plaintext] = decrypt_initial_message(
             send_s.ratchet_encrypt(get_message(), get_aad()), recv_id, recv_pre);

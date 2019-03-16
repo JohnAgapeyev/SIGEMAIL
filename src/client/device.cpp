@@ -112,7 +112,11 @@ void device::prep_for_encryption(
         secret_key = crypto::X3DH_sender(self_identity, ephemeral_keypair, identity_key, pre_key);
     }
 
-    session s{std::move(secret_key), std::move(ephemeral_keypair), std::move(pre_key), std::move(self_identity.get_public()), one_time_key};
+    std::vector<std::byte> x3dh_aad;
+    x3dh_aad.insert(x3dh_aad.end(), self_identity.get_public().begin(), self_identity.get_public().end());
+    x3dh_aad.insert(x3dh_aad.end(), identity_key.begin(), identity_key.end());
+
+    session s{std::move(secret_key), std::move(ephemeral_keypair), std::move(pre_key), std::move(self_identity.get_public()), one_time_key, x3dh_aad};
 
     int session_id = client_db.add_session(device_index, std::move(s));
     client_db.activate_session(device_index, session_id);
@@ -154,7 +158,11 @@ void device::prep_for_encryption(const std::string& email) {
             secret_key = crypto::X3DH_sender(self_identity, ephemeral_keypair, identity_key, pre_key);
         }
 
-        session s{std::move(secret_key), std::move(ephemeral_keypair), std::move(pre_key), std::move(self_identity.get_public()), one_time_key};
+        std::vector<std::byte> x3dh_aad;
+        x3dh_aad.insert(x3dh_aad.end(), self_identity.get_public().begin(), self_identity.get_public().end());
+        x3dh_aad.insert(x3dh_aad.end(), identity_key.begin(), identity_key.end());
+
+        session s{std::move(secret_key), std::move(ephemeral_keypair), std::move(pre_key), std::move(self_identity.get_public()), one_time_key, x3dh_aad};
 
         int session_id = client_db.add_session(device_id, std::move(s));
         client_db.activate_session(device_id, session_id);
@@ -164,8 +172,7 @@ void device::prep_for_encryption(const std::string& email) {
 void device::send_signal_message(const crypto::secure_vector<std::byte>& plaintext,
         const crypto::secure_vector<std::string>& recipients) {
 
-    //TODO This needs to be retrieved from the X3DH agreement somehow
-    const crypto::secure_vector<std::byte> aad;
+    const crypto::secure_vector<std::byte> aad{};
 
     auto trans_lock = client_db.start_transaction();
 

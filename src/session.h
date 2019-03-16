@@ -22,9 +22,9 @@ public:
     //Sender initialization
     session(crypto::shared_key shared_secret, crypto::DH_Keypair self_ephem,
             crypto::public_key dest_public_key, crypto::public_key initial_id_public,
-            std::optional<crypto::public_key> initial_otpk_public);
+            std::optional<crypto::public_key> initial_otpk_public, std::vector<std::byte> aad);
     //Receiver initialization
-    session(crypto::shared_key shared_secret, crypto::DH_Keypair self_kp, crypto::public_key);
+    session(crypto::shared_key shared_secret, crypto::DH_Keypair self_kp, crypto::public_key dest_public_key, std::vector<std::byte> aad);
     ~session() = default;
     session(const session&) = default;
     session(session&&) = default;
@@ -35,7 +35,7 @@ public:
     bool operator!=(const session& other) const { return !(*this == other); }
 
     const signal_message ratchet_encrypt(const crypto::secure_vector<std::byte>& plaintext,
-            const crypto::secure_vector<std::byte>& aad);
+            crypto::secure_vector<std::byte> aad);
 
     const crypto::secure_vector<std::byte> ratchet_decrypt(const signal_message& message);
 
@@ -52,6 +52,7 @@ private:
     crypto::shared_key root_key;
     crypto::shared_key send_chain_key;
     crypto::shared_key receive_chain_key;
+    std::vector<std::byte> x3dh_aad;
     uint64_t send_message_num = 0;
     uint64_t receive_message_num = 0;
     uint64_t previous_send_chain_size = 0;
@@ -71,6 +72,7 @@ private:
         ar& root_key;
         ar& send_chain_key;
         ar& receive_chain_key;
+        ar& x3dh_aad;
         ar& send_message_num;
         ar& receive_message_num;
         ar& previous_send_chain_size;
@@ -108,6 +110,7 @@ private:
         ar& root_key;
         ar& send_chain_key;
         ar& receive_chain_key;
+        ar& x3dh_aad;
         ar& send_message_num;
         ar& receive_message_num;
         ar& previous_send_chain_size;
