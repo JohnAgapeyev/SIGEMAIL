@@ -42,6 +42,8 @@ public:
     void register_with_server(const std::string& email, const std::string& password);
     void confirm_registration(const std::string& email, const std::string& password, const uint64_t registration_code);
 
+    bool contact_exists(const std::string& dest);
+
 private:
     boost::asio::io_context ioc;
     boost::asio::ssl::context ssl;

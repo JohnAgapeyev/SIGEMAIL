@@ -131,6 +131,12 @@ void main_window::on_send_btn_clicked() {
         return;
     }
 
+    if (!dev.contact_exists(dest)) {
+        QMessageBox::information(this, tr("SIGEMAIL"),
+                tr("Destination email is not currently registered with SIGEMAIL"));
+        return;
+    }
+
     try {
         send_message(dest, contents);
     } catch (const std::exception& e) {
@@ -250,6 +256,12 @@ void main_window::on_send_export_clicked() {
     if (!dev.check_registration()) {
         QMessageBox::information(this, tr("SIGEMAIL"),
                 tr("Please Register with SIGEMAIL before attempting to send your emails"));
+        return;
+    }
+
+    if (!dev.contact_exists(dest)) {
+        QMessageBox::information(this, tr("SIGEMAIL"),
+                tr("Destination email is not currently registered with SIGEMAIL"));
         return;
     }
 

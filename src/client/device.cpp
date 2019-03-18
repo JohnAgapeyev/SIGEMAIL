@@ -322,3 +322,10 @@ void device::confirm_registration(const std::string& email, const std::string& p
         throw std::runtime_error(err_msg);
     }
 }
+
+bool device::contact_exists(const std::string& dest) {
+    std::vector<std::string> input;
+    input.push_back(dest);
+    const auto res = network_session->contact_intersection(input);
+    return res && res->size() == 1 && res->front() == dest;
+}
