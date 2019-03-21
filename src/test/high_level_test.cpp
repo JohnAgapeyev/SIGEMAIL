@@ -341,6 +341,7 @@ BOOST_AUTO_TEST_CASE(many_staggered_2_to_1) {
     }
 }
 
+#if 0
 BOOST_AUTO_TEST_CASE(simul_multiple_sends) {
     auto server_db = get_server_db();
     auto alice_db = get_client_db();
@@ -399,5 +400,6 @@ BOOST_AUTO_TEST_CASE(simul_multiple_sends) {
     BOOST_TEST(decrypted.has_value());
     BOOST_TEST(decrypted->size() == 5);
 }
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()
