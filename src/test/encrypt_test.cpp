@@ -3,6 +3,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "test.h"
+#include "logging.h"
 #include "crypto.h"
 #include "error.h"
 #include "dh.h"
@@ -16,9 +17,18 @@ BOOST_AUTO_TEST_CASE(basic_encryption) {
     const auto key = get_key();
     const auto aad = get_aad();
 
+    spdlog::debug("Testing basic encryption");
+
     const auto ciphertext = crypto::encrypt(message, key, aad);
     auto ciphertext_copy = ciphertext;
     const auto plaintext = crypto::decrypt(ciphertext_copy, key, aad);
+
+    spdlog::info("Input plaintext  {}", message);
+    spdlog::info("Ouput ciphertext {}", ciphertext);
+    spdlog::info("Output plaintext {}", plaintext);
+
+    spdlog::debug("Output plaintext == input plaintext");
+    spdlog::debug("Test OK");
 
     BOOST_TEST(message == plaintext);
 }

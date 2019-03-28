@@ -44,6 +44,7 @@ namespace crypto {
         return os;
     }
 
+
     template<typename T>
     using secure_vector = std::vector<T, zallocator<T>>;
     using secure_string = std::basic_string<char, std::char_traits<char>, zallocator<char>>;
@@ -52,6 +53,8 @@ namespace crypto {
     template<typename Key, typename T>
     using secure_unordered_map = std::unordered_map<Key, T, boost::hash<Key>, std::equal_to<Key>,
             zallocator<std::pair<const Key, T>>>;
+
+    std::ostream& operator<<(std::ostream& os, const secure_vector<std::byte>& vec);
 
     using shared_key = secure_array<std::byte, 32>;
     using public_key = secure_array<std::byte, 32>;
