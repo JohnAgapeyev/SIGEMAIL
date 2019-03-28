@@ -107,3 +107,8 @@ const crypto::shared_key crypto::X3DH_receiver(const DH_Keypair& local_identity,
 
     return x3dh_derive(kdf_input);
 }
+
+std::ostream& crypto::operator<<(std::ostream& os, const crypto::DH_Keypair& dh) {
+    os << "Private: " << dh.private_key << "\t" << "Public: " <<  dh.public_key;
+    return os;
+}

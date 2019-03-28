@@ -2,6 +2,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "test.h"
+#include "logging.h"
 #include "crypto.h"
 #include "dh.h"
 #include "message.h"
@@ -20,6 +21,8 @@ BOOST_AUTO_TEST_CASE(x3dh) {
     auto pre_key_sig = crypto::sign_key(bob_identity, pre_key.get_public());
     crypto::DH_Keypair one_time_key;
 
+    spdlog::debug("Testing basic X3DH key agreement");
+
     //Assume each party has been transmitted the keys via the network by this point
 
     //Alice key generation
@@ -36,6 +39,18 @@ BOOST_AUTO_TEST_CASE(x3dh) {
             alice_identity.get_public(), alice_ephemeral.get_public());
 
     BOOST_TEST(alice_shared_secret == bob_shared_secret);
+
+    spdlog::info("Alice identity key  {}", alice_identity);
+    spdlog::info("Alice ephemeral key {}", alice_ephemeral);
+    spdlog::info("Bob identity key    {}", bob_identity);
+    spdlog::info("Bob pre key         {}", pre_key);
+    spdlog::info("Bob one time key    {}", one_time_key);
+
+    spdlog::info("Alice generated shared secret {}", alice_shared_secret);
+    spdlog::info("Bob generated shared secret   {}", bob_shared_secret);
+
+    spdlog::debug("Alice secret key == Bob secret key");
+    spdlog::debug("Test OK");
 }
 
 BOOST_AUTO_TEST_CASE(bad_x3dh) {

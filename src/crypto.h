@@ -55,6 +55,7 @@ namespace crypto {
             zallocator<std::pair<const Key, T>>>;
 
     std::ostream& operator<<(std::ostream& os, const secure_vector<std::byte>& vec);
+    std::ostream& operator<<(std::ostream& os, const DH_Keypair& dh);
 
     using shared_key = secure_array<std::byte, 32>;
     using public_key = secure_array<std::byte, 32>;

@@ -34,6 +34,7 @@ public:
         ar& private_key;
         ar& public_key;
     }
+    friend std::ostream& crypto::operator<<(std::ostream& os, const crypto::DH_Keypair& dh);
 };
 
 #endif

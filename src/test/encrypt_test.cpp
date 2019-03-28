@@ -40,12 +40,21 @@ BOOST_AUTO_TEST_CASE(corrupted_message) {
 
     const auto ciphertext = crypto::encrypt(message, key, aad);
 
+    spdlog::debug("Testing encryption failure via corrupted ciphertext");
+
     auto ciphertext_copy = ciphertext;
-    ciphertext_copy[3] = std::byte{0};
+    ciphertext_copy[3] = std::byte{37};
     ciphertext_copy[4] = ciphertext_copy[1];
+
+    spdlog::info("Input plaintext     {}", message);
+    spdlog::info("Ouput ciphertext    {}", ciphertext);
+    spdlog::info("Modified ciphertext {}", ciphertext_copy);
 
     crypto::secure_vector<std::byte> plaintext;
     BOOST_REQUIRE_THROW(plaintext = crypto::decrypt(ciphertext_copy, key, aad), crypto::expected_error);
+
+    spdlog::debug("Message failed to decrypt");
+    spdlog::debug("Test OK");
 }
 
 BOOST_AUTO_TEST_CASE(corrupted_aad) {
