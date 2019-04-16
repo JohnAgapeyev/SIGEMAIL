@@ -10,6 +10,7 @@
 
 BOOST_AUTO_TEST_SUITE(high_level_tests)
 
+#if 0
 BOOST_AUTO_TEST_CASE(single_send_recv) {
     auto server_db = get_server_db();
     auto alice_db = get_client_db();
@@ -401,5 +402,57 @@ BOOST_AUTO_TEST_CASE(simul_multiple_sends) {
     BOOST_TEST(decrypted->size() == 5);
 }
 #endif
+#endif
+
+BOOST_AUTO_TEST_CASE(tons_clients) {
+    auto server_db = get_server_db();
+    const auto server_wrapper = get_server(server_db);
+
+    auto alice_db = get_client_db();
+    const auto alice_wrapper = get_client(alice_db);
+    auto alice = alice_wrapper->client;
+    const auto alice_email = "foobar@test.com";
+    server_db.add_registration_code(alice_email, 12345);
+    BOOST_TEST(alice->verify_verification_code(alice_email, "foobar", 12345));
+    device alice_dev{"localhost", "8443", alice_db};
+
+    const auto plaintext = get_message();
+
+    constexpr int count = 100;
+    std::array<std::thread, count> threads;
+
+    for (int i = 0; i < count; ++i) {
+        threads[i] = std::thread{[&](int start) {
+            auto bob_db = get_client_db();
+            const auto bob_wrapper = get_client(bob_db);
+            auto bob = bob_wrapper->client;
+
+            std::stringstream ss{"baz@foobar.com"};
+            ss << start;
+            auto bob_email = ss.str();
+
+            server_db.add_registration_code(bob_email, 23456 + start);
+            BOOST_TEST(bob->verify_verification_code(bob_email, "foobar", 23456 + start));
+            device bob_dev{"localhost", "8443", bob_db};
+
+            for (int i = 0; i < 50; ++i) {
+                bob_dev.send_signal_message(plaintext, {alice_email});
+            }
+        }, i};
+    }
+
+    sleep(1);
+
+    auto decrypted = alice_dev.receive_signal_message();
+    do {
+        decrypted = alice_dev.receive_signal_message();
+    } while (decrypted.has_value() && !decrypted->empty());
+
+    std::cout << "done\n";
+
+    for (auto& t : threads) {
+        t.join();
+    }
+}
 
 BOOST_AUTO_TEST_SUITE_END()
