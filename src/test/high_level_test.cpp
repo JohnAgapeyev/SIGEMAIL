@@ -435,8 +435,9 @@ BOOST_AUTO_TEST_CASE(tons_clients) {
             BOOST_TEST(bob->verify_verification_code(bob_email, "foobar", 23456 + start));
             device bob_dev{"localhost", "8443", bob_db};
 
-            for (int i = 0; i < 50; ++i) {
+            for (int i = 0; i < 10; ++i) {
                 bob_dev.send_signal_message(plaintext, {alice_email});
+                std::cout << "Thread " << start << " send message " << i << "\n";
             }
         }, i};
     }
